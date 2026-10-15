@@ -42,9 +42,18 @@ Verified on 15 October 2026 in the delivered local Windows workspace.
 - Checked the n8n setup dialog in the UI. It correctly reported that no adapter or credentials are configured and that no external request was sent.
 - Saved desktop and Arabic mobile preview screenshots alongside this report.
 
+## Hosted deployment checks
+
+- The private GitHub repository is connected to the Vercel project in team `luminol`.
+- Initial production deployment `dpl_C3GnC8aSYAjSGt7CQQ2fkxaQTC66`, from commit `af59a2c`, was reported Ready by Vercel.
+- The production HTTPS URL loaded the English/Arabic sign-in interface, without a prefilled password or local demo role selector.
+- Deployment settings confirmed Node.js 24.x, the cdg1 function region, and Standard Protection.
+- A private Blob store in cdg1 is connected to this project's Production and Preview environments using OIDC.
+- The backend refused startup while the required administrator password was absent, displaying the expected unavailable message. Owner password setup and a subsequent redeployment are pending; hosted sign-in and real storage persistence have not yet been verified.
+
 ## Limits of verification
 
-This verifies a functional local release with demo records. No live email, WhatsApp, n8n, external calendar, form provider, or payment processor was connected. No money was moved. Hosted deployment, production account onboarding, unattended automation scheduling, load testing, and an independent security/accessibility audit have not been completed.
+This verifies a functional local release with demo records and a published hosted interface. No live email, WhatsApp, n8n, external calendar, form provider, or payment processor was connected. No money was moved. Hosted sign-in and persistence verification, production account onboarding, unattended automation scheduling, load testing, and an independent security/accessibility audit have not been completed.
 
 A read-only search for existing Luminol workflows was attempted through the connected n8n tool. The connector returned an internal error, so existing remote workflows could not be inspected. No remote workflows were modified.
 

@@ -6,6 +6,8 @@ A working local CRM for **psychology, languages, and training**, with an English
 
 Source: [Ninou09/luminol-academy-crm](https://github.com/Ninou09/luminol-academy-crm). The repository is private. Vercel configuration is included in `vercel.json`; the frontend is built with Vite and `/api/*` is handled by a Node.js 24 function.
 
+Hosted URL: [luminol-academy-crm.vercel.app](https://luminol-academy-crm.vercel.app/). See **DEPLOYMENT.md** for the verified deployment status and any remaining setup.
+
 The hosted version uses a **private Vercel Blob store** for durable SQLite snapshots. Each request opens its own temporary SQLite connection, reads the latest snapshot without CDN caching, and conditionally saves changed data using the previous ETag. A conflicting write returns HTTP 409 and does not claim success. Responses and login cookies are held until persistence succeeds. Preview branches use separate snapshots from production. Temporary function files are never treated as durable storage.
 
 Required hosted environment variables:
