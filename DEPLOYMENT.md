@@ -33,6 +33,8 @@ The new workflow is an unpublished draft in the owner's personal n8n project. Th
 
 Redeployment `dpl_DW1gTBiWzYmxiQDHFSpa5ETu37x1` and documentation deployment `dpl_DU4CNkDXj5JgU1PcBoMeRJ1GG1o9` (commit `5147be4`) were reported Ready. The fictional live check reached the CRM but returned HTTP 503 because the runtime intake key is missing or outside its 32–256-character requirement. No inquiry or receipt was created. The owner is checking the key privately; activation remains pending. See **N8N_INTEGRATION.md** for details.
 
+After another private key check, production was redeployed as `dpl_Fa2Fi7nFkFhq9iKQLqKuNp56XLEj` (Ready). Diagnostic release `dpl_94zKC8uRu2oivVBb156dG7XrJT9v` (commit `450e096`, Ready) now distinguishes missing and invalid-length server settings without exposing values. Live check **3169** confirmed a **present but invalid-length** `N8N_INTAKE_TOKEN`. Both replacement forms are prepared for a fresh matching 64-character value. No production inquiry was created; the workflow remains unpublished. The build and all 23 tests pass.
+
 ## Operational boundaries
 
 The database contains fictional sample records. Real staff invitations, password recovery, backup procedures, and external service integrations remain follow-up work before operational use with real student records. The snapshot adapter is intended for this small release and has a 64 MB database limit; use managed SQL as data volume and concurrent usage grow.

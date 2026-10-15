@@ -34,6 +34,8 @@ Verified on 15 October 2026 in the delivered local Windows workspace.
 
 The new n8n inbox and review form were also checked in an isolated browser database. The workflow draft passed schema validation and a simulated execution with HTTP pinned and receipt writes in dry-run mode. Production connection diagnostic **3166** reached the CRM but returned 503 because its runtime intake key is not configured. The owner is checking the key privately; successful delivery and activation remain pending. See **N8N_INTEGRATION.md**.
 
+Following a clearer configuration error in commit `450e096`, the build and all 23 tests passed again. Production deployment `dpl_94zKC8uRu2oivVBb156dG7XrJT9v` was Ready. Live fictional diagnostic **3169** confirmed that the runtime key is present but outside the required 32–256 characters. The receipt table remains empty. Execution payload retention was disabled again after this diagnostic; the workflow is unpublished while the owner replaces the key privately.
+
 ## Browser checks
 
 - Signed in successfully using the demo administrator account.

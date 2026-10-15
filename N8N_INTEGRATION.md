@@ -16,7 +16,7 @@ This is **new-inquiry intake**, not a two-way synchronization. Later edits and o
 
 ## One-time credential setup
 
-1. Create a unique random token of **32–256 characters**; 64 random characters are recommended. Keep it in your password manager. This is separate from the administrator password.
+1. Create a unique random token of **32–256 characters**; 64 random letters and numbers are recommended. Keep it in your password manager. Paste only the token value into each secret field, without a variable name, quotes, or surrounding JSON. This is separate from the administrator password.
 2. In the CRM Vercel project, add `N8N_INTAKE_TOKEN` as a **Secret for Production**, then redeploy.
 3. In the workflow's **Capture inquiry and review task** node, create/select **Luminol CRM Intake** with **Simplified Custom Auth** (the credential type is `httpTemplatedCustomAuth`). Its header template is:
 
@@ -37,10 +37,11 @@ The endpoint is `POST https://luminol-academy-crm.vercel.app/api/integrations/n8
 - An isolated browser check captured a fictional inquiry, selected a program/advisor, opened the resulting contact, and showed exactly one first-contact follow-up.
 - n8n node/schema and workflow validation pass with no warnings.
 - Simulated n8n execution **3163** succeeded with the HTTP response pinned and receipt writes in dry-run mode. The receipt table remained empty afterward; normal receipt writing was then restored.
-- Successful/error/manual execution payload retention is disabled on this new workflow. It was briefly enabled for the fictional connection diagnostic **3166**, then disabled again. That retained diagnostic contains only the fictional sample and a redacted Authorization header.
+- Successful/error/manual execution payload retention is disabled on this new workflow. It was briefly enabled for the fictional connection diagnostics **3166/3169**, then disabled again. Those retained diagnostics contain only the fictional sample and a redacted Authorization header.
 - Production deployment `dpl_61KmX1RCj4aRVsu8CtNcreQmtwJf`, from commit `ded3612`, was reported Ready. Its authenticated admissions page shows the new inbox with zero pending inquiries and **Setup required**. The earlier fictional Cloud Verification Sample and the existing login session remain available.
 - The owner saved the Production Secret and the **Luminol CRM Intake** credential. Their values were not retrieved or printed. The credential is assigned to the HTTP node.
 - Production redeployment `dpl_DW1gTBiWzYmxiQDHFSpa5ETu37x1` and documentation deployment `dpl_DU4CNkDXj5JgU1PcBoMeRJ1GG1o9` (commit `5147be4`) were reported Ready. Live n8n connection diagnostic **3166** reached the CRM, which returned HTTP 503: **The n8n intake connection is not configured.** The receipt table remains empty and the inbox remains at zero. The server requires a runtime key of 32–256 characters; the owner is checking the saved key privately. Earlier attempt 3165 was not retained.
 - Successful live delivery and activation remain pending. The workflow is unpublished, and the production data has not received the fictional connection record. Simulated tests do not prove a live connection.
+- After the owner checked the key, redeployment `dpl_Fa2Fi7nFkFhq9iKQLqKuNp56XLEj` was Ready but the inbox remained unconfigured. A small diagnostic improvement distinguishes a missing runtime variable from an invalid-length value without returning the secret or its length. Build `dpl_94zKC8uRu2oivVBb156dG7XrJT9v` (commit `450e096`) was Ready; build and all 23 tests passed again. Live diagnostic **3169** confirmed that the server setting is **present but outside 32–256 characters**. The replacement forms are prepared for the owner to save a fresh matching 64-character value in both services.
 
 The reproducible Workflow SDK source is `integrations/n8n-new-inquiries.ts`. If recreating it, also apply the privacy settings: `saveDataSuccessExecution=none`, `saveDataErrorExecution=none`, `saveManualExecutions=false`, `saveExecutionProgress=false`, `executionTimeout=120`, and `timezone=Africa/Algiers`.
