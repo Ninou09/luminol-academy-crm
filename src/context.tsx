@@ -1,0 +1,31 @@
+import { createContext, useContext } from "react";
+import type { State, Row } from "./types";
+export type ModalData = {
+  type: string;
+  record?: Row;
+  contact?: Row;
+  extra?: any;
+};
+export type AppContextType = {
+  data: State;
+  t: (s: string) => string;
+  lang: string;
+  setLang: (s: string) => void;
+  page: string;
+  go: (page: string, filter?: string) => void;
+  pageFilter: string;
+  open: (m: ModalData) => void;
+  profile: (id: number) => void;
+  toast: (s: string, undo?: () => void) => void;
+  refresh: () => Promise<void>;
+  perform: (path: string, body: unknown, method?: string) => Promise<any>;
+  money: (n: number, currency?: string) => string;
+  date: (s: string, opts?: Intl.DateTimeFormatOptions) => string;
+  time: (s: string) => string;
+  person: (id: number) => Row;
+  program: (id: number) => Row;
+  cohort: (id: number) => Row;
+  user: (id: number) => Row;
+};
+export const AppContext = createContext<AppContextType>(null!);
+export const useApp = () => useContext(AppContext);
