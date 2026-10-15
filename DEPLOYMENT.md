@@ -19,11 +19,13 @@ Production and preview branches use separate database snapshot paths. Writes com
 
 ## Administrator setup and verification
 
-The owner must set `DEMO_PASSWORD` as a **Secret**, scoped to Production and Preview, with a unique password of at least 16 characters. The Vercel form has been prepared for this step. Do not send the password in chat or commit it. Redeploy after saving the environment variable.
+The owner saved `DEMO_PASSWORD` as a **Secret** in both Production and Preview. Its value was not retrieved, printed, or committed. Production was redeployed with the latest environment settings; deployment `dpl_9NPe2XVoNinVkURcrrLhQxFvtsZQ`, from commit `7fcd207bc61592fb9bfd9c2d26dc8e01929888d9`, was reported **Ready** on 15 October 2026.
 
-The hosted administrator is `admin@luminol.demo`. Cloud startup refuses to initialize without the password. The initial deployment therefore displays a storage-unavailable message until the secret and linked-store settings are included in a new deployment. Changing this environment variable later does not reset an existing account password.
+The hosted administrator is `admin@luminol.demo`; use the password saved by the owner. Cloud startup refuses to initialize without a password of at least 16 characters. The previous storage-unavailable message is resolved. Changing this environment variable later does not reset an existing account password.
 
-Pending hosted checks after setup: sign-in, fictional inquiry creation, persistence after reload, and reading the record in another session. These checks have not yet been claimed as passed. The local build and all **17 automated tests** pass, including simulated independent function instances, conflicting writes, and storage outages.
+Verified against the production URL: the owner signed in successfully, the authenticated workspace loaded, a fictional inquiry named **Cloud Verification Sample** was created, and the record, generated follow-up, activity history, and login session survived a full page reload. Vercel's private Blob browser showed `luminol-crm/production/workspace.sqlite` with a recent modification timestamp. No real contact was created or message sent. The sample inquiry is intentionally retained as verification evidence.
+
+The local build and all **17 automated tests** pass, including simulated independent function instances, conflicting writes, and storage outages. Hosted verification covers the administrator and this inquiry workflow; hosted load tests and other staff-role sessions have not been claimed as completed.
 
 ## Operational boundaries
 

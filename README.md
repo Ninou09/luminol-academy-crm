@@ -8,6 +8,8 @@ Source: [Ninou09/luminol-academy-crm](https://github.com/Ninou09/luminol-academy
 
 Hosted URL: [luminol-academy-crm.vercel.app](https://luminol-academy-crm.vercel.app/). See **DEPLOYMENT.md** for the verified deployment status and any remaining setup.
 
+Administrator sign-in and cloud saving have been verified. Sign in with `admin@luminol.demo` and the password saved by the owner in Vercel. A fictional **Cloud Verification Sample** inquiry remains in the hosted workspace as evidence of the save-and-reload check.
+
 The hosted version uses a **private Vercel Blob store** for durable SQLite snapshots. Each request opens its own temporary SQLite connection, reads the latest snapshot without CDN caching, and conditionally saves changed data using the previous ETag. A conflicting write returns HTTP 409 and does not claim success. Responses and login cookies are held until persistence succeeds. Preview branches use separate snapshots from production. Temporary function files are never treated as durable storage.
 
 Required hosted environment variables:
