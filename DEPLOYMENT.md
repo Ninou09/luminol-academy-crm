@@ -29,7 +29,9 @@ The local build and all **23 automated tests** pass, including simulated indepen
 
 The n8n intake endpoint and bilingual review inbox are deployed in production. Deployment `dpl_61KmX1RCj4aRVsu8CtNcreQmtwJf`, from commit `ded3612`, was reported **Ready** on 15 October 2026. The authenticated admissions page shows the new inbox with zero pending inquiries and **Setup required**, and the earlier fictional record and session remain available.
 
-The new workflow is an unpublished draft in the owner's personal n8n project. A separate `N8N_INTAKE_TOKEN` Production Secret and matching **Luminol CRM Intake** n8n credential are required before live delivery. Their non-secret form fields are prepared; the owner must enter and save the same key in both services. See **N8N_INTEGRATION.md** for the workflow, cutoff, verified tests, and activation steps.
+The new workflow is an unpublished draft in the owner's personal n8n project. The owner saved a separate `N8N_INTAKE_TOKEN` Production Secret and the **Luminol CRM Intake** n8n credential; neither value was retrieved or printed. The credential is assigned to the HTTP node.
+
+Redeployment `dpl_DW1gTBiWzYmxiQDHFSpa5ETu37x1` and documentation deployment `dpl_DU4CNkDXj5JgU1PcBoMeRJ1GG1o9` (commit `5147be4`) were reported Ready. The fictional live check reached the CRM but returned HTTP 503 because the runtime intake key is missing or outside its 32–256-character requirement. No inquiry or receipt was created. The owner is checking the key privately; activation remains pending. See **N8N_INTEGRATION.md** for details.
 
 ## Operational boundaries
 

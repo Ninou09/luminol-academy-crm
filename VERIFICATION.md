@@ -32,7 +32,7 @@ Verified on 15 October 2026 in the delivered local Windows workspace.
 22. Existing manual contact details and consent survive an intake match; enrolled opportunities are reused rather than restarted.
 23. Malformed inquiry input is rejected without creating records or tasks.
 
-The new n8n inbox and review form were also checked in an isolated browser database. The workflow draft passed schema validation and a simulated execution with HTTP pinned and receipt writes in dry-run mode. Production delivery/activation remain pending credential setup; see **N8N_INTEGRATION.md**.
+The new n8n inbox and review form were also checked in an isolated browser database. The workflow draft passed schema validation and a simulated execution with HTTP pinned and receipt writes in dry-run mode. Production connection diagnostic **3166** reached the CRM but returned 503 because its runtime intake key is not configured. The owner is checking the key privately; successful delivery and activation remain pending. See **N8N_INTEGRATION.md**.
 
 ## Browser checks
 
