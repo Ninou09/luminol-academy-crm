@@ -413,7 +413,7 @@ export function TaskRows({
   tasks: Row[];
   limit?: number;
 }) {
-  const { data, t, person, profile, perform, toast, date, time } = useApp();
+  const { data, t, person, profile, perform, toast, date, time, go } = useApp();
   async function done(task: Row) {
     try {
       if (task.status === "Done") {
@@ -461,6 +461,14 @@ export function TaskRows({
           <div className="task-content">
             <strong>{t(task.title)}</strong>
             <div>
+              {task.intake_id && (
+                <button
+                  className="subtle-link"
+                  onClick={() => go("Admissions")}
+                >
+                  {t("Review inquiry")}
+                </button>
+              )}
               {task.contact_id && (
                 <button
                   className="subtle-link"

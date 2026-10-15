@@ -1044,7 +1044,17 @@ export default function Forms({
         onClose={onClose}
       >
         <div className="detail-content">
-          <Badge tone="neutral">{t("Not configured")}</Badge>
+          <Badge
+            tone={
+              modal.extra === "n8n" && data.n8n?.configured ? "teal" : "neutral"
+            }
+          >
+            {t(
+              modal.extra === "n8n" && data.n8n?.configured
+                ? "Ready to receive"
+                : "Not configured",
+            )}
+          </Badge>
           <h3>
             {t(
               "Provider adapters and credentials are required to enable delivery.",
@@ -1053,7 +1063,9 @@ export default function Forms({
           <p className="muted">{t("No external message has been sent.")}</p>
           <div className="integration-requirements">
             {modal.extra === "n8n"
-              ? "Required: a server-side webhook adapter, endpoint allowlist, signing secret, event identifiers, and delivery retries."
+              ? t(
+                  "n8n sends new inquiries to the CRM intake endpoint. Configure the same dedicated token in Vercel and the n8n Bearer Auth credential. Incoming inquiries create review tasks; choose their program and advisor in Admissions.",
+                )
               : modal.extra === "WhatsApp"
                 ? "Required: a WhatsApp Business provider adapter, phone number ID, access token, webhook verification, and approved templates."
                 : modal.extra === "Email"

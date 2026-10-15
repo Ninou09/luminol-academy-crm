@@ -4,6 +4,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import {
+  installN8nIntake,
+  installN8nReview,
+  incomingInquiries,
+  n8nConnection,
+} from "./n8n-intake.mjs";
+import {
   db,
   all,
   one,
@@ -191,6 +197,7 @@ const write = (path, roles, fn, method = "post") =>
       next(e);
     }
   });
+installN8nIntake(app);
 app.post("/api/login", (req, res) => {
   const ip = isHosted
     ? req.headers["x-real-ip"] || req.socket.remoteAddress || "unknown"
@@ -365,6 +372,8 @@ function state(u) {
       (s) => !instructor || s.id === u.id,
     ),
     opportunities: canAdmissions(u) ? all("SELECT * FROM opportunities") : [],
+    incoming: incomingInquiries(u),
+    n8n: canAdmissions(u) ? n8nConnection() : undefined,
     enrollments: all("SELECT * FROM enrollments").filter((e) =>
       cohortIds.has(e.cohort_id),
     ),
@@ -375,7 +384,9 @@ function state(u) {
       cohortIds.has(s.cohort_id),
     ),
     attendance,
-    tasks: all("SELECT * FROM tasks ORDER BY due_at").filter(
+    tasks: all(
+      "SELECT t.*,i.id intake_id FROM tasks t LEFT JOIN incoming_inquiries i ON i.task_id=t.id ORDER BY t.due_at",
+    ).filter(
       (t) => u.role === "admin" || u.role === "manager" || t.owner_id === u.id,
     ),
     charges,
@@ -400,6 +411,7 @@ function state(u) {
     today,
   };
 }
+installN8nReview(app);
 app.get("/api/state", (req, res) => res.json(state(req.user)));
 app.get("/api/contacts/:id", (req, res, next) => {
   try {
@@ -1375,6 +1387,24 @@ write("/api/drafts", ["admin", "admissions"], (req) => {
   return { id };
 });
 write("/api/integrations/:name/check", ["admin"], (req) => {
+  if (req.params.name === "n8n") {
+    const connection = n8nConnection();
+    const message = connection.configured
+      ? "Intake endpoint ready. This checks server configuration; verify delivery from the n8n workflow separately."
+      : "Set N8N_INTAKE_TOKEN as a server-side secret of at least 32 characters, then connect the workflow credentials.";
+    insert("automation_runs", {
+      event_key: `check:${randomBytes(8).toString("hex")}`,
+      rule: "n8n connection check",
+      status: connection.configured ? "Success" : "Error",
+      detail: message,
+      created_at: now(),
+    });
+    return {
+      ...connection,
+      status: connection.configured ? "Ready to receive" : "Not configured",
+      message,
+    };
+  }
   must(
     ["Email", "WhatsApp", "Forms", "Calendar", "Payments", "n8n"].includes(
       req.params.name,

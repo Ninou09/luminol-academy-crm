@@ -49,6 +49,7 @@ import {
 } from "./ui";
 import { type Row, localDate } from "./types";
 import { roleNames } from "./i18n";
+import { N8nInbox } from "./n8n";
 
 export function periodStart(period: string, today: string) {
   return period === "all"
@@ -613,6 +614,7 @@ export function Admissions() {
           </Button>
         )}
       </PageHead>
+      <N8nInbox />
       <div className="panel toolbar-panel">
         <div className="toolbar">
           <div className="search-field">
@@ -2136,7 +2138,19 @@ export function SettingsPage() {
                   <span className="integration-icon">
                     <Icon size={23} />
                   </span>
-                  <Badge tone="neutral">{t("Not configured")}</Badge>
+                  <Badge
+                    tone={
+                      name === "n8n" && data.n8n?.configured
+                        ? "teal"
+                        : "neutral"
+                    }
+                  >
+                    {t(
+                      name === "n8n" && data.n8n?.configured
+                        ? "Ready to receive"
+                        : "Not configured",
+                    )}
+                  </Badge>
                 </div>
                 <h2>{t(name)}</h2>
                 <p>

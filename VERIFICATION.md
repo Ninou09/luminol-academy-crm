@@ -6,7 +6,7 @@ Verified on 15 October 2026 in the delivered local Windows workspace.
 
 `npm run build` passes TypeScript checking and generates the production application.
 
-`npm test`: **17 tests passed, 0 failed**. Each run uses isolated databases rather than the preview database.
+`npm test`: **23 tests passed, 0 failed**. Each run uses isolated databases rather than the preview database.
 
 1. Authentication, invalid passwords, and cross-origin write rejection.
 2. Inquiry → advisor assignment → follow-up → consultation → enrollment → payment, including updated occupancy, contact reuse, financial balance, and audit history.
@@ -25,6 +25,14 @@ Verified on 15 October 2026 in the delivered local Windows workspace.
 15. Hosted snapshots survive independent request connections; a failed conditional write is never acknowledged as saved.
 16. Parallel simulated function instances cannot overwrite one another. The losing response is 409 and discards its login cookies.
 17. A storage outage returns 503 with no false save confirmation.
+18. n8n workflow normalization excludes opt-outs, historical records, conversions, and QA records; private notes and raw metadata do not leave the source item.
+19. Dedicated intake credentials cannot access browser APIs; session credentials alone cannot submit service intake, and foreign origins are rejected.
+20. Repeated intake deliveries create one review task; changed data for an existing source ID returns 409, and restricted staff roles cannot view the inbox.
+21. Phone-only intake supports Algerian/Arabic phone normalization and requires email confirmation before creating a new contact; repeat review does not duplicate records/tasks.
+22. Existing manual contact details and consent survive an intake match; enrolled opportunities are reused rather than restarted.
+23. Malformed inquiry input is rejected without creating records or tasks.
+
+The new n8n inbox and review form were also checked in an isolated browser database. The workflow draft passed schema validation and a simulated execution with HTTP pinned and receipt writes in dry-run mode. Production delivery/activation remain pending credential setup; see **N8N_INTEGRATION.md**.
 
 ## Browser checks
 
@@ -60,6 +68,6 @@ Verified on 15 October 2026 in the delivered local Windows workspace.
 
 This verifies a functional local release with demo records and the hosted administrator inquiry workflow, including storage persistence across independent requests. No live email, WhatsApp, n8n, external calendar, form provider, or payment processor was connected. No money was moved. Other hosted staff-role sessions, production account onboarding, unattended automation scheduling, load testing, and an independent security/accessibility audit have not been completed.
 
-A read-only search for existing Luminol workflows was attempted through the connected n8n tool. The connector returned an internal error, so existing remote workflows could not be inspected. No remote workflows were modified.
+An initial n8n search failed with a connector error. During the later n8n intake implementation, the connector worked: existing workflow definitions and table schemas were inspected successfully. Existing source workflows were not changed. A new, unpublished intake workflow and its empty receipt table were created; live delivery remains pending credential setup.
 
 See README.md for the full list of remaining production work and assumptions.

@@ -9,6 +9,8 @@ export type State = {
   programs: Row[];
   users: Row[];
   opportunities: Row[];
+  incoming: Row[];
+  n8n?: { configured: boolean; pending: number; lastReceivedAt: string | null };
   enrollments: Row[];
   waitlists: Row[];
   sessions: Row[];

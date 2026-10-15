@@ -1,4 +1,24 @@
 export const arabic: Record<string, string> = {
+  "Incoming from n8n": "استفسارات واردة من n8n",
+  "Review the program and advisor before adding an inquiry to the pipeline.":
+    "راجع البرنامج والمستشار قبل إضافة الاستفسار إلى مسار التسجيل.",
+  "Ready to receive": "جاهز للاستقبال",
+  "Setup required": "الإعداد مطلوب",
+  "To confirm": "بانتظار التأكيد",
+  Received: "تاريخ الاستلام",
+  Review: "مراجعة",
+  "Review inquiry": "مراجعة الاستفسار",
+  "No incoming inquiries": "لا توجد استفسارات واردة",
+  "New inquiries from your n8n lead table will appear here.":
+    "ستظهر هنا الاستفسارات الجديدة من جدول العملاء في n8n.",
+  "Communication consent recorded": "موافقة التواصل مسجلة",
+  "Communication consent not recorded": "موافقة التواصل غير مسجلة",
+  "Existing contact details and consent are preserved when a match is found.":
+    "تُحفظ بيانات جهة الاتصال وموافقتها الحالية عند العثور على تطابق.",
+  "Inquiry added to admissions": "تمت إضافة الاستفسار إلى التسجيلات",
+  "Add to admissions": "إضافة إلى التسجيلات",
+  "n8n sends new inquiries to the CRM intake endpoint. Configure the same dedicated token in Vercel and the n8n Bearer Auth credential. Incoming inquiries create review tasks; choose their program and advisor in Admissions.":
+    "يرسل n8n الاستفسارات الجديدة إلى نقطة استقبال النظام. اضبط الرمز المخصص نفسه في Vercel وبيانات اعتماد Bearer Auth في n8n. تُنشأ مهام مراجعة للاستفسارات؛ اختر البرنامج والمستشار من التسجيلات.",
   Overview: "نظرة عامة",
   Admissions: "التسجيلات",
   Students: "الطلاب",

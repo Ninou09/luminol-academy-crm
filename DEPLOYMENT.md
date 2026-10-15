@@ -25,7 +25,9 @@ The hosted administrator is `admin@luminol.demo`; use the password saved by the 
 
 Verified against the production URL: the owner signed in successfully, the authenticated workspace loaded, a fictional inquiry named **Cloud Verification Sample** was created, and the record, generated follow-up, activity history, and login session survived a full page reload. Vercel's private Blob browser showed `luminol-crm/production/workspace.sqlite` with a recent modification timestamp. No real contact was created or message sent. The sample inquiry is intentionally retained as verification evidence.
 
-The local build and all **17 automated tests** pass, including simulated independent function instances, conflicting writes, and storage outages. Hosted verification covers the administrator and this inquiry workflow; hosted load tests and other staff-role sessions have not been claimed as completed.
+The local build and all **23 automated tests** pass, including simulated independent function instances, conflicting writes, storage outages, and the new n8n intake permission/idempotency boundaries. Hosted verification covers the administrator and the original inquiry workflow; hosted load tests and other staff-role sessions have not been claimed as completed.
+
+The n8n intake endpoint and bilingual review inbox are included in the next release. The new workflow is an unpublished draft in the owner's personal n8n project. A separate `N8N_INTAKE_TOKEN` Production Secret and matching n8n credential are required before live delivery. See **N8N_INTEGRATION.md** for the workflow, cutoff, verified tests, and activation steps.
 
 ## Operational boundaries
 
