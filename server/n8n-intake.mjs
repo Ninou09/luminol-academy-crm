@@ -49,7 +49,9 @@ function authenticate(req) {
   const expected = process.env.N8N_INTAKE_TOKEN || "";
   requireValue(
     expected.length >= 32 && expected.length <= 256,
-    "The n8n intake connection is not configured.",
+    expected.length
+      ? "The N8N_INTAKE_TOKEN server setting must contain 32-256 characters."
+      : "The N8N_INTAKE_TOKEN server setting is missing.",
     503,
   );
   const header = req.headers.authorization || "";
