@@ -18,13 +18,13 @@ This is **new-inquiry intake**, not a two-way synchronization. Later edits and o
 
 1. Create a unique random token of **32–256 characters**; 64 random characters are recommended. Keep it in your password manager. This is separate from the administrator password.
 2. In the CRM Vercel project, add `N8N_INTAKE_TOKEN` as a **Secret for Production**, then redeploy.
-3. In the workflow's **Capture inquiry and review task** node, create/select **Luminol CRM Intake** with **Templated Custom Auth**. Its header template is:
+3. In the workflow's **Capture inquiry and review task** node, create/select **Luminol CRM Intake** with **Simplified Custom Auth** (the credential type is `httpTemplatedCustomAuth`). Its header template is:
 
    ```json
    {"headers":{"Authorization":"Bearer {{api_key}}"}}
    ```
 
-   Store the same secret as `api_key`. Restrict the credential to `luminol-academy-crm.vercel.app` where the credential UI supports allowed domains. Do not put the secret in node parameters, the workflow source, Git, or chat.
+   Store the same secret in the **Luminol intake key** field, whose placeholder is `api_key`. The prepared form marks it as a required secret. Restrict the credential to `luminol-academy-crm.vercel.app` where the credential UI supports allowed domains. Do not put the secret in node parameters, the workflow source, Git, or chat.
 4. Run the manual trigger **Test CRM connection with sample**. This sends only a fictional `n8n Connection Sample` record, with no communication consent, to the CRM. Re-running that test is idempotent.
 5. Verify the sample in the CRM inbox and its review task. Publish the workflow after the live check passes. The schedule uses the academy zone, `Africa/Algiers`.
 
@@ -38,6 +38,7 @@ The endpoint is `POST https://luminol-academy-crm.vercel.app/api/integrations/n8
 - n8n node/schema and workflow validation pass with no warnings.
 - Simulated n8n execution **3163** succeeded with the HTTP response pinned and receipt writes in dry-run mode. The receipt table remained empty afterward; normal receipt writing was then restored.
 - Successful/error/manual execution payload retention is disabled on this new workflow. The simulated execution is therefore not retained for later retrieval.
+- Production deployment `dpl_61KmX1RCj4aRVsu8CtNcreQmtwJf`, from commit `ded3612`, was reported Ready. Its authenticated admissions page shows the new inbox with zero pending inquiries and **Setup required**. The earlier fictional Cloud Verification Sample and the existing login session remain available.
 - The production secret, actual HTTP delivery from n8n, and activation are pending. Simulated tests do not prove a live connection.
 
 The reproducible Workflow SDK source is `integrations/n8n-new-inquiries.ts`. If recreating it, also apply the privacy settings: `saveDataSuccessExecution=none`, `saveDataErrorExecution=none`, `saveManualExecutions=false`, `saveExecutionProgress=false`, `executionTimeout=120`, and `timezone=Africa/Algiers`.

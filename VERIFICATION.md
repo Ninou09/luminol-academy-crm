@@ -63,6 +63,7 @@ The new n8n inbox and review form were also checked in an isolated browser datab
 - Created the fictional **Cloud Verification Sample** inquiry (`cloud-verification@example.test`). The opportunity count changed from 32 to 33, with a generated first-contact task and activity entry.
 - After a full page reload, the login session, inquiry, follow-up, and activity entry remained available.
 - The private Blob browser showed the production `workspace.sqlite` snapshot with a recent modification timestamp. The sample inquiry is retained as verification evidence; no external message or real transaction was involved.
+- n8n intake deployment `dpl_61KmX1RCj4aRVsu8CtNcreQmtwJf`, from commit `ded3612`, was reported Ready. The authenticated production admissions page shows **Incoming from n8n**, zero pending inquiries, and **Setup required**. The earlier sample record and session survived the release.
 
 ## Limits of verification
 

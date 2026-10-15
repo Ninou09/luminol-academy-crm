@@ -27,7 +27,9 @@ Verified against the production URL: the owner signed in successfully, the authe
 
 The local build and all **23 automated tests** pass, including simulated independent function instances, conflicting writes, storage outages, and the new n8n intake permission/idempotency boundaries. Hosted verification covers the administrator and the original inquiry workflow; hosted load tests and other staff-role sessions have not been claimed as completed.
 
-The n8n intake endpoint and bilingual review inbox are included in the next release. The new workflow is an unpublished draft in the owner's personal n8n project. A separate `N8N_INTAKE_TOKEN` Production Secret and matching n8n credential are required before live delivery. See **N8N_INTEGRATION.md** for the workflow, cutoff, verified tests, and activation steps.
+The n8n intake endpoint and bilingual review inbox are deployed in production. Deployment `dpl_61KmX1RCj4aRVsu8CtNcreQmtwJf`, from commit `ded3612`, was reported **Ready** on 15 October 2026. The authenticated admissions page shows the new inbox with zero pending inquiries and **Setup required**, and the earlier fictional record and session remain available.
+
+The new workflow is an unpublished draft in the owner's personal n8n project. A separate `N8N_INTAKE_TOKEN` Production Secret and matching **Luminol CRM Intake** n8n credential are required before live delivery. Their non-secret form fields are prepared; the owner must enter and save the same key in both services. See **N8N_INTEGRATION.md** for the workflow, cutoff, verified tests, and activation steps.
 
 ## Operational boundaries
 
