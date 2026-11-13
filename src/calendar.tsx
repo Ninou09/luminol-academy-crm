@@ -231,7 +231,17 @@ export function Calendar() {
   async function setStatus(it: Item, status: string) {
     try {
       await perform(`/appointments/${it.record.id}`, { status }, "PATCH");
-      toast(t(status === "Done" ? "Marked as done" : "Marked as no-show"));
+      toast(
+        t(
+          status === "Done"
+            ? "Marked as done"
+            : status === "No-show"
+              ? "Marked as no-show"
+              : status === "Scheduled"
+                ? "Appointment confirmed"
+                : "Changes saved",
+        ),
+      );
     } catch (e: any) {
       toast(e.message);
     }
@@ -244,6 +254,38 @@ export function Calendar() {
     ...visible.map((i) => Math.floor(i.startMin / 60)),
   );
   const toHour = Math.max(20, ...visible.map((i) => Math.ceil(i.endMin / 60)));
+  /** Grey out time outside the selected person's working hours, and leave days. */
+  const offBlocks = (day: string): [number, number, string][] => {
+    if (!staff) return [];
+    const id = Number(staff);
+    const leave = (data.timeOff || []).find(
+      (x) => x.user_id === id && x.start_date <= day && x.end_date >= day,
+    );
+    if (leave)
+      return [
+        [
+          fromHour * 60,
+          toHour * 60,
+          `${t("Time off")}${leave.reason ? " · " + leave.reason : ""}`,
+        ],
+      ];
+    const ranges = (data.staffHours || [])
+      .filter(
+        (h) =>
+          h.user_id === id &&
+          h.weekday === (new Date(day + "T12:00:00Z").getUTCDay() + 6) % 7,
+      )
+      .sort((a, b) => a.start_min - b.start_min);
+    if (!(data.staffHours || []).some((h) => h.user_id === id)) return [];
+    const blocks: [number, number, string][] = [];
+    let cursor = fromHour * 60;
+    for (const r of ranges) {
+      if (r.start_min > cursor) blocks.push([cursor, r.start_min, ""]);
+      cursor = Math.max(cursor, r.end_min);
+    }
+    if (cursor < toHour * 60) blocks.push([cursor, toHour * 60, ""]);
+    return blocks;
+  };
   const hours = Array.from(
     { length: toHour - fromHour },
     (_, i) => fromHour + i,
@@ -442,6 +484,18 @@ export function Calendar() {
                   }}
                   title={canBook ? t("Click an empty time to book") : undefined}
                 >
+                  {offBlocks(day).map(([a, b, label], i) => (
+                    <i
+                      key={"off" + i}
+                      className={`tg-off ${label ? "leave" : ""}`}
+                      style={{
+                        top: ((a - fromHour * 60) / 60) * HOUR,
+                        height: ((b - a) / 60) * HOUR,
+                      }}
+                    >
+                      {label && <span>{label}</span>}
+                    </i>
+                  ))}
                   {hours.map((h) => (
                     <i
                       key={h}
@@ -613,8 +667,27 @@ export function Calendar() {
                           </span>
                         </button>
                         {it.type === "appointment" &&
-                        it.status === "Scheduled" &&
+                        it.status === "Pending" &&
                         canBook ? (
+                          <span className="agenda-actions">
+                            <Badge tone="amber">{t("To confirm")}</Badge>
+                            <Button
+                              variant="small primary"
+                              icon={<Check size={14} />}
+                              onClick={() => setStatus(it, "Scheduled")}
+                            >
+                              {t("Confirm")}
+                            </Button>
+                            <Button
+                              variant="small"
+                              onClick={() => setStatus(it, "Cancelled")}
+                            >
+                              {t("Refuse")}
+                            </Button>
+                          </span>
+                        ) : it.type === "appointment" &&
+                          it.status === "Scheduled" &&
+                          canBook ? (
                           <span className="agenda-actions">
                             <Button
                               variant="small"

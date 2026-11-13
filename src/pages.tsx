@@ -58,8 +58,13 @@ import {
 import { type Row, localDate } from "./types";
 import { roleNames } from "./i18n";
 import { N8nInbox } from "./n8n";
-import { api } from "./types";
+import { api, matchesPerson } from "./types";
 import { PrintButton, TemplatesPanel, TrashPanel, useReceipt } from "./tools";
+import {
+  BookingSettingsPanel,
+  PendingBookings,
+  RemindersPanel,
+} from "./schedule";
 
 /** What the client asked for: the linked program, or the free-text interest. */
 export function useRequestLabel() {
@@ -289,6 +294,8 @@ export function Overview({
           </ol>
         </div>
       )}
+      <PendingBookings />
+      <RemindersPanel />
       <div className={`metrics ${!data.permissions.finance ? "compact" : ""}`}>
         {data.permissions.admissions && (
           <Metric
@@ -676,7 +683,8 @@ export function Admissions() {
   const rows = data.opportunities.filter(
     (o) =>
       (!query ||
-        `${person(o.contact_id).name} ${person(o.contact_id).email} ${person(o.contact_id).phone} ${label(o)} ${o.service_type}`
+        matchesPerson(person(o.contact_id), query) ||
+        `${label(o)} ${o.service_type}`
           .toLowerCase()
           .includes(query.toLowerCase())) &&
       (!service || o.service_type === service) &&
@@ -1193,10 +1201,7 @@ export function Students() {
         (tab !== "Students" || enrolled.has(c.id)) &&
         (tab !== "Need attention" ||
           data.flags.some((f) => f.contact_id === c.id)) &&
-        (!query ||
-          `${c.name} ${c.email} ${c.phone}`
-            .toLowerCase()
-            .includes(query.toLowerCase())) &&
+        (!query || matchesPerson(c, query)) &&
         (!filter ||
           data.enrollments.some(
             (e) =>
@@ -2165,6 +2170,7 @@ export function SettingsPage() {
     "Team & permissions",
     "My account",
     ...(data.permissions.editAdmissions ? ["Message templates"] : []),
+    ...(data.permissions.admin ? ["Online booking"] : []),
     ...(data.permissions.admin ? ["Data & import", "Trash"] : []),
     "Integrations",
     "Automation history",
@@ -2333,6 +2339,18 @@ export function SettingsPage() {
                       >
                         {t("Edit")}
                       </Button>
+                      {u.active !== 0 && u.role !== "finance" && (
+                        <Button
+                          variant="small"
+                          icon={<Clock size={14} />}
+                          onClick={() => open({ type: "hours", record: u })}
+                        >
+                          {t("Hours")}
+                          {data.staffHours?.some((h) => h.user_id === u.id)
+                            ? ""
+                            : " ·"}
+                        </Button>
+                      )}
                       {u.id !== data.user.id && !noLogin(u) && (
                         <Button
                           variant="small"
@@ -2377,6 +2395,17 @@ export function SettingsPage() {
                 onClick={() => open({ type: "account" })}
               >
                 {t("Change name, email or password")}
+              </Button>
+              <Button
+                icon={<Clock size={16} />}
+                onClick={() =>
+                  open({
+                    type: "hours",
+                    record: data.users.find((u) => u.id === data.user.id),
+                  })
+                }
+              >
+                {t("My working hours and time off")}
               </Button>
             </div>
           </Panel>
@@ -2465,6 +2494,8 @@ export function SettingsPage() {
             </Button>
           </Panel>
         </div>
+      ) : tab === "Online booking" ? (
+        <BookingSettingsPanel />
       ) : tab === "Message templates" ? (
         <TemplatesPanel />
       ) : tab === "Trash" ? (

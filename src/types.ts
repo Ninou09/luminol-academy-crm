@@ -18,6 +18,10 @@ export type State = {
   packages: Row[];
   templates: Row[];
   trash: Row[];
+  staffHours: Row[];
+  timeOff: Row[];
+  bookingServices: Row[];
+  reminders: Row[];
   serviceTypes: string[];
   attendance: Row[];
   tasks: Row[];
@@ -126,4 +130,23 @@ export function toInstant(local: string, zone: string) {
   if (p !== local.slice(0, 16))
     throw new Error("That local time does not exist in the academy time zone.");
   return result.toISOString();
+}
+
+/** Compare phone numbers however they were typed: spaces, +213, 00213 or 0. */
+export function phoneKey(value: string) {
+  let d = String(value || "").replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.startsWith("213")) d = "0" + d.slice(3);
+  return d;
+}
+/** True when a search box text matches a person by name, email or phone. */
+export function matchesPerson(person: Row, query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (`${person.name} ${person.email}`.toLowerCase().includes(q)) return true;
+  const digits = phoneKey(q);
+  return (
+    digits.length >= 3 &&
+    phoneKey(person.phone || "").includes(digits.replace(/^0/, ""))
+  );
 }

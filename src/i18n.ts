@@ -678,3 +678,76 @@ Object.assign(arabic, {
   Backups: "النسخ الاحتياطية",
   "Download backup": "تنزيل نسخة احتياطية",
 });
+
+Object.assign(arabic, {
+  "Book an appointment": "حجز موعد",
+  "Online booking is not open yet.": "الحجز عبر الإنترنت غير متاح بعد.",
+  "Please contact the academy by phone or WhatsApp.":
+    "يرجى التواصل مع الأكاديمية عبر الهاتف أو واتساب.",
+  "Request sent!": "تم إرسال الطلب!",
+  "We will confirm your appointment by phone or WhatsApp.":
+    "سنؤكد موعدك عبر الهاتف أو واتساب.",
+  "Choose a service": "اختر الخدمة",
+  "No services are open for booking yet.": "لا توجد خدمات متاحة للحجز بعد.",
+  "With whom?": "مع من؟",
+  "No preference": "لا يهم",
+  "First available": "أول متاح",
+  "Choose a day and time": "اختر اليوم والساعة",
+  "No free time in the next two weeks. Please call the academy.":
+    "لا توجد أوقات متاحة خلال الأسبوعين القادمين. يرجى الاتصال بالأكاديمية.",
+  "Your details": "معلوماتك",
+  "Message (optional)": "رسالة (اختياري)",
+  "I agree to be contacted by the academy about this appointment.":
+    "أوافق على أن تتواصل معي الأكاديمية بخصوص هذا الموعد.",
+  "Send my request": "إرسال الطلب",
+  "This time was just taken. Please choose another one.":
+    "تم حجز هذا الوقت للتو. يرجى اختيار وقت آخر.",
+  "Enter your name.": "أدخل اسمك.",
+  "Enter a valid phone number.": "رقم الهاتف غير صحيح.",
+  "Enter your phone number.": "أدخل رقم هاتفك.",
+  "Please accept to be contacted about this appointment.":
+    "يرجى الموافقة على التواصل.",
+  "Choose a time.": "اختر وقتًا.",
+  "Too many requests. Please call the academy.":
+    "طلبات كثيرة. يرجى الاتصال بالأكاديمية.",
+});
+
+Object.assign(arabic, {
+  "Working hours": "أوقات العمل",
+  "Add a break": "إضافة استراحة",
+  "Day off": "يوم عطلة",
+  "Copy to Tue–Fri": "نسخ من الثلاثاء إلى الجمعة",
+  "Title shown to clients": "الصفة الظاهرة للعملاء",
+  "Time off": "الإجازات والغيابات",
+  "Time off added": "تمت إضافة الغياب",
+  "appointments to move": "مواعيد يجب نقلها",
+  "First day": "اليوم الأول",
+  "Last day": "اليوم الأخير",
+  "Add time off": "إضافة غياب",
+  "Save working hours": "حفظ أوقات العمل",
+  Hours: "الأوقات",
+  "My working hours and time off": "أوقات عملي وغياباتي",
+  "Online booking": "الحجز عبر الإنترنت",
+  Closed: "مغلق",
+  "Copy link": "نسخ الرابط",
+  "Link copied": "تم نسخ الرابط",
+  "Open page": "فتح الصفحة",
+  "Close online booking": "إغلاق الحجز عبر الإنترنت",
+  "Open online booking": "فتح الحجز عبر الإنترنت",
+  "Services clients can book": "الخدمات المتاحة للحجز",
+  "New service": "خدمة جديدة",
+  "Edit service": "تعديل الخدمة",
+  "Service name": "اسم الخدمة",
+  "Duration (minutes)": "المدة (بالدقائق)",
+  "Who provides it": "يقدمها",
+  "Online bookings to confirm": "حجوزات بانتظار التأكيد",
+  "Appointment confirmed": "تم تأكيد الموعد",
+  "Request refused": "تم رفض الطلب",
+  Refuse: "رفض",
+  "Reminders to send": "تذكيرات للإرسال",
+  "Nothing to remind": "لا توجد تذكيرات",
+  Tomorrow: "غدًا",
+  Sent: "أُرسل",
+  "No phone": "لا يوجد هاتف",
+});
+Object.assign(arabic, { "Show less": "عرض أقل", "Show all": "عرض الكل" });

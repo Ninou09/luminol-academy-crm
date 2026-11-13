@@ -822,3 +822,113 @@ export const french: Record<string, string> = {
   "Data definitions": "Définitions",
   "Authentication required": "Connexion requise",
 };
+
+Object.assign(french, {
+  "Book an appointment": "Prendre rendez-vous",
+  "Online booking is not open yet.":
+    "La prise de rendez-vous en ligne n’est pas encore ouverte.",
+  "Please contact the academy by phone or WhatsApp.":
+    "Merci de contacter l’académie par téléphone ou WhatsApp.",
+  "Request sent!": "Demande envoyée !",
+  "We will confirm your appointment by phone or WhatsApp.":
+    "Nous vous confirmerons le rendez-vous par téléphone ou WhatsApp.",
+  "Choose a service": "Choisissez une prestation",
+  "No services are open for booking yet.":
+    "Aucune prestation n’est encore ouverte à la réservation.",
+  "With whom?": "Avec qui ?",
+  "No preference": "Peu importe",
+  "First available": "Premier disponible",
+  "Choose a day and time": "Choisissez le jour et l’heure",
+  "No free time in the next two weeks. Please call the academy.":
+    "Aucun créneau libre dans les deux prochaines semaines. Merci d’appeler l’académie.",
+  "Your details": "Vos coordonnées",
+  "Message (optional)": "Message (facultatif)",
+  "I agree to be contacted by the academy about this appointment.":
+    "J’accepte d’être contacté(e) par l’académie au sujet de ce rendez-vous.",
+  "Send my request": "Envoyer ma demande",
+  "This time was just taken. Please choose another one.":
+    "Ce créneau vient d’être pris. Choisissez-en un autre.",
+  "Enter your name.": "Indiquez votre nom.",
+  "Enter a valid phone number.": "Numéro de téléphone invalide.",
+  "Enter your phone number.": "Indiquez votre numéro de téléphone.",
+  "Please accept to be contacted about this appointment.":
+    "Merci d’accepter d’être contacté(e).",
+  "Choose a time.": "Choisissez un horaire.",
+  "Too many requests. Please call the academy.":
+    "Trop de demandes. Merci d’appeler l’académie.",
+});
+
+Object.assign(french, {
+  "Working hours": "Horaires de travail",
+  "Used for online booking and to warn when someone is booked outside their hours. Leave all days off if this person has no fixed hours.":
+    "Utilisés pour la réservation en ligne et pour avertir d’un rendez-vous hors horaires. Laissez tous les jours décochés si la personne n’a pas d’horaires fixes.",
+  "Add a break": "Ajouter une pause",
+  "Day off": "Repos",
+  "Copy to Tue–Fri": "Copier du mardi au vendredi",
+  "Title shown to clients": "Titre affiché aux clients",
+  "Example: Clinical psychologist": "Exemple : Psychologue clinicienne",
+  "Time off": "Congés et absences",
+  "Time off added": "Absence ajoutée",
+  "appointments to move": "rendez-vous à déplacer",
+  "First day": "Premier jour",
+  "Last day": "Dernier jour",
+  "Reason (holiday, sick…)": "Motif (vacances, maladie…)",
+  "Add time off": "Ajouter une absence",
+  "Save working hours": "Enregistrer les horaires",
+  Hours: "Horaires",
+  "My working hours and time off": "Mes horaires et absences",
+  "Online booking": "Réservation en ligne",
+  "Clients choose a service, a person and a free time themselves. You confirm each request.":
+    "Les clients choisissent eux-mêmes la prestation, la personne et un créneau libre. Vous confirmez chaque demande.",
+  Closed: "Fermée",
+  "Copy link": "Copier le lien",
+  "Link copied": "Lien copié",
+  "Open page": "Ouvrir la page",
+  "Put this link in your Instagram bio, WhatsApp status or website.":
+    "Mettez ce lien dans votre bio Instagram, votre statut WhatsApp ou votre site.",
+  "Welcome text on the page": "Texte d’accueil de la page",
+  "Example: Consultations in French and Arabic, at the academy or online.":
+    "Exemple : Consultations en français et en arabe, à l’académie ou en ligne.",
+  "Minimum notice (hours)": "Délai minimum (heures)",
+  "Close online booking": "Fermer la réservation en ligne",
+  "Open online booking": "Ouvrir la réservation en ligne",
+  "Services clients can book": "Prestations réservables",
+  "Each service has a duration and the people who provide it.":
+    "Chaque prestation a une durée et les personnes qui l’assurent.",
+  "New service": "Nouvelle prestation",
+  "Edit service": "Modifier la prestation",
+  "Delete this service?": "Supprimer cette prestation ?",
+  "Service name": "Nom de la prestation",
+  "Shown to clients. Example: Individual consultation (60 min)":
+    "Visible par les clients. Exemple : Consultation individuelle (60 min)",
+  "Duration (minutes)": "Durée (minutes)",
+  "Short description": "Courte description",
+  "Who provides it": "Assurée par",
+  "Open for booking": "Ouverte à la réservation",
+  "No working hours yet for:": "Pas encore d’horaires pour :",
+  "Clients cannot book them until hours are set (Settings → Team).":
+    "Les clients ne peuvent pas les réserver tant que les horaires ne sont pas définis (Paramètres → Équipe).",
+  "Online bookings to confirm": "Réservations en ligne à confirmer",
+  "Clients booked these times on the public page.":
+    "Des clients ont réservé ces créneaux sur la page publique.",
+  "Appointment confirmed": "Rendez-vous confirmé",
+  "Request refused": "Demande refusée",
+  Refuse: "Refuser",
+  "Reminders to send": "Rappels à envoyer",
+  "Tomorrow's appointments and payments due within 3 days. One tap opens WhatsApp with the message ready.":
+    "Rendez-vous de demain et paiements dus sous 3 jours. Un clic ouvre WhatsApp avec le message prêt.",
+  "Nothing to remind": "Aucun rappel à envoyer",
+  "No appointments tomorrow and no payment due soon.":
+    "Aucun rendez-vous demain et aucun paiement proche.",
+  Tomorrow: "Demain",
+  Sent: "Envoyé",
+  "No phone": "Pas de téléphone",
+  "This person is on leave that day. Confirm to book anyway.":
+    "Cette personne est absente ce jour-là. Confirmez pour réserver quand même.",
+  "This time is outside this person's working hours. Confirm to book anyway.":
+    "Cet horaire est en dehors des heures de travail. Confirmez pour réserver quand même.",
+});
+Object.assign(french, {
+  "Show less": "Afficher moins",
+  "Show all": "Tout afficher",
+});

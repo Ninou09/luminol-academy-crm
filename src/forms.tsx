@@ -17,6 +17,7 @@ import { api, ApiError, toInstant, type Row } from "./types";
 import { roleNames } from "./i18n";
 import { Dialog, Button, Badge, Avatar, Empty, DataTable } from "./ui";
 import { WhatsAppDialog, ImportDialog } from "./tools";
+import { HoursDialog } from "./schedule";
 
 type Field = {
   key: string;
@@ -264,6 +265,17 @@ export default function Forms({
             };
       case "template":
         return r.id ? { name: r.name, body: r.body } : { name: "", body: "" };
+      case "bookingService":
+        return r.id
+          ? { ...r, active: !!r.active }
+          : {
+              name: "",
+              kind: "Psychology consultation",
+              duration_min: 60,
+              description: "",
+              staff_ids: [],
+              active: true,
+            };
       case "payment":
         return {
           charge_id:
@@ -651,6 +663,9 @@ export default function Forms({
         ...(r.id
           ? [
               select("status", "Status", [
+                ...(r.status === "Pending"
+                  ? [["Pending", t("To confirm")] as [string, string]]
+                  : []),
                 ["Scheduled", t("Scheduled")],
                 ["Done", t("Done")],
                 ["No-show", t("No-show")],
@@ -1166,6 +1181,46 @@ export default function Forms({
             ]),
       ];
       break;
+    case "bookingService":
+      title = r.id ? "Edit service" : "New service";
+      fields = [
+        textField("name", "Service name", {
+          full: true,
+          hint: "Shown to clients. Example: Individual consultation (60 min)",
+        }),
+        combo("kind", "Type", suggestions.kind),
+        textField("duration_min", "Duration (minutes)", {
+          type: "number",
+          min: 10,
+          max: 480,
+          step: "5",
+        }),
+        textField("description", "Short description", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
+        {
+          key: "staff_ids",
+          label: "Who provides it",
+          type: "checks",
+          full: true,
+          options: activeUsers
+            .filter((u) => u.role !== "finance")
+            .map((u) => [u.id, u.name] as [number, string]),
+        },
+        ...(r.id
+          ? [
+              {
+                key: "active",
+                label: "Open for booking",
+                type: "checkbox",
+                full: true,
+              } as Field,
+            ]
+          : []),
+      ];
+      break;
     case "template":
       title = r.id ? "Edit template" : "New template";
       fields = [
@@ -1255,6 +1310,11 @@ export default function Forms({
         true,
       ],
       template: [`/templates/${r.id}`, "Delete this template?", true],
+      bookingService: [
+        `/booking/services/${r.id}`,
+        "Delete this service?",
+        true,
+      ],
       charge: [
         `/charges/${r.id}`,
         "Delete this charge?",
@@ -1281,7 +1341,7 @@ export default function Forms({
       );
       onClose();
     } catch (e: any) {
-      setError(e.message);
+      setError(t(e.message));
     } finally {
       setBusy(false);
     }
@@ -1495,6 +1555,18 @@ export default function Forms({
           path = r.id ? `/templates/${r.id}` : "/templates";
           method = r.id ? "PATCH" : "POST";
           break;
+        case "bookingService":
+          path = r.id ? `/booking/services/${r.id}` : "/booking/services";
+          method = r.id ? "PATCH" : "POST";
+          body = {
+            name: values.name,
+            kind: values.kind,
+            duration_min: Number(values.duration_min),
+            description: values.description || "",
+            staff_ids: values.staff_ids,
+            active: values.active,
+          };
+          break;
         case "saveView":
           path = "/saved-views";
           body = { name: values.name, filters: modal.extra };
@@ -1549,14 +1621,14 @@ export default function Forms({
         e instanceof ApiError &&
         e.details.overlap &&
         !overlapRef.current &&
-        window.confirm(e.message + "\n\n" + t("Book anyway?"))
+        window.confirm(t(e.message) + "\n\n" + t("Book anyway?"))
       ) {
         overlapRef.current = true;
         setBusy(false);
         return submit(new Event("submit") as any);
       }
       overlapRef.current = false;
-      setError(e.message);
+      setError(t(e.message));
       if (e instanceof ApiError && e.details.duplicate)
         setDuplicate(e.details.duplicate);
     } finally {
@@ -1588,7 +1660,7 @@ export default function Forms({
         toast(t("Changes saved"));
         onClose();
       } catch (e: any) {
-        setError(e.message);
+        setError(t(e.message));
       } finally {
         setBusy(false);
       }
@@ -1867,6 +1939,8 @@ export default function Forms({
       />
     );
   if (modal.type === "import") return <ImportDialog onClose={onClose} />;
+  if (modal.type === "hours")
+    return <HoursDialog person={modal.record!} onClose={onClose} />;
   if (modal.type === "draftDetail")
     return (
       <Dialog title={r.subject} onClose={onClose}>
@@ -1967,7 +2041,31 @@ export default function Forms({
                       {t(f.label)}
                       {f.required && <span className="required-dot">*</span>}
                     </span>
-                    {f.type === "combo" ? (
+                    {f.type === "checks" ? (
+                      <div className="checks">
+                        {f.options?.map(([value, label]) => {
+                          const list: number[] = values[f.key] || [];
+                          const on = list.includes(Number(value));
+                          return (
+                            <label key={value} className={on ? "on" : ""}>
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={() =>
+                                  set(
+                                    f.key,
+                                    on
+                                      ? list.filter((x) => x !== Number(value))
+                                      : [...list, Number(value)],
+                                  )
+                                }
+                              />
+                              {label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : f.type === "combo" ? (
                       <>
                         {/* Suggestions show in the interface language; the
                             stored value stays the same in every language. */}

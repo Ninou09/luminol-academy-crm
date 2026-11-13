@@ -25,7 +25,7 @@ import {
   EyeOff,
   LoaderCircle,
 } from "lucide-react";
-import { api, ApiError, type State, type Row } from "./types";
+import { api, ApiError, matchesPerson, type State, type Row } from "./types";
 import { arabic, roleNames } from "./i18n";
 import { french } from "./french";
 
@@ -221,11 +221,7 @@ export default function App() {
       data && search.trim()
         ? [
             ...data.contacts
-              .filter((c) =>
-                `${c.name} ${c.email} ${c.phone}`
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
+              .filter((c) => matchesPerson(c, search))
               .map((c) => ({ ...c, kind: "Contact" })),
             ...data.programs
               .filter(

@@ -7,6 +7,11 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  installPublicBooking,
+  withinHours,
+  parts as zonedParts,
+} from "./booking.mjs";
+import {
   installN8nIntake,
   installN8nReview,
   incomingInquiries,
@@ -205,6 +210,7 @@ const write = (path, roles, fn, method = "post") =>
     }
   });
 installN8nIntake(app);
+installPublicBooking(app);
 app.post("/api/login", (req, res) => {
   const ip = isHosted
     ? req.headers["x-real-ip"] || req.socket.remoteAddress || "unknown"
@@ -390,9 +396,9 @@ function state(u) {
     programs: all("SELECT * FROM programs").filter(
       (p) => !instructor || cohorts.some((c) => c.program_id === p.id),
     ),
-    users: all("SELECT id,name,email,role,active,phone FROM users").filter(
-      (s) => !instructor || s.id === u.id,
-    ),
+    users: all(
+      "SELECT id,name,email,role,active,phone,public_title FROM users",
+    ).filter((s) => !instructor || s.id === u.id),
     opportunities: canAdmissions(u) ? all("SELECT * FROM opportunities") : [],
     incoming: incomingInquiries(u),
     n8n: canAdmissions(u) ? n8nConnection() : undefined,
@@ -414,6 +420,26 @@ function state(u) {
     serviceTypes,
     packages: packageRows().filter((p) => ids.has(p.contact_id)),
     templates: all("SELECT * FROM message_templates ORDER BY sort, id"),
+    staffHours: all(
+      "SELECT * FROM staff_hours ORDER BY user_id, weekday, start_min",
+    ),
+    timeOff: all(
+      "SELECT * FROM time_off WHERE end_date >= ? ORDER BY start_date",
+      today,
+    ),
+    bookingServices: all(
+      "SELECT * FROM booking_services ORDER BY sort, id",
+    ).map((x) => ({
+      ...x,
+      staff_ids: all(
+        "SELECT user_id FROM booking_service_staff WHERE service_id=?",
+        x.id,
+      ).map((r) => r.user_id),
+    })),
+    reminders: all(
+      "SELECT * FROM reminders WHERE sent_at >= ? ORDER BY id DESC",
+      new Date(Date.now() - 14 * 86400000).toISOString(),
+    ),
     trash:
       u.role === "admin"
         ? all(
@@ -1823,6 +1849,7 @@ function found(table, id, label) {
 }
 /** Remove a client and everything recorded about them (kept in the trash). */
 function deleteContactRecords(contactId) {
+  drop("DELETE FROM reminders WHERE contact_id=?", contactId);
   drop("DELETE FROM appointments WHERE contact_id=?", contactId);
   drop("DELETE FROM packages WHERE contact_id=?", contactId);
   drop(
@@ -2062,7 +2089,9 @@ function appointmentFields(b, existing = {}) {
     ends_at: end,
     location: text(b.location ?? existing.location ?? "", "Place", 300, false),
     notes: text(b.notes ?? existing.notes ?? "", "Notes", 4000, false),
-    status: ["Scheduled", "Done", "No-show", "Cancelled"].includes(b.status)
+    status: ["Pending", "Scheduled", "Done", "No-show", "Cancelled"].includes(
+      b.status,
+    )
       ? b.status
       : existing.status || "Scheduled",
   };
@@ -2082,6 +2111,15 @@ function checkOverlap(values, ignoreId, force) {
     `This person already has “${clash?.title}” at that time. Choose another time or confirm the double booking.`,
     409,
     { overlap: true },
+  );
+  const hours = withinHours(values.staff_id, values.starts_at, values.ends_at);
+  must(
+    hours.ok,
+    hours.reason === "time off"
+      ? "This person is on leave that day. Confirm to book anyway."
+      : "This time is outside this person's working hours. Confirm to book anyway.",
+    409,
+    { overlap: true, outside: true },
   );
 }
 const calendarRoles = ["admin", "admissions", "academic", "instructor"];
@@ -2421,6 +2459,9 @@ del("/api/users/:id", ["admin"], (req) => {
   run("DELETE FROM idempotency WHERE user_id=?", u.id);
   run("UPDATE cohorts SET instructor_id=NULL WHERE instructor_id=?", u.id);
   run("UPDATE appointments SET staff_id=NULL WHERE staff_id=?", u.id);
+  run("DELETE FROM booking_service_staff WHERE user_id=?", u.id);
+  run("DELETE FROM staff_hours WHERE user_id=?", u.id);
+  run("DELETE FROM time_off WHERE user_id=?", u.id);
   try {
     run("SAVEPOINT remove_user");
     run("DELETE FROM users WHERE id=?", u.id);
@@ -2485,6 +2526,10 @@ write("/api/admin/clean-start", ["admin"], (req) => {
   const me = req.user.id;
   for (const table of [
     "trash",
+    "reminders",
+    "booking_service_staff",
+    "staff_hours",
+    "time_off",
     "appointments",
     "packages",
     "refunds",
@@ -2517,6 +2562,8 @@ write("/api/admin/clean-start", ["admin"], (req) => {
   run("DELETE FROM programs");
   run("DELETE FROM auth_sessions WHERE user_id<>?", me);
   run("DELETE FROM idempotency WHERE user_id<>?", me);
+  run("DELETE FROM booking_services");
+  run("UPDATE settings SET booking_enabled=0 WHERE id=1");
   run("DELETE FROM users WHERE id<>?", me);
   run("UPDATE users SET role='admin', active=1 WHERE id=?", me);
   const leads = one(
@@ -2837,6 +2884,211 @@ write("/api/import/contacts", ["admin", "admissions"], (req) => {
     skippedCount: skipped.length,
   };
 });
+
+// ---------------------------------------------------------------------------
+// Online booking settings, working hours, time off and reminders.
+// ---------------------------------------------------------------------------
+write(
+  "/api/booking/settings",
+  ["admin"],
+  (req) => {
+    const b = req.body;
+    run(
+      "UPDATE settings SET booking_enabled=?, booking_intro=?, booking_notice_hours=? WHERE id=1",
+      b.booking_enabled ? 1 : 0,
+      text(b.booking_intro ?? "", "Welcome text", 1000, false),
+      integer(b.booking_notice_hours ?? 2, "Minimum notice", 0, 168),
+    );
+    audit(req.user.id, null, "Online booking settings updated.", "settings");
+    return { ok: true };
+  },
+  "patch",
+);
+function serviceFields(b, existing = {}) {
+  return {
+    name: text(b.name ?? existing.name, "Service name", 120),
+    kind: text(b.kind ?? existing.kind ?? "Consultation", "Type", 60),
+    duration_min: integer(
+      b.duration_min ?? existing.duration_min ?? 60,
+      "Duration (minutes)",
+      10,
+      480,
+    ),
+    description: text(
+      b.description ?? existing.description ?? "",
+      "Description",
+      500,
+      false,
+    ),
+    active: (b.active ?? existing.active ?? 1) ? 1 : 0,
+  };
+}
+function setServiceStaff(serviceId, ids) {
+  must(Array.isArray(ids) && ids.length, "Choose at least one person.");
+  run("DELETE FROM booking_service_staff WHERE service_id=?", serviceId);
+  for (const id of ids) {
+    const u = found("users", id, "Staff member");
+    must(u.active, "Choose active staff members.");
+    run(
+      "INSERT INTO booking_service_staff(service_id,user_id) VALUES (?,?)",
+      serviceId,
+      u.id,
+    );
+  }
+}
+write("/api/booking/services", ["admin", "admissions"], (req) => {
+  const id = insert("booking_services", {
+    ...serviceFields(req.body),
+    sort: 50,
+  });
+  setServiceStaff(id, req.body.staff_ids);
+  return { id };
+});
+write(
+  "/api/booking/services/:id",
+  ["admin", "admissions"],
+  (req) => {
+    const s = found("booking_services", req.params.id, "Service");
+    const v = serviceFields(req.body, s);
+    run(
+      "UPDATE booking_services SET name=?,kind=?,duration_min=?,description=?,active=? WHERE id=?",
+      v.name,
+      v.kind,
+      v.duration_min,
+      v.description,
+      v.active,
+      s.id,
+    );
+    if (req.body.staff_ids) setServiceStaff(s.id, req.body.staff_ids);
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/booking/services/:id", ["admin", "admissions"], (req) => {
+  const s = found("booking_services", req.params.id, "Service");
+  drop("DELETE FROM booking_service_staff WHERE service_id=?", s.id);
+  drop("DELETE FROM booking_services WHERE id=?", s.id);
+  return { ok: true };
+});
+
+/** Admins edit anyone's hours; everyone else edits only their own. */
+function ownOrAdmin(req) {
+  const u = found("users", req.params.id, "Staff member");
+  must(
+    req.user.role === "admin" || req.user.id === u.id,
+    "You can only change your own schedule.",
+    403,
+  );
+  return u;
+}
+const everyone = [
+  "admin",
+  "admissions",
+  "academic",
+  "instructor",
+  "finance",
+  "manager",
+];
+write("/api/users/:id/hours", everyone, (req) => {
+  const u = ownOrAdmin(req);
+  const ranges = req.body.ranges;
+  must(Array.isArray(ranges) && ranges.length <= 30, "Invalid working hours.");
+  run("DELETE FROM staff_hours WHERE user_id=?", u.id);
+  for (const r of ranges) {
+    const weekday = integer(r.weekday, "Day", 0, 6);
+    const start = integer(r.start_min, "Start", 0, 1439);
+    const end = integer(r.end_min, "End", 1, 1440);
+    must(end > start, "Each period must end after it starts.");
+    insert("staff_hours", {
+      user_id: u.id,
+      weekday,
+      start_min: start,
+      end_min: end,
+    });
+  }
+  if (req.body.public_title != null)
+    run(
+      "UPDATE users SET public_title=? WHERE id=?",
+      text(req.body.public_title, "Title shown to clients", 80, false),
+      u.id,
+    );
+  audit(
+    req.user.id,
+    null,
+    `Working hours updated: ${u.name}.`,
+    "settings",
+    "internal",
+  );
+  return { ok: true };
+});
+write("/api/users/:id/time-off", everyone, (req) => {
+  const u = ownOrAdmin(req);
+  const start = date(req.body.start_date, "First day"),
+    end = date(req.body.end_date || req.body.start_date, "Last day");
+  must(end >= start, "The last day must be after the first day.");
+  const id = insert("time_off", {
+    user_id: u.id,
+    start_date: start,
+    end_date: end,
+    reason: text(req.body.reason || "", "Reason", 120, false),
+    created_at: now(),
+  });
+  const clash = one(
+    "SELECT COUNT(*) n FROM appointments WHERE staff_id=? AND status IN ('Scheduled','Pending') AND substr(starts_at,1,10) BETWEEN ? AND ?",
+    u.id,
+    start,
+    end,
+  ).n;
+  audit(
+    req.user.id,
+    null,
+    `Time off added: ${u.name}, ${start} → ${end}.`,
+    "settings",
+    "internal",
+  );
+  return { id, clash };
+});
+del("/api/time-off/:id", everyone, (req) => {
+  const t = found("time_off", req.params.id, "Time off");
+  must(
+    req.user.role === "admin" || req.user.id === t.user_id,
+    "You can only change your own schedule.",
+    403,
+  );
+  drop("DELETE FROM time_off WHERE id=?", t.id);
+  return { ok: true };
+});
+
+/** Record that a WhatsApp reminder was sent (the message itself opens in WhatsApp). */
+write(
+  "/api/reminders",
+  ["admin", "admissions", "academic", "instructor", "finance"],
+  (req) => {
+    const kind = req.body.kind;
+    must(["appointment", "payment"].includes(kind), "Invalid reminder.");
+    const row =
+      kind === "appointment"
+        ? found("appointments", req.body.ref_id, "Appointment")
+        : found("charges", req.body.ref_id, "Charge");
+    const id = insert("reminders", {
+      kind,
+      ref_id: row.id,
+      contact_id: row.contact_id,
+      user_id: req.user.id,
+      sent_at: now(),
+    });
+    audit(
+      req.user.id,
+      row.contact_id,
+      kind === "appointment"
+        ? `WhatsApp reminder sent for “${row.title}”.`
+        : `WhatsApp payment reminder sent for “${row.label}”.`,
+      "communication",
+      kind === "payment" ? "finance" : "general",
+    );
+    return { id };
+  },
+);
 
 app.use("/api", (req, res) =>
   res.status(404).json({ error: "This endpoint does not exist." }),
