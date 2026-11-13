@@ -2215,7 +2215,9 @@ export function SettingsPage() {
                 ["Time zone", data.settings.timezone],
                 [
                   "Default language",
-                  data.settings.language === "ar" ? "العربية" : "English",
+                  ({ ar: "العربية", fr: "Français" } as Record<string, string>)[
+                    data.settings.language
+                  ] || "English",
                 ],
               ].map(([label, value]) => (
                 <div key={label}>

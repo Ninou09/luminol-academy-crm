@@ -27,6 +27,47 @@ import {
 } from "lucide-react";
 import { api, ApiError, type State, type Row } from "./types";
 import { arabic, roleNames } from "./i18n";
+import { french } from "./french";
+
+const locales: Record<string, string> = {
+  fr: "fr-DZ",
+  ar: "ar-DZ",
+  en: "en-GB",
+};
+/** Three interface languages: French, Arabic (right to left) and English. */
+function LanguagePicker({
+  lang,
+  setLang,
+}: {
+  lang: string;
+  setLang: (s: string) => void;
+}) {
+  return (
+    <div
+      className="language-picker"
+      role="group"
+      aria-label="Language / Langue / اللغة"
+    >
+      <Languages size={17} aria-hidden="true" />
+      {[
+        ["fr", "FR", "Français"],
+        ["ar", "ع", "العربية"],
+        ["en", "EN", "English"],
+      ].map(([code, short, name]) => (
+        <button
+          key={code}
+          className={lang === code ? "active" : ""}
+          aria-pressed={lang === code}
+          title={name}
+          lang={code}
+          onClick={() => setLang(code)}
+        >
+          {short}
+        </button>
+      ))}
+    </div>
+  );
+}
 import { AppContext, type ModalData } from "./context";
 import { Avatar, Button, Dialog, Badge, Empty, TaskRows } from "./ui";
 import {
@@ -62,10 +103,15 @@ export default function App() {
   const [data, setData] = useState<State | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
-  const [lang, setLang] = useState(
-    localStorage.getItem("luminol-language") || "en",
-  );
-  const t = (s: string) => (lang === "ar" ? arabic[s] || s : s);
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem("luminol-language") || "fr";
+    } catch {
+      return "fr";
+    }
+  });
+  const t = (s: string) =>
+    lang === "ar" ? arabic[s] || s : lang === "fr" ? french[s] || s : s;
   const [page, setPage] = useState("Overview"),
     [pageFilter, setPageFilter] = useState("");
   const [modal, setModal] = useState<ModalData | null>(null),
@@ -144,7 +190,7 @@ export default function App() {
     cohort = (id: number) => data?.cohorts.find((c) => c.id === id) || missing,
     user = (id: number) => data?.users.find((u) => u.id === id) || missing;
   const money = (n: number, currency?: string) =>
-    new Intl.NumberFormat(lang === "ar" ? "ar-DZ" : "en-DZ", {
+    new Intl.NumberFormat(locales[lang] || "en-DZ", {
       style: "currency",
       currency: currency || data?.settings.currency || "DZD",
       maximumFractionDigits: 2,
@@ -154,7 +200,7 @@ export default function App() {
     s: string,
     opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" },
   ) =>
-    new Intl.DateTimeFormat(lang === "ar" ? "ar-DZ" : "en-GB", {
+    new Intl.DateTimeFormat(locales[lang] || "en-GB", {
       timeZone: data?.settings.timezone || "Africa/Algiers",
       ...opts,
     }).format(new Date(s.length === 10 ? s + "T12:00:00Z" : s));
@@ -386,16 +432,7 @@ export default function App() {
                   <Command size={10} /> K
                 </kbd>
               </button>
-              <button
-                className="language-button"
-                onClick={() => setLang(lang === "en" ? "ar" : "en")}
-                aria-label={
-                  lang === "en" ? "Switch to Arabic" : "Switch to English"
-                }
-              >
-                <Languages size={17} />
-                <span>{lang === "en" ? "العربية" : "English"}</span>
-              </button>
+              <LanguagePicker lang={lang} setLang={setLang} />
               <div className="popover-anchor">
                 <button
                   className="icon-button notification-button"
@@ -678,13 +715,9 @@ function Login({
         <div className="login-caption">A LUMINOL WORKSPACE</div>
       </div>
       <div className="login-side">
-        <button
-          className="language-button login-language"
-          onClick={() => setLang(lang === "en" ? "ar" : "en")}
-        >
-          <Languages size={18} />
-          {lang === "en" ? "العربية" : "English"}
-        </button>
+        <div className="login-language">
+          <LanguagePicker lang={lang} setLang={setLang} />
+        </div>
         <form
           className="login-form"
           onSubmit={(e) => {

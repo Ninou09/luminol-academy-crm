@@ -234,12 +234,19 @@ export function N8nInbox() {
                   <input
                     list="lead-service"
                     required
-                    value={form.service_type}
-                    onChange={(e) => set("service_type", e.target.value)}
+                    value={t(form.service_type)}
+                    onChange={(e) =>
+                      set(
+                        "service_type",
+                        (data.serviceTypes || []).find(
+                          (x) => t(x) === e.target.value,
+                        ) ?? e.target.value,
+                      )
+                    }
                   />
                   <datalist id="lead-service">
                     {(data.serviceTypes || []).map((x) => (
-                      <option key={x} value={x} />
+                      <option key={x} value={t(x)} />
                     ))}
                   </datalist>
                 </label>

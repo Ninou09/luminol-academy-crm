@@ -1704,7 +1704,7 @@ write("/api/settings", ["admin"], (req) => {
     text(b.academy, "Academy name", 80),
     currency,
     zone,
-    b.language === "ar" ? "ar" : "en",
+    ["ar", "fr"].includes(b.language) ? b.language : "en",
   );
   audit(
     req.user.id,

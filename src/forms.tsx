@@ -100,7 +100,7 @@ export default function Forms({
       owner_id: data.user.id,
       program_id: data.programs[0]?.id || "",
       currency: data.settings.currency,
-      language: "English",
+      language: "العربية",
       consent: false,
     };
     switch (modal.type) {
@@ -1093,8 +1093,9 @@ export default function Forms({
           "language",
           "Default language",
           [
-            ["en", "English"],
+            ["fr", "Français"],
             ["ar", "العربية"],
+            ["en", "English"],
           ],
           { full: true },
         ),
@@ -1968,10 +1969,18 @@ export default function Forms({
                     </span>
                     {f.type === "combo" ? (
                       <>
+                        {/* Suggestions show in the interface language; the
+                            stored value stays the same in every language. */}
                         <input
                           list={`list-${f.key}`}
-                          value={values[f.key] ?? ""}
-                          onChange={(e) => set(f.key, e.target.value)}
+                          value={t(values[f.key] ?? "")}
+                          onChange={(e) => {
+                            const typed = e.target.value;
+                            const known = f.suggestions?.find(
+                              (x) => t(x) === typed,
+                            );
+                            set(f.key, known ?? typed);
+                          }}
                           required={f.required}
                           maxLength={180}
                           autoComplete="off"
@@ -1979,9 +1988,7 @@ export default function Forms({
                         />
                         <datalist id={`list-${f.key}`}>
                           {f.suggestions?.map((x) => (
-                            <option key={x} value={x}>
-                              {t(x) !== x ? t(x) : undefined}
-                            </option>
+                            <option key={x} value={t(x)} />
                           ))}
                         </datalist>
                       </>

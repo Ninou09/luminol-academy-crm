@@ -5617,3 +5617,43 @@ code {
     font-size: 15px;
   }
 }
+.language-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7b71;
+}
+.language-picker > svg {
+  margin-inline: 5px 3px;
+}
+.language-picker button {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #56635c;
+}
+.language-picker button.active {
+  background: var(--teal);
+  color: #fff;
+}
+.login-language {
+  position: absolute;
+  top: 24px;
+  inset-inline-end: 24px;
+}
+@media (max-width: 760px) {
+  .language-picker > svg {
+    display: none;
+  }
+  .language-picker button {
+    min-width: 28px;
+    padding: 0 5px;
+  }
+}
