@@ -22,6 +22,7 @@ import {
 import { useApp } from "./context";
 import { Dialog, Button, Badge, Avatar, Tabs, Empty, TaskRows } from "./ui";
 import { useRequestLabel, serviceTone, useRemove } from "./pages";
+import { LanguageSection, PsychologySection } from "./academy";
 import {
   PackagesSection,
   PrintButton,
@@ -326,6 +327,8 @@ export default function Profile({
               </div>
             )}
             <PackagesSection contact={contact} />
+            <PsychologySection contact={contact} />
+            <LanguageSection contact={contact} />
             {appointments.length > 0 && (
               <div className="profile-section">
                 <div className="section-label">

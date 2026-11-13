@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useApp } from "./context";
 import { api, type Row } from "./types";
+import { qrSvg } from "./academy";
 import { Badge, Button, DataTable, Dialog, Empty } from "./ui";
 
 const escapeHtml = (s: unknown) =>
@@ -24,8 +25,13 @@ const escapeHtml = (s: unknown) =>
   );
 
 /** Open a clean printable page (the browser's print dialog can save it as PDF). */
-export function printDocument(title: string, body: string, rtl = false) {
-  const w = window.open("", "_blank", "width=900,height=1000");
+export function printDocument(
+  title: string,
+  body: string,
+  rtl = false,
+  existing?: Window | null,
+) {
+  const w = existing ?? window.open("", "_blank", "width=900,height=1000");
   if (!w) {
     alert("Allow pop-ups for this site to print.");
     return;
@@ -50,6 +56,8 @@ export function printDocument(title: string, body: string, rtl = false) {
   .sign { display:flex; justify-content:space-between; margin-top: 60px; font-size: 14px; }
   .sign div { border-top: 1px solid #1f2f2a; padding-top: 6px; width: 40%; }
   button { margin: 20px auto; display:block; padding: 10px 18px; font-size: 15px; }
+  .verify { display:flex; align-items:center; gap:14px; justify-content:center; margin-top: 30px; text-align:start; font-size: 12px; }
+  .qrbox { width: 96px; height: 96px; } .qrbox svg { width: 100%; height: 100%; }
   @media print { button { display:none; } }
 </style></head><body><div class="sheet">${body}<button onclick="print()">Print / Save as PDF</button></div>
 <script>setTimeout(() => print(), 300);</script></body></html>`);
@@ -61,7 +69,7 @@ export function useReceipt() {
   return (payment: Row) => {
     const charge = data.charges.find((c) => c.id === payment.charge_id);
     const client = person(payment.contact_id);
-    const number = `R-${new Date(payment.created_at).getFullYear()}-${String(payment.id).padStart(5, "0")}`;
+    const number = `R-${payment.created_at.slice(0, 4)}-${String(payment.receipt_no || payment.id).padStart(4, "0")}`;
     printDocument(
       `Receipt ${number}`,
       `<div class="brand"><h1>${escapeHtml(data.settings.academy)}</h1><div class="muted">Reçu de paiement / وصل دفع<br><b>${number}</b></div></div>
@@ -79,8 +87,18 @@ export function useReceipt() {
 }
 
 export function useCertificate() {
-  const { data, person, cohort, program, date, user } = useApp();
-  return (enrollment: Row) => {
+  const { data, person, cohort, program, date, user, refresh } = useApp();
+  return async (enrollment: Row) => {
+    // Open the window during the click (pop-up blockers), fill it afterwards.
+    const win = window.open("", "_blank", "width=900,height=1000");
+    let code = (data.certificates || []).find(
+      (c) => c.enrollment_id === enrollment.id,
+    )?.code;
+    if (!code) {
+      code = (await api(`/enrollments/${enrollment.id}/certificate`, {})).code;
+      refresh();
+    }
+    const link = `${window.location.origin}/verify/${code}`;
     const h = cohort(enrollment.cohort_id);
     const p = program(h.program_id);
     const student = person(enrollment.contact_id);
@@ -96,7 +114,10 @@ export function useCertificate() {
         <p>pour avoir suivi avec succès la formation<br><b>${escapeHtml(p.name)}</b> (${escapeHtml(p.duration)})${level ? `<br>Niveau / Level / المستوى : <b>${escapeHtml(level)}</b>` : ""}</p>
         <p class="muted">${escapeHtml(h.name)} · ${escapeHtml(date(h.start_date, { day: "numeric", month: "long", year: "numeric" }))} – ${escapeHtml(date(enrollment.completed_at || h.end_date, { day: "numeric", month: "long", year: "numeric" }))}</p>
         <div class="sign"><div>${h.instructor_id ? escapeHtml(user(h.instructor_id).name) : "Formateur / Teacher"}</div><div>Direction · ${escapeHtml(data.settings.academy)}</div></div>
+        <div class="verify"><div class="qrbox">${qrSvg(link, 3)}</div><div class="muted">Vérifier / Verify / تحقق<br><b>${escapeHtml(code)}</b><br>${escapeHtml(link)}</div></div>
       </div>`,
+      false,
+      win,
     );
   };
 }

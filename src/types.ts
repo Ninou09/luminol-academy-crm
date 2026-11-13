@@ -22,6 +22,12 @@ export type State = {
   timeOff: Row[];
   bookingServices: Row[];
   reminders: Row[];
+  intake: Row[];
+  sessionNotes: Row[];
+  placements: Row[];
+  grades: Row[];
+  certificates: Row[];
+  mailConfigured?: boolean;
   serviceTypes: string[];
   attendance: Row[];
   tasks: Row[];

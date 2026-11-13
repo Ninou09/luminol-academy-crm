@@ -24,6 +24,10 @@ import {
   Eye,
   EyeOff,
   LoaderCircle,
+  ClipboardCheck,
+  CircleHelp,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { api, ApiError, matchesPerson, type State, type Row } from "./types";
 import { arabic, roleNames } from "./i18n";
@@ -82,6 +86,7 @@ import {
   Tasks,
 } from "./pages";
 import Forms from "./forms";
+import { AttendancePage } from "./academy";
 import Profile from "./profile";
 
 const nav = [
@@ -89,12 +94,14 @@ const nav = [
   ["Admissions", Kanban],
   ["Students", Users],
   ["Calendar", CalendarDays],
+  ["Attendance", ClipboardCheck],
   ["Programs & Cohorts", GraduationCap],
   ["Payments", Wallet],
   ["Reports", ChartNoAxesCombined],
 ] as const;
 /** Plain names shown in the menu; page keys stay stable. */
 const navLabels: Record<string, string> = {
+  Attendance: "Attendance",
   Admissions: "Requests",
   Students: "Clients & students",
   "Programs & Cohorts": "Programs & groups",
@@ -112,6 +119,19 @@ export default function App() {
   });
   const t = (s: string) =>
     lang === "ar" ? arabic[s] || s : lang === "fr" ? french[s] || s : s;
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("luminol-theme") || "light";
+    } catch {
+      return "light";
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("luminol-theme", theme);
+    } catch {}
+  }, [theme]);
   const [page, setPage] = useState("Overview"),
     [pageFilter, setPageFilter] = useState("");
   const [modal, setModal] = useState<ModalData | null>(null),
@@ -282,7 +302,8 @@ export default function App() {
   const visibleNav = nav.filter(
     ([name]) =>
       !(name === "Admissions" && !data.permissions.admissions) &&
-      !(name === "Payments" && !data.permissions.finance),
+      !(name === "Payments" && !data.permissions.finance) &&
+      !(name === "Attendance" && !data.permissions.attendance),
   );
   const title = navLabels[page] || page;
   const views: Record<string, ReactNode> = {
@@ -295,6 +316,7 @@ export default function App() {
     Reports: <Reports period={period} setPeriod={setPeriod} />,
     Settings: <SettingsPage />,
     "My tasks": <Tasks />,
+    Attendance: <AttendancePage />,
   };
   return (
     <AppContext.Provider value={context}>
@@ -427,6 +449,22 @@ export default function App() {
                 <kbd>
                   <Command size={10} /> K
                 </kbd>
+              </button>
+              <button
+                className="icon-button"
+                aria-label={t("How this page works")}
+                title={t("How this page works")}
+                onClick={() => open({ type: "help", extra: page })}
+              >
+                <CircleHelp size={20} />
+              </button>
+              <button
+                className="icon-button"
+                aria-label={t(theme === "dark" ? "Light theme" : "Dark theme")}
+                title={t(theme === "dark" ? "Light theme" : "Dark theme")}
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
               </button>
               <LanguagePicker lang={lang} setLang={setLang} />
               <div className="popover-anchor">
@@ -666,18 +704,38 @@ function Login({
     [password, setPassword] = useState(""),
     [show, setShow] = useState(false),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(outerError);
-  async function login() {
+    [error, setError] = useState(outerError),
+    [code, setCode] = useState(""),
+    [needCode, setNeedCode] = useState(false),
+    [forgot, setForgot] = useState(false),
+    [notice, setNotice] = useState("");
+  async function sendReset() {
     setBusy(true);
     setError("");
     try {
-      await api("/login", { email, password });
+      const r = await api("/password/forgot", { email });
+      setNotice(t(r.message));
+    } catch (e: any) {
+      setError(t(e.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function login() {
+    if (forgot) return sendReset();
+    setBusy(true);
+    setError("");
+    try {
+      await api("/login", { email, password, ...(needCode ? { code } : {}) });
       try {
         localStorage.setItem("luminol-email", email.trim());
       } catch {}
       await onLogin();
     } catch (e: any) {
-      setError(e.message);
+      if (e instanceof ApiError && e.details?.need_code) {
+        if (needCode) setError(t(e.message));
+        setNeedCode(true);
+      } else setError(t(e.message));
     } finally {
       setBusy(false);
     }
@@ -733,26 +791,51 @@ function Login({
               autoComplete="username"
             />
           </label>
-          <label>
-            {t("Password")}
-            <span className="password-input">
+          {forgot && (
+            <p className="form-hint">
+              {t(
+                "Enter your e-mail. We will send you a link to choose a new password.",
+              )}
+            </p>
+          )}
+          {notice && <div className="info-box">{notice}</div>}
+          {!forgot && (
+            <label>
+              {t("Password")}
+              <span className="password-input">
+                <input
+                  type={show ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setShow(!show)}
+                  aria-label={t(show ? "Hide password" : "Show password")}
+                >
+                  {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </span>
+            </label>
+          )}
+          {needCode && !forgot && (
+            <label>
+              {t("6-digit code from your authenticator app")}
               <input
-                type={show ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                autoFocus
                 required
-                autoComplete="current-password"
               />
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => setShow(!show)}
-                aria-label={t(show ? "Hide password" : "Show password")}
-              >
-                {show ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </span>
-          </label>
+            </label>
+          )}
           {error && (
             <div role="alert" className="form-error">
               {error}
@@ -766,14 +849,20 @@ function Login({
               busy ? <LoaderCircle className="spin" size={18} /> : undefined
             }
           >
-            {t("Sign in")}
+            {t(forgot ? "Send the link" : "Sign in")}
             <ArrowRight size={17} />
           </Button>
-          <div className="login-note">
-            {t(
-              "Forgot your password? Ask your administrator to set a new one.",
-            )}
-          </div>
+          <button
+            type="button"
+            className="text-button login-forgot"
+            onClick={() => {
+              setForgot(!forgot);
+              setError("");
+              setNotice("");
+            }}
+          >
+            {t(forgot ? "Back to sign in" : "Forgot your password?")}
+          </button>
         </form>
       </div>
     </div>

@@ -61,6 +61,15 @@ import { N8nInbox } from "./n8n";
 import { api, matchesPerson } from "./types";
 import { PrintButton, TemplatesPanel, TrashPanel, useReceipt } from "./tools";
 import {
+  CashReport,
+  DebtsReport,
+  DirectorReport,
+  JournalPanel,
+  PayrollReport,
+  PrintReportButton,
+  TwoStepPanel,
+} from "./academy";
+import {
   BookingSettingsPanel,
   PendingBookings,
   RemindersPanel,
@@ -1764,238 +1773,256 @@ export function Payments() {
           </div>
         ))}
       </div>
-      <div className="panel">
+      <div className="page-tabs">
         <Tabs
-          tabs={["All charges", "Payment history"]}
+          tabs={[
+            "All charges",
+            "Payment history",
+            "Cash book",
+            "Who owes what",
+            "Pay",
+          ]}
           value={tab}
           onChange={setTab}
         />
-        <div className="toolbar">
-          <div className="search-field">
-            <Search size={17} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("Search students…")}
-              aria-label={t("Search students…")}
-            />
+      </div>
+      {tab === "Cash book" ? (
+        <CashReport />
+      ) : tab === "Who owes what" ? (
+        <DebtsReport />
+      ) : tab === "Pay" ? (
+        <PayrollReport />
+      ) : (
+        <div className="panel">
+          <div className="toolbar">
+            <div className="search-field">
+              <Search size={17} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("Search students…")}
+                aria-label={t("Search students…")}
+              />
+            </div>
+            {tab === "All charges" && (
+              <select
+                aria-label={t("Status")}
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="">{t("All charges")}</option>
+                <option value="outstanding">{t("Outstanding")}</option>
+                <option value="overdue">{t("Overdue")}</option>
+                <option value="settled">{t("Settled")}</option>
+              </select>
+            )}
+            <span className="toolbar-note">
+              <Shield size={14} />
+              {t("Money is recorded, never processed here.")}
+            </span>
           </div>
-          {tab === "All charges" && (
-            <select
-              aria-label={t("Status")}
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            >
-              <option value="">{t("All charges")}</option>
-              <option value="outstanding">{t("Outstanding")}</option>
-              <option value="overdue">{t("Overdue")}</option>
-              <option value="settled">{t("Settled")}</option>
-            </select>
-          )}
-          <span className="toolbar-note">
-            <Shield size={14} />
-            {t("Money is recorded, never processed here.")}
-          </span>
-        </div>
-        {tab === "All charges" ? (
-          <DataTable
-            rows={rows}
-            columns={[
-              {
-                key: "name",
-                label: "Name",
-                sort: (c) => person(c.contact_id).name,
-                render: (c) => (
-                  <button
-                    className="person-cell cell-link"
-                    onClick={() => profile(c.contact_id)}
-                  >
-                    <Avatar name={person(c.contact_id).name} />
-                    <span>
-                      <strong>{person(c.contact_id).name}</strong>
-                      <small>{c.label}</small>
+          {tab === "All charges" ? (
+            <DataTable
+              rows={rows}
+              columns={[
+                {
+                  key: "name",
+                  label: "Name",
+                  sort: (c) => person(c.contact_id).name,
+                  render: (c) => (
+                    <button
+                      className="person-cell cell-link"
+                      onClick={() => profile(c.contact_id)}
+                    >
+                      <Avatar name={person(c.contact_id).name} />
+                      <span>
+                        <strong>{person(c.contact_id).name}</strong>
+                        <small>{c.label}</small>
+                      </span>
+                    </button>
+                  ),
+                },
+                {
+                  key: "amount",
+                  label: "Amount",
+                  render: (c) => (
+                    <span className="amount">
+                      {money(c.amount - c.discount, c.currency)}
                     </span>
-                  </button>
-                ),
-              },
-              {
-                key: "amount",
-                label: "Amount",
-                render: (c) => (
-                  <span className="amount">
-                    {money(c.amount - c.discount, c.currency)}
-                  </span>
-                ),
-              },
-              {
-                key: "paid",
-                label: "Paid",
-                render: (c) => money(c.paid, c.currency),
-              },
-              {
-                key: "balance",
-                label: "Balance",
-                render: (c) => (
-                  <strong className={c.balance ? "" : "teal-text"}>
-                    {money(c.balance, c.currency)}
-                  </strong>
-                ),
-              },
-              {
-                key: "due_date",
-                label: "Due date",
-                render: (c) => date(c.due_date),
-              },
-              {
-                key: "status",
-                label: "Status",
-                render: (c) => (
-                  <Badge
-                    tone={
-                      !c.balance
-                        ? "teal"
-                        : c.due_date < data.today
-                          ? "amber"
-                          : "neutral"
-                    }
-                  >
-                    {t(
-                      !c.balance
-                        ? "Settled"
-                        : c.due_date < data.today
-                          ? "Overdue"
-                          : c.paid
-                            ? "Partial"
-                            : "Unpaid",
-                    )}
-                  </Badge>
-                ),
-              },
-              {
-                key: "actions",
-                label: "Next action",
-                render: (c) =>
-                  data.permissions.editFinance ? (
-                    <div className="row-actions">
-                      <button
-                        className="icon-button"
-                        aria-label={t("Edit charge")}
-                        title={t("Edit charge")}
-                        onClick={() => open({ type: "charge", record: c })}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      {c.balance > 0 && (
-                        <Button
-                          variant="small"
-                          onClick={() => open({ type: "payment", record: c })}
-                        >
-                          {t("Record payment")}
-                        </Button>
+                  ),
+                },
+                {
+                  key: "paid",
+                  label: "Paid",
+                  render: (c) => money(c.paid, c.currency),
+                },
+                {
+                  key: "balance",
+                  label: "Balance",
+                  render: (c) => (
+                    <strong className={c.balance ? "" : "teal-text"}>
+                      {money(c.balance, c.currency)}
+                    </strong>
+                  ),
+                },
+                {
+                  key: "due_date",
+                  label: "Due date",
+                  render: (c) => date(c.due_date),
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (c) => (
+                    <Badge
+                      tone={
+                        !c.balance
+                          ? "teal"
+                          : c.due_date < data.today
+                            ? "amber"
+                            : "neutral"
+                      }
+                    >
+                      {t(
+                        !c.balance
+                          ? "Settled"
+                          : c.due_date < data.today
+                            ? "Overdue"
+                            : c.paid
+                              ? "Partial"
+                              : "Unpaid",
                       )}
-                      {c.paid === 0 && c.discount === 0 && (
+                    </Badge>
+                  ),
+                },
+                {
+                  key: "actions",
+                  label: "Next action",
+                  render: (c) =>
+                    data.permissions.editFinance ? (
+                      <div className="row-actions">
                         <button
                           className="icon-button"
-                          aria-label={t("Split into installments")}
-                          onClick={() => open({ type: "split", record: c })}
+                          aria-label={t("Edit charge")}
+                          title={t("Edit charge")}
+                          onClick={() => open({ type: "charge", record: c })}
                         >
-                          <SlidersHorizontal size={16} />
+                          <Pencil size={15} />
                         </button>
+                        {c.balance > 0 && (
+                          <Button
+                            variant="small"
+                            onClick={() => open({ type: "payment", record: c })}
+                          >
+                            {t("Record payment")}
+                          </Button>
+                        )}
+                        {c.paid === 0 && c.discount === 0 && (
+                          <button
+                            className="icon-button"
+                            aria-label={t("Split into installments")}
+                            onClick={() => open({ type: "split", record: c })}
+                          >
+                            <SlidersHorizontal size={16} />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      "—"
+                    ),
+                },
+              ]}
+            />
+          ) : (
+            <DataTable
+              rows={data.payments
+                .filter(
+                  (p) =>
+                    (!query ||
+                      person(p.contact_id)
+                        .name.toLowerCase()
+                        .includes(query.toLowerCase())) &&
+                    (!pageFilter.startsWith("received:") ||
+                      localDate(
+                        new Date(p.created_at),
+                        data.settings.timezone,
+                      ) >= pageFilter.slice(9)),
+                )
+                .sort((a, b) => b.id - a.id)}
+              columns={[
+                {
+                  key: "name",
+                  label: "Name",
+                  render: (p) => (
+                    <button
+                      className="cell-link"
+                      onClick={() => profile(p.contact_id)}
+                    >
+                      {person(p.contact_id).name}
+                    </button>
+                  ),
+                },
+                {
+                  key: "amount",
+                  label: "Amount",
+                  render: (p) => money(p.amount, p.currency),
+                },
+                {
+                  key: "method",
+                  label: "Payment method",
+                  render: (p) => t(p.method),
+                },
+                { key: "reference", label: "Reference" },
+                {
+                  key: "created_at",
+                  label: "Date",
+                  render: (p) => date(p.created_at),
+                },
+                {
+                  key: "refund",
+                  label: "Record refund",
+                  render: (p) => (
+                    <div>
+                      <PrintButton label="Receipt" onClick={() => receipt(p)} />
+                      <small className="block muted">
+                        {money(
+                          data.refunds
+                            .filter((r) => r.payment_id === p.id)
+                            .reduce((s, r) => s + r.amount, 0),
+                          p.currency,
+                        )}
+                      </small>
+                      {data.permissions.editFinance && (
+                        <div className="row-actions">
+                          <Button
+                            variant="small ghost"
+                            onClick={() => open({ type: "refund", record: p })}
+                          >
+                            {t("Record refund")}
+                          </Button>
+                          <button
+                            className="icon-button danger"
+                            aria-label={t("Delete payment entry")}
+                            title={t("Delete payment entry")}
+                            onClick={() =>
+                              remove(
+                                `/payments/${p.id}`,
+                                "Delete this payment entry? Use this only to fix a mistake.",
+                              )
+                            }
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       )}
                     </div>
-                  ) : (
-                    "—"
                   ),
-              },
-            ]}
-          />
-        ) : (
-          <DataTable
-            rows={data.payments
-              .filter(
-                (p) =>
-                  (!query ||
-                    person(p.contact_id)
-                      .name.toLowerCase()
-                      .includes(query.toLowerCase())) &&
-                  (!pageFilter.startsWith("received:") ||
-                    localDate(new Date(p.created_at), data.settings.timezone) >=
-                      pageFilter.slice(9)),
-              )
-              .sort((a, b) => b.id - a.id)}
-            columns={[
-              {
-                key: "name",
-                label: "Name",
-                render: (p) => (
-                  <button
-                    className="cell-link"
-                    onClick={() => profile(p.contact_id)}
-                  >
-                    {person(p.contact_id).name}
-                  </button>
-                ),
-              },
-              {
-                key: "amount",
-                label: "Amount",
-                render: (p) => money(p.amount, p.currency),
-              },
-              {
-                key: "method",
-                label: "Payment method",
-                render: (p) => t(p.method),
-              },
-              { key: "reference", label: "Reference" },
-              {
-                key: "created_at",
-                label: "Date",
-                render: (p) => date(p.created_at),
-              },
-              {
-                key: "refund",
-                label: "Record refund",
-                render: (p) => (
-                  <div>
-                    <PrintButton label="Receipt" onClick={() => receipt(p)} />
-                    <small className="block muted">
-                      {money(
-                        data.refunds
-                          .filter((r) => r.payment_id === p.id)
-                          .reduce((s, r) => s + r.amount, 0),
-                        p.currency,
-                      )}
-                    </small>
-                    {data.permissions.editFinance && (
-                      <div className="row-actions">
-                        <Button
-                          variant="small ghost"
-                          onClick={() => open({ type: "refund", record: p })}
-                        >
-                          {t("Record refund")}
-                        </Button>
-                        <button
-                          className="icon-button danger"
-                          aria-label={t("Delete payment entry")}
-                          title={t("Delete payment entry")}
-                          onClick={() =>
-                            remove(
-                              `/payments/${p.id}`,
-                              "Delete this payment entry? Use this only to fix a mistake.",
-                            )
-                          }
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ),
-              },
-            ]}
-          />
-        )}
-      </div>
+                },
+              ]}
+            />
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -2017,11 +2044,13 @@ export function Reports({
   return (
     <>
       <PageHead
-        title="Understand what’s working."
-        subtitle="Useful numbers, connected to real records."
+        title="Director's report"
+        subtitle="New clients, sources, revenue and team activity for the chosen period."
       >
         <PeriodSelect value={period} onChange={setPeriod} />
+        <PrintReportButton />
       </PageHead>
+      <DirectorReport start={stats.start} />
       <div className="reports-grid">
         {data.permissions.admissions && (
           <Panel
@@ -2171,7 +2200,7 @@ export function SettingsPage() {
     "My account",
     ...(data.permissions.editAdmissions ? ["Message templates"] : []),
     ...(data.permissions.admin ? ["Online booking"] : []),
-    ...(data.permissions.admin ? ["Data & import", "Trash"] : []),
+    ...(data.permissions.admin ? ["Data & import", "Journal", "Trash"] : []),
     "Integrations",
     "Automation history",
   ];
@@ -2242,6 +2271,12 @@ export function SettingsPage() {
                   }
                 >
                   {t("Edit")}
+                </Button>
+                <Button
+                  icon={<FileText size={16} />}
+                  onClick={() => open({ type: "intakeQuestions" })}
+                >
+                  {t("First consultation questions")}
                 </Button>
               </div>
             )}
@@ -2360,6 +2395,26 @@ export function SettingsPage() {
                           {t("Set password")}
                         </Button>
                       )}
+                      {!!u.totp_enabled && u.id !== data.user.id && (
+                        <Button
+                          variant="small"
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                t(
+                                  "Turn off two-step sign-in for this person (lost phone)?",
+                                ),
+                              )
+                            )
+                              return;
+                            await perform(`/users/${u.id}/2fa/reset`, {}).catch(
+                              (e: any) => toast(e.message),
+                            );
+                          }}
+                        >
+                          {t("Reset 2-step")}
+                        </Button>
+                      )}
                       {u.active === 0 && (
                         <Button variant="small" onClick={() => reactivate(u)}>
                           {t("Reactivate")}
@@ -2409,6 +2464,7 @@ export function SettingsPage() {
               </Button>
             </div>
           </Panel>
+          <TwoStepPanel />
         </div>
       ) : tab === "Data & import" ? (
         <div className="settings-grid">
@@ -2494,6 +2550,8 @@ export function SettingsPage() {
             </Button>
           </Panel>
         </div>
+      ) : tab === "Journal" ? (
+        <JournalPanel />
       ) : tab === "Online booking" ? (
         <BookingSettingsPanel />
       ) : tab === "Message templates" ? (

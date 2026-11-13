@@ -932,3 +932,226 @@ Object.assign(french, {
   "Show less": "Afficher moins",
   "Show all": "Tout afficher",
 });
+
+// Round 5
+Object.assign(french, {
+  // login & password
+  "Enter your e-mail. We will send you a link to choose a new password.":
+    "Indiquez votre e-mail. Nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+  "Send the link": "Envoyer le lien",
+  "Back to sign in": "Retour à la connexion",
+  "Forgot your password?": "Mot de passe oublié ?",
+  "6-digit code from your authenticator app":
+    "Code à 6 chiffres de votre application d’authentification",
+  "Enter the 6-digit code from your authenticator app.":
+    "Saisissez le code à 6 chiffres de votre application d’authentification.",
+  "The code is not correct.": "Le code n’est pas correct.",
+  "If this e-mail belongs to an account, a link to choose a new password has been sent.":
+    "Si cet e-mail correspond à un compte, un lien pour choisir un nouveau mot de passe a été envoyé.",
+  "This link has expired. Ask for a new one.":
+    "Ce lien a expiré. Demandez-en un nouveau.",
+  "The password needs at least 10 characters.":
+    "Le mot de passe doit contenir au moins 10 caractères.",
+  "Email or password is incorrect.": "E-mail ou mot de passe incorrect.",
+  "Choose a new password": "Choisir un nouveau mot de passe",
+  "Repeat the new password": "Répétez le nouveau mot de passe",
+  "At least 10 characters.": "Au moins 10 caractères.",
+  "Save the new password": "Enregistrer le nouveau mot de passe",
+  "The two passwords are different.": "Les deux mots de passe sont différents.",
+  "Password changed": "Mot de passe modifié",
+  "You can now sign in with your new password.":
+    "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+  // certificate check
+  "Valid certificate": "Certificat authentique",
+  "Certificate not found": "Certificat introuvable",
+  "This code does not match any certificate issued by the academy.":
+    "Ce code ne correspond à aucun certificat délivré par l’académie.",
+  // 2FA
+  "Two-step sign-in": "Connexion en deux étapes",
+  "After the password, a 6-digit code from an app on your phone (Google Authenticator, Microsoft Authenticator…).":
+    "Après le mot de passe, un code à 6 chiffres d’une application sur votre téléphone (Google Authenticator, Microsoft Authenticator…).",
+  On: "Activée",
+  Off: "Désactivée",
+  "Turn on two-step sign-in": "Activer la connexion en deux étapes",
+  "1. Open your authenticator app and scan this QR code.":
+    "1. Ouvrez votre application d’authentification et scannez ce QR code.",
+  "Or type this key:": "Ou tapez cette clé :",
+  "2. Type the 6-digit code shown in the app:":
+    "2. Tapez le code à 6 chiffres affiché dans l’application :",
+  "Turn off": "Désactiver",
+  "Two-step sign-in is on": "Connexion en deux étapes activée",
+  "Two-step sign-in is off": "Connexion en deux étapes désactivée",
+  "The code is not correct. Check the time on your phone and try again.":
+    "Le code n’est pas correct. Vérifiez l’heure de votre téléphone et réessayez.",
+  "Reset 2-step": "Réinitialiser 2 étapes",
+  "Turn off two-step sign-in for this person (lost phone)?":
+    "Désactiver la connexion en deux étapes pour cette personne (téléphone perdu) ?",
+  // attendance
+  Attendance: "Présences",
+  "Mark who is here in a few taps, from your phone.":
+    "Notez les présents en quelques gestes, depuis votre téléphone.",
+  "Absent twice in a row": "Absent deux fois de suite",
+  "No classes this day": "Aucun cours ce jour-là",
+  "Choose another date, or add classes in Calendar.":
+    "Choisissez une autre date, ou ajoutez des cours dans l’agenda.",
+  "Everyone else present": "Tous les autres présents",
+  // finance
+  "Cash book": "Caisse",
+  "What was received each day, by payment method.":
+    "Ce qui a été encaissé chaque jour, par mode de paiement.",
+  Total: "Total",
+  "Who owes what": "Dettes",
+  "Open balances per client, the oldest first.":
+    "Soldes à payer par client, les plus anciens d’abord.",
+  "Due since": "Dû depuis",
+  For: "Pour",
+  Pay: "Salaires",
+  "Pay for teachers and psychologists":
+    "Rémunération des enseignants et psychologues",
+  "Group class hours taught and consultations done in the month, times each person's rate.":
+    "Heures de cours collectifs et consultations réalisées dans le mois, multipliées par le tarif de chacun.",
+  "Hours taught": "Heures enseignées",
+  "Consultations done": "Consultations réalisées",
+  Rate: "Tarif",
+  "Not set": "Non défini",
+  hour: "heure",
+  session: "séance",
+  "Set rate": "Définir le tarif",
+  "Pay rate": "Rémunération",
+  "Per hour of group class": "À l’heure de cours collectif",
+  "Per consultation done": "Par consultation réalisée",
+  "Not paid through the CRM": "Non payé via le CRM",
+  "Only classes already finished and consultations marked “Done” are counted.":
+    "Seuls les cours terminés et les consultations marquées « Fait » sont comptés.",
+  // psychology
+  "First consultation file": "Dossier de première consultation",
+  "Open my file": "Ouvrir mon dossier",
+  "Private: only you can read this file.":
+    "Privé : vous seul pouvez lire ce dossier.",
+  "First consultation questions": "Questions de la première consultation",
+  "One question per line. Psychologists answer them in each client's private file.":
+    "Une question par ligne. Les psychologues y répondent dans le dossier privé de chaque client.",
+  "Psychology file": "Dossier psychologique",
+  "Emergency contact": "Contact d’urgence",
+  "Name and phone of someone to call if needed":
+    "Nom et téléphone d’une personne à appeler si besoin",
+  "Session notes you write in each appointment appear here. Only you can see them.":
+    "Les notes que vous écrivez dans chaque rendez-vous apparaissent ici. Vous seul les voyez.",
+  "Session note (private)": "Note de séance (privée)",
+  "Only you can read it. It also appears in the client's psychology file.":
+    "Vous seul pouvez la lire. Elle apparaît aussi dans le dossier psychologique du client.",
+  "Session plan": "Plan des séances",
+  "Goals and steps planned for these sessions":
+    "Objectifs et étapes prévus pour ces séances",
+  "Reason for consultation": "Motif de consultation",
+  "History and context": "Histoire et contexte",
+  Goals: "Objectifs",
+  "Current treatment or medication": "Traitement ou médicaments actuels",
+  "Referred by": "Adressé par",
+  Consultations: "Consultations",
+  // languages
+  "Level and progress": "Niveau et progression",
+  "Placement test": "Test de niveau",
+  Test: "Test",
+  Score: "Score",
+  "Out of": "Sur",
+  "Level reached": "Niveau atteint",
+  "Oral interview": "Entretien oral",
+  "Written test": "Test écrit",
+  "Delete this result?": "Supprimer ce résultat ?",
+  Average: "Moyenne",
+  "Add a mark": "Ajouter une note",
+  "Next level": "Niveau suivant",
+  "Move to the next level": "Passer au niveau suivant",
+  "Group of the next level": "Groupe du niveau suivant",
+  "Printed on the certificate of the level just finished":
+    "Imprimé sur le certificat du niveau terminé",
+  "Add the tuition of the new group to Payments":
+    "Ajouter le tarif du nouveau groupe dans Paiements",
+  Assessment: "Évaluation",
+  "Example: Test 1 · Oral": "Exemple : Test 1 · Oral",
+  Mark: "Note",
+  "Mark sheet": "Relevé de notes",
+  "New assessment": "Nouvelle évaluation",
+  "Save marks": "Enregistrer les notes",
+  "marks saved": "notes enregistrées",
+  "The mark must be between 0 and the maximum.":
+    "La note doit être entre 0 et le maximum.",
+  // director report
+  "Director's report": "Rapport de direction",
+  "New clients, sources, revenue and team activity for the chosen period.":
+    "Nouveaux clients, sources, chiffre d’affaires et activité de l’équipe sur la période.",
+  "New clients": "Nouveaux clients",
+  "Became students": "Devenus élèves",
+  Revenue: "Chiffre d’affaires",
+  "Revenue by direction": "Chiffre d’affaires par activité",
+  "Payments received in the period, by type of activity.":
+    "Paiements reçus sur la période, par type d’activité.",
+  "Team activity": "Activité de l’équipe",
+  "Consultations done, missed, and classes taught in the period.":
+    "Consultations réalisées, manquées et cours donnés sur la période.",
+  "Classes taught": "Cours donnés",
+  "Print / PDF": "Imprimer / PDF",
+  // journal
+  Journal: "Journal",
+  "Activity journal": "Journal d’activité",
+  "Everything the team added, changed or deleted, newest first.":
+    "Tout ce que l’équipe a ajouté, modifié ou supprimé, du plus récent au plus ancien.",
+  "Search…": "Rechercher…",
+  From: "Depuis",
+  Who: "Qui",
+  "What happened": "Ce qui s’est passé",
+  // help & theme
+  "How this page works": "Comment fonctionne cette page",
+  "Got it": "Compris",
+  "Dark theme": "Thème sombre",
+  "Light theme": "Thème clair",
+  "Online bookings to confirm and reminders to send appear at the top.":
+    "Les réservations en ligne à confirmer et les rappels à envoyer apparaissent en haut.",
+  "“Today” shows everyone booked today. Click a line to open it.":
+    "« Aujourd’hui » montre tous les rendez-vous du jour. Cliquez sur une ligne pour l’ouvrir.",
+  "Click a number (new requests, payments…) to see the list behind it.":
+    "Cliquez sur un chiffre (demandes, paiements…) pour voir la liste correspondante.",
+  "New leads from the website arrive in the first box: Accept, Dismiss or Import all.":
+    "Les contacts du site arrivent dans le premier bloc : Accepter, Refuser ou Tout importer.",
+  "Each card is a request. Drag it to the next column, or use ⋯ to change its stage.":
+    "Chaque carte est une demande. Glissez-la vers la colonne suivante, ou utilisez ⋯ pour changer l’étape.",
+  "The pencil edits the request; the client's name opens their card.":
+    "Le crayon modifie la demande ; le nom du client ouvre sa fiche.",
+  "All clients, including people who only asked a question.":
+    "Tous les clients, y compris ceux qui ont seulement posé une question.",
+  "Click a name to open the card: notes, appointments, payments, documents.":
+    "Cliquez sur un nom pour ouvrir la fiche : notes, rendez-vous, paiements, documents.",
+  "Search works with names, e-mails and phone numbers (0…, +213…).":
+    "La recherche fonctionne avec les noms, e-mails et numéros (0…, +213…).",
+  "Click an empty time to book. Choose a person at the top to see their hours.":
+    "Cliquez sur un horaire libre pour réserver. Choisissez une personne en haut pour voir ses horaires.",
+  "Hatched time = outside working hours or on leave.":
+    "Zones hachurées = hors horaires ou en congé.",
+  "List view: mark appointments as done or missed in one tap.":
+    "Vue liste : marquez un rendez-vous fait ou manqué en un geste.",
+  "Choose the day, tap P (present), R (late), A (absent) or E (excused), then save.":
+    "Choisissez le jour, touchez P (présent), R (retard), A (absent) ou E (excusé), puis enregistrez.",
+  "“Everyone else present” fills the remaining students.":
+    "« Tous les autres présents » complète les élèves restants.",
+  "After two absences in a row the CRM suggests a WhatsApp message.":
+    "Après deux absences de suite, le CRM propose un message WhatsApp.",
+  "A program is what you sell (with its price). A group is a class of that program.":
+    "Une formation est ce que vous vendez (avec son tarif). Un groupe est une classe de cette formation.",
+  "Open a group to see students, upcoming classes and the mark sheet.":
+    "Ouvrez un groupe pour voir les élèves, les prochains cours et le relevé de notes.",
+  "Charges = what clients owe. Record a payment when money is received.":
+    "Montants dus = ce que doivent les clients. Enregistrez un paiement à la réception de l’argent.",
+  "Cash book, debts and pay are in the tabs. Each payment has a printable receipt.":
+    "Caisse, dettes et salaires sont dans les onglets. Chaque paiement a un reçu imprimable.",
+  "Choose the period at the top. Use Print to save the report as PDF.":
+    "Choisissez la période en haut. Utilisez Imprimer pour enregistrer le rapport en PDF.",
+  "Team: add people, their working hours, pay rate and password.":
+    "Équipe : ajoutez les personnes, leurs horaires, leur rémunération et leur mot de passe.",
+  "Online booking: open the public page and choose the services.":
+    "Réservation en ligne : ouvrez la page publique et choisissez les prestations.",
+  "Trash: restore anything deleted in the last 30 days.":
+    "Corbeille : restaurez tout ce qui a été supprimé ces 30 derniers jours.",
+  "Tick a task when it is done. The pencil changes its date or person.":
+    "Cochez une tâche quand elle est faite. Le crayon change sa date ou la personne.",
+});

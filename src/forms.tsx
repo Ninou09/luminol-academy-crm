@@ -18,6 +18,12 @@ import { roleNames } from "./i18n";
 import { Dialog, Button, Badge, Avatar, Empty, DataTable } from "./ui";
 import { WhatsAppDialog, ImportDialog } from "./tools";
 import { HoursDialog } from "./schedule";
+import {
+  HelpDialog,
+  IntakeDialog,
+  IntakeQuestionsDialog,
+  MarkSheetDialog,
+} from "./academy";
 
 type Field = {
   key: string;
@@ -162,6 +168,9 @@ export default function Forms({
               contact_id: r.contact_id || "",
               staff_id: r.staff_id || "",
               package_id: r.package_id || "",
+              session_note:
+                (data.sessionNotes || []).find((n) => n.appointment_id === r.id)
+                  ?.text || "",
               starts_at: toLocalInput(r.starts_at, zone),
               ends_at: toLocalInput(r.ends_at, zone),
             }
@@ -255,6 +264,7 @@ export default function Forms({
               title: r.title,
               sessions_total: r.sessions_total,
               status: r.status,
+              plan: r.plan || "",
             }
           : {
               title: "",
@@ -265,6 +275,24 @@ export default function Forms({
             };
       case "template":
         return r.id ? { name: r.name, body: r.body } : { name: "", body: "" };
+      case "placement":
+        return {
+          test_name: "Placement test",
+          score: "",
+          max_score: "",
+          level: c?.level || "",
+          taken_on: data.today,
+          notes: "",
+        };
+      case "grade":
+        return { title: "", score: "", max_score: 20, taken_on: data.today };
+      case "promote":
+        return { cohort_id: "", level: c?.level || "", charge: true };
+      case "pay":
+        return {
+          pay_mode: r.pay_mode || "hour",
+          pay_rate: r.pay_rate ? (r.pay_rate / 100).toFixed(2) : "",
+        };
       case "bookingService":
         return r.id
           ? { ...r, active: !!r.active }
@@ -509,7 +537,8 @@ export default function Forms({
   });
   let title = "",
     button = "Save",
-    fields: Field[] = [];
+    fields: Field[] = [],
+    sessionNoteField = false;
   switch (modal.type) {
     case "inquiry":
       title = "New client request";
@@ -620,6 +649,12 @@ export default function Forms({
       break;
     case "appointment":
       title = r.id ? "Edit appointment" : "Add to calendar";
+      sessionNoteField =
+        !!r.id &&
+        !!r.contact_id &&
+        ["admin", "academic", "instructor", "admissions"].includes(
+          data.user.role,
+        );
       fields = [
         combo("kind", "Type", suggestions.kind),
         textField("title", "Title"),
@@ -879,6 +914,10 @@ export default function Forms({
           { required: false },
         ),
         textField("guardian", "Guardian or sponsor", { required: false }),
+        textField("emergency_contact", "Emergency contact", {
+          required: false,
+          hint: "Name and phone of someone to call if needed",
+        }),
         textField("notes", "Notes", {
           type: "textarea",
           required: false,
@@ -1168,6 +1207,12 @@ export default function Forms({
                 ["Active", t("Active")],
                 ["Finished", t("Finished")],
               ]),
+              textField("plan", "Session plan", {
+                type: "textarea",
+                required: false,
+                full: true,
+                hint: "Goals and steps planned for these sessions",
+              }),
             ]
           : [
               textField("price", "Price for the whole package", {
@@ -1221,6 +1266,125 @@ export default function Forms({
           : []),
       ];
       break;
+    case "placement":
+      title = "Placement test";
+      fields = [
+        combo("test_name", "Test", [
+          "Placement test",
+          "Oral interview",
+          "Written test",
+          "Cambridge",
+          "DELF",
+          "TOEFL",
+        ]),
+        textField("taken_on", "Date", { type: "date" }),
+        textField("score", "Score", {
+          type: "number",
+          step: "0.25",
+          min: 0,
+          required: false,
+        }),
+        textField("max_score", "Out of", {
+          type: "number",
+          step: "0.25",
+          min: 0,
+          required: false,
+        }),
+        combo(
+          "level",
+          "Level reached",
+          [
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2",
+            "Beginner",
+            "Intermediate",
+            "Advanced",
+          ],
+          { required: false },
+        ),
+        textField("notes", "Notes", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
+      ];
+      break;
+    case "grade":
+      title = "Add a mark";
+      fields = [
+        textField("title", "Assessment", {
+          full: true,
+          hint: "Example: Test 1 · Oral",
+        }),
+        textField("score", "Mark", { type: "number", step: "0.25", min: 0 }),
+        textField("max_score", "Out of", {
+          type: "number",
+          step: "0.25",
+          min: 1,
+        }),
+        textField("taken_on", "Date", { type: "date" }),
+      ];
+      break;
+    case "promote":
+      title = "Next level";
+      button = "Move to the next level";
+      fields = [
+        combo(
+          "level",
+          "Level reached",
+          [
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2",
+            "Beginner",
+            "Intermediate",
+            "Advanced",
+          ],
+          {
+            required: false,
+            hint: "Printed on the certificate of the level just finished",
+          },
+        ),
+        select(
+          "cohort_id",
+          "Group of the next level",
+          data.cohorts
+            .filter((h) => h.id !== r.cohort_id && h.status !== "Completed")
+            .map((h) => [h.id, `${h.name} · ${t(program(h.program_id).name)}`]),
+          { full: true },
+        ),
+        {
+          key: "charge",
+          label: "Add the tuition of the new group to Payments",
+          type: "checkbox",
+          full: true,
+        },
+      ];
+      break;
+    case "pay":
+      title = `${t("Pay rate")} · ${r.name}`;
+      fields = [
+        select("pay_mode", "Paid", [
+          ["hour", t("Per hour of group class")],
+          ["session", t("Per consultation done")],
+          ["none", t("Not paid through the CRM")],
+        ]),
+        textField("pay_rate", "Rate", {
+          type: "number",
+          step: "0.01",
+          min: 0,
+          required: false,
+          hint: data.settings.currency,
+        }),
+      ];
+      break;
     case "template":
       title = r.id ? "Edit template" : "New template";
       fields = [
@@ -1269,6 +1433,15 @@ export default function Forms({
       button = "Upload document";
       break;
   }
+  if (sessionNoteField)
+    fields.push(
+      textField("session_note", "Session note (private)", {
+        type: "textarea",
+        required: false,
+        full: true,
+        hint: "Only you can read it. It also appears in the client's psychology file.",
+      }),
+    );
   if (modal.type === "program" && r.id) {
     title = "Edit program";
     button = "Save";
@@ -1555,6 +1728,26 @@ export default function Forms({
           path = r.id ? `/templates/${r.id}` : "/templates";
           method = r.id ? "PATCH" : "POST";
           break;
+        case "placement":
+          path = "/placement";
+          body = { ...values, contact_id: c?.id };
+          break;
+        case "grade":
+          path = "/grades";
+          body = { ...values, enrollment_id: r.id };
+          break;
+        case "promote":
+          path = `/enrollments/${r.id}/promote`;
+          body = { ...values, cohort_id: Number(values.cohort_id) };
+          break;
+        case "pay":
+          path = `/users/${r.id}/pay`;
+          method = "PATCH";
+          body = {
+            pay_mode: values.pay_mode,
+            pay_rate: values.pay_rate ? cents(values.pay_rate) : 0,
+          };
+          break;
         case "bookingService":
           path = r.id ? `/booking/services/${r.id}` : "/booking/services";
           method = r.id ? "PATCH" : "POST";
@@ -1601,6 +1794,13 @@ export default function Forms({
       if (keyRef.current.signature !== signature)
         keyRef.current = { signature, key: crypto.randomUUID() };
       const result = await api(path, body, method, keyRef.current.key);
+      if (
+        sessionNoteField &&
+        values.session_note !==
+          ((data.sessionNotes || []).find((n) => n.appointment_id === r.id)
+            ?.text || "")
+      )
+        await api(`/appointments/${r.id}/note`, { text: values.session_note });
       await refresh();
       if (modal.type === "settings") setLang(values.language);
       toast(
@@ -1803,6 +2003,14 @@ export default function Forms({
                 {t("Edit")}
               </Button>
             )}
+            {["admin", "academic", "instructor"].includes(data.user.role) && (
+              <Button
+                variant="small"
+                onClick={() => open({ type: "grades", record: r })}
+              >
+                {t("Mark sheet")}
+              </Button>
+            )}
           </div>
           <div className="cohort-summary">
             <strong>
@@ -1939,6 +2147,14 @@ export default function Forms({
       />
     );
   if (modal.type === "import") return <ImportDialog onClose={onClose} />;
+  if (modal.type === "intake")
+    return <IntakeDialog contact={modal.contact!} onClose={onClose} />;
+  if (modal.type === "intakeQuestions")
+    return <IntakeQuestionsDialog onClose={onClose} />;
+  if (modal.type === "grades")
+    return <MarkSheetDialog cohortRow={modal.record!} onClose={onClose} />;
+  if (modal.type === "help")
+    return <HelpDialog page={modal.extra} onClose={onClose} />;
   if (modal.type === "hours")
     return <HoursDialog person={modal.record!} onClose={onClose} />;
   if (modal.type === "draftDetail")

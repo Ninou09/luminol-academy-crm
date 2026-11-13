@@ -7,6 +7,12 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  installPasswordRecovery,
+  newTotpSecret,
+  verifyTotp,
+  mailConfigured,
+} from "./security.mjs";
+import {
   installPublicBooking,
   withinHours,
   parts as zonedParts,
@@ -211,6 +217,30 @@ const write = (path, roles, fn, method = "post") =>
   });
 installN8nIntake(app);
 installPublicBooking(app);
+installPasswordRecovery(app, { isHosted });
+app.get("/api/public/certificate/:code", (req, res, next) => {
+  try {
+    const c = one(
+      `SELECT c.code, c.issued_at, e.completed_at, e.level, co.name student, h.name cohort, p.name program, p.duration
+       FROM certificates c JOIN enrollments e ON e.id=c.enrollment_id JOIN contacts co ON co.id=e.contact_id
+       JOIN cohorts h ON h.id=e.cohort_id JOIN programs p ON p.id=h.program_id WHERE c.code=?`,
+      String(req.params.code || "")
+        .toUpperCase()
+        .slice(0, 20),
+    );
+    res.json(
+      c
+        ? {
+            valid: true,
+            ...c,
+            academy: one("SELECT academy FROM settings").academy,
+          }
+        : { valid: false },
+    );
+  } catch (e) {
+    next(e);
+  }
+});
 app.post("/api/login", (req, res) => {
   const ip = isHosted
     ? req.headers["x-real-ip"] || req.socket.remoteAddress || "unknown"
@@ -245,6 +275,17 @@ app.post("/api/login", (req, res) => {
     !verifyPassword(password, u.password_hash)
   )
     return res.status(401).json({ error: "Email or password is incorrect." });
+  if (u.totp_enabled) {
+    if (!req.body.code)
+      return res.status(401).json({
+        error: "Enter the 6-digit code from your authenticator app.",
+        need_code: true,
+      });
+    if (!verifyTotp(u.totp_secret, req.body.code))
+      return res
+        .status(401)
+        .json({ error: "The code is not correct.", need_code: true });
+  }
   run("DELETE FROM login_attempts WHERE ip_hash=?", key);
   const token = randomBytes(32).toString("hex");
   run("DELETE FROM auth_sessions WHERE expires<?", Date.now());
@@ -397,7 +438,7 @@ function state(u) {
       (p) => !instructor || cohorts.some((c) => c.program_id === p.id),
     ),
     users: all(
-      "SELECT id,name,email,role,active,phone,public_title FROM users",
+      "SELECT id,name,email,role,active,phone,public_title,pay_mode,pay_rate,totp_enabled FROM users",
     ).filter((s) => !instructor || s.id === u.id),
     opportunities: canAdmissions(u) ? all("SELECT * FROM opportunities") : [],
     incoming: incomingInquiries(u),
@@ -420,6 +461,20 @@ function state(u) {
     serviceTypes,
     packages: packageRows().filter((p) => ids.has(p.contact_id)),
     templates: all("SELECT * FROM message_templates ORDER BY sort, id"),
+    intake: all(
+      "SELECT * FROM intake_forms WHERE user_id=? OR ?",
+      u.id,
+      u.role === "admin" ? 1 : 0,
+    )
+      .filter((x) => ids.has(x.contact_id))
+      .map((x) => ({ ...x, answers: JSON.parse(x.answers) })),
+    sessionNotes: all("SELECT * FROM session_notes WHERE user_id=?", u.id),
+    placements: all(
+      "SELECT * FROM placement_results ORDER BY taken_on DESC",
+    ).filter((x) => ids.has(x.contact_id)),
+    grades: all("SELECT * FROM grades ORDER BY taken_on, id"),
+    certificates: all("SELECT * FROM certificates"),
+    mailConfigured: mailConfigured(),
     staffHours: all(
       "SELECT * FROM staff_hours ORDER BY user_id, weekday, start_min",
     ),
@@ -1114,7 +1169,13 @@ write(
       409,
     );
     run(
-      "UPDATE contacts SET level=?,name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      "UPDATE contacts SET emergency_contact=?,level=?,name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      text(
+        b.emergency_contact ?? c.emergency_contact ?? "",
+        "Emergency contact",
+        200,
+        false,
+      ),
       text(b.level ?? c.level ?? "", "Level", 40, false),
       text(b.name ?? c.name, "Name", 100),
       email,
@@ -1223,7 +1284,12 @@ write("/api/payments", ["admin", "finance"], (req) => {
     ["Bank transfer", "Cash", "Card (external)"].includes(method),
     "Choose a payment method.",
   );
+  const year = now().slice(0, 4);
   const id = insert("payments", {
+    receipt_no: one(
+      "SELECT MAX(COALESCE(MAX(receipt_no),0), COUNT(*))+1 n FROM payments WHERE substr(created_at,1,4)=?",
+      year,
+    ).n,
     charge_id: ch.id,
     amount,
     method,
@@ -1850,6 +1916,20 @@ function found(table, id, label) {
 /** Remove a client and everything recorded about them (kept in the trash). */
 function deleteContactRecords(contactId) {
   drop("DELETE FROM reminders WHERE contact_id=?", contactId);
+  drop(
+    "DELETE FROM session_notes WHERE appointment_id IN (SELECT id FROM appointments WHERE contact_id=?)",
+    contactId,
+  );
+  drop("DELETE FROM intake_forms WHERE contact_id=?", contactId);
+  drop("DELETE FROM placement_results WHERE contact_id=?", contactId);
+  drop(
+    "DELETE FROM grades WHERE enrollment_id IN (SELECT id FROM enrollments WHERE contact_id=?)",
+    contactId,
+  );
+  drop(
+    "DELETE FROM certificates WHERE enrollment_id IN (SELECT id FROM enrollments WHERE contact_id=?)",
+    contactId,
+  );
   drop("DELETE FROM appointments WHERE contact_id=?", contactId);
   drop("DELETE FROM packages WHERE contact_id=?", contactId);
   drop(
@@ -2176,6 +2256,8 @@ write(
 );
 del("/api/appointments/:id", calendarRoles, (req) => {
   const a = found("appointments", req.params.id, "Appointment");
+  drop("DELETE FROM session_notes WHERE appointment_id=?", a.id);
+  run("DELETE FROM reminders WHERE kind='appointment' AND ref_id=?", a.id);
   drop("DELETE FROM appointments WHERE id=?", a.id);
   audit(
     req.user.id,
@@ -2526,6 +2608,12 @@ write("/api/admin/clean-start", ["admin"], (req) => {
   const me = req.user.id;
   for (const table of [
     "trash",
+    "password_resets",
+    "session_notes",
+    "intake_forms",
+    "placement_results",
+    "grades",
+    "certificates",
     "reminders",
     "booking_service_staff",
     "staff_hours",
@@ -2638,7 +2726,8 @@ write(
     contactAccess(req.user, p.contact_id);
     const b = req.body;
     run(
-      "UPDATE packages SET title=?, sessions_total=?, status=? WHERE id=?",
+      "UPDATE packages SET plan=?, title=?, sessions_total=?, status=? WHERE id=?",
+      text(b.plan ?? p.plan ?? "", "Plan", 4000, false),
       text(b.title ?? p.title, "Package name", 120),
       integer(
         b.sessions_total ?? p.sessions_total,
@@ -3087,6 +3176,368 @@ write(
       kind === "payment" ? "finance" : "general",
     );
     return { id };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Two-step sign-in, psychology files, language progress, certificates, pay.
+// ---------------------------------------------------------------------------
+const allStaff = [
+  "admin",
+  "admissions",
+  "academic",
+  "instructor",
+  "finance",
+  "manager",
+];
+write("/api/account/2fa/setup", allStaff, (req) => {
+  const u = one("SELECT * FROM users WHERE id=?", req.user.id);
+  must(!u.totp_enabled, "Two-step sign-in is already on.");
+  const secret = newTotpSecret();
+  run("UPDATE users SET totp_secret=? WHERE id=?", secret, u.id);
+  const academy = one("SELECT academy FROM settings WHERE id=1").academy;
+  return {
+    secret,
+    uri: `otpauth://totp/${encodeURIComponent(academy)}:${encodeURIComponent(u.email)}?secret=${secret}&issuer=${encodeURIComponent(academy)}`,
+  };
+});
+write("/api/account/2fa/enable", allStaff, (req) => {
+  const u = one("SELECT * FROM users WHERE id=?", req.user.id);
+  must(u.totp_secret, "Start the setup first.");
+  must(
+    verifyTotp(u.totp_secret, req.body.code),
+    "The code is not correct. Check the time on your phone and try again.",
+  );
+  run("UPDATE users SET totp_enabled=1 WHERE id=?", u.id);
+  audit(u.id, null, "Two-step sign-in turned on.", "security", "internal");
+  return { ok: true };
+});
+write("/api/account/2fa/disable", allStaff, (req) => {
+  const u = one("SELECT * FROM users WHERE id=?", req.user.id);
+  must(
+    typeof req.body.password === "string" &&
+      verifyPassword(req.body.password, u.password_hash),
+    "Your current password is incorrect.",
+    403,
+  );
+  run("UPDATE users SET totp_enabled=0, totp_secret='' WHERE id=?", u.id);
+  audit(u.id, null, "Two-step sign-in turned off.", "security", "internal");
+  return { ok: true };
+});
+write("/api/users/:id/2fa/reset", ["admin"], (req) => {
+  const u = found("users", req.params.id, "Staff member");
+  run("UPDATE users SET totp_enabled=0, totp_secret='' WHERE id=?", u.id);
+  audit(
+    req.user.id,
+    null,
+    `Two-step sign-in reset for ${u.name}.`,
+    "security",
+    "internal",
+  );
+  return { ok: true };
+});
+write(
+  "/api/users/:id/pay",
+  ["admin"],
+  (req) => {
+    const u = found("users", req.params.id, "Staff member");
+    must(
+      ["none", "hour", "session"].includes(req.body.pay_mode),
+      "Choose how this person is paid.",
+    );
+    run(
+      "UPDATE users SET pay_mode=?, pay_rate=? WHERE id=?",
+      req.body.pay_mode,
+      integer(req.body.pay_rate || 0, "Rate", 0),
+      u.id,
+    );
+    audit(
+      req.user.id,
+      null,
+      `Pay rate updated: ${u.name}.`,
+      "finance",
+      "finance",
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+
+// Psychology ------------------------------------------------------------------
+const psyRoles = ["admin", "academic", "instructor", "admissions"];
+write(
+  "/api/settings/intake",
+  ["admin"],
+  (req) => {
+    const q = req.body.questions;
+    must(
+      Array.isArray(q) && q.length > 0 && q.length <= 30,
+      "Add between 1 and 30 questions.",
+    );
+    const clean = q.map((x) => text(x, "Question", 200)).filter(Boolean);
+    run(
+      "UPDATE settings SET intake_questions=? WHERE id=1",
+      JSON.stringify(clean),
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+write("/api/contacts/:id/intake", psyRoles, (req) => {
+  const c = contactAccess(req.user, req.params.id);
+  const answers = req.body.answers;
+  must(
+    answers && typeof answers === "object" && !Array.isArray(answers),
+    "Invalid answers.",
+  );
+  const clean = {};
+  for (const [k, v] of Object.entries(answers).slice(0, 40))
+    clean[text(k, "Question", 200)] = text(
+      String(v ?? ""),
+      "Answer",
+      4000,
+      false,
+    );
+  const existing = one(
+    "SELECT * FROM intake_forms WHERE contact_id=? AND user_id=?",
+    c.id,
+    req.user.id,
+  );
+  if (existing)
+    run(
+      "UPDATE intake_forms SET answers=?, updated_at=? WHERE id=?",
+      JSON.stringify(clean),
+      now(),
+      existing.id,
+    );
+  else
+    insert("intake_forms", {
+      contact_id: c.id,
+      user_id: req.user.id,
+      answers: JSON.stringify(clean),
+      created_at: now(),
+      updated_at: now(),
+    });
+  audit(
+    req.user.id,
+    c.id,
+    "First consultation file updated (private).",
+    "consultation",
+    "private",
+  );
+  return { ok: true };
+});
+write("/api/appointments/:id/note", psyRoles, (req) => {
+  const a = found("appointments", req.params.id, "Appointment");
+  const prev = one("SELECT * FROM session_notes WHERE appointment_id=?", a.id);
+  must(
+    !prev || prev.user_id === req.user.id,
+    "Only the author can change this session note.",
+    403,
+  );
+  const body = text(req.body.text ?? "", "Session note", 8000, false);
+  if (prev)
+    run(
+      "UPDATE session_notes SET text=?, updated_at=? WHERE appointment_id=?",
+      body,
+      now(),
+      a.id,
+    );
+  else
+    insert("session_notes", {
+      appointment_id: a.id,
+      user_id: req.user.id,
+      text: body,
+      updated_at: now(),
+    });
+  return { ok: true };
+});
+write(
+  "/api/packages/:id/plan",
+  packageRoles,
+  (req) => {
+    const p = found("packages", req.params.id, "Package");
+    run(
+      "UPDATE packages SET plan=? WHERE id=?",
+      text(req.body.plan ?? "", "Plan", 4000, false),
+      p.id,
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+
+// Languages -------------------------------------------------------------------
+const teachRoles = ["admin", "academic", "instructor", "admissions"];
+write("/api/placement", teachRoles, (req) => {
+  const c = contactAccess(req.user, req.body.contact_id);
+  const level = text(req.body.level || "", "Level", 40, false);
+  const id = insert("placement_results", {
+    contact_id: c.id,
+    test_name: text(req.body.test_name || "Placement test", "Test", 120),
+    score:
+      req.body.score === "" || req.body.score == null
+        ? null
+        : Number(req.body.score),
+    max_score:
+      req.body.max_score === "" || req.body.max_score == null
+        ? null
+        : Number(req.body.max_score),
+    level,
+    notes: text(req.body.notes || "", "Notes", 2000, false),
+    user_id: req.user.id,
+    taken_on: req.body.taken_on
+      ? date(req.body.taken_on, "Date")
+      : now().slice(0, 10),
+  });
+  if (level) run("UPDATE contacts SET level=? WHERE id=?", level, c.id);
+  audit(
+    req.user.id,
+    c.id,
+    `Placement test: ${level || "result recorded"}.`,
+    "enrollment",
+  );
+  return { id };
+});
+del("/api/placement/:id", teachRoles, (req) => {
+  const p = found("placement_results", req.params.id, "Result");
+  drop("DELETE FROM placement_results WHERE id=?", p.id);
+  return { ok: true };
+});
+write("/api/grades", teachRoles, (req) => {
+  const e = found("enrollments", req.body.enrollment_id, "Enrollment");
+  cohortAccess(req.user, e.cohort_id);
+  const max = Number(req.body.max_score || 20);
+  const score = Number(req.body.score);
+  must(
+    Number.isFinite(score) && score >= 0 && score <= max && max > 0,
+    "The mark must be between 0 and the maximum.",
+  );
+  const id = insert("grades", {
+    enrollment_id: e.id,
+    title: text(req.body.title, "Assessment", 120),
+    score,
+    max_score: max,
+    taken_on: req.body.taken_on
+      ? date(req.body.taken_on, "Date")
+      : now().slice(0, 10),
+    user_id: req.user.id,
+  });
+  return { id };
+});
+write("/api/grades/bulk", teachRoles, (req) => {
+  const c = cohortAccess(req.user, req.body.cohort_id);
+  const title = text(req.body.title, "Assessment", 120);
+  const max = Number(req.body.max_score || 20);
+  must(max > 0, "Choose a maximum mark.");
+  const rows = req.body.marks;
+  must(Array.isArray(rows) && rows.length <= 200, "Invalid marks.");
+  let n = 0;
+  for (const r of rows) {
+    if (r.score === "" || r.score == null) continue;
+    const e = one(
+      "SELECT * FROM enrollments WHERE id=? AND cohort_id=?",
+      integer(r.enrollment_id, "Enrollment"),
+      c.id,
+    );
+    must(e, "Student is not in this group.");
+    const score = Number(r.score);
+    must(
+      Number.isFinite(score) && score >= 0 && score <= max,
+      `Marks must be between 0 and ${max}.`,
+    );
+    insert("grades", {
+      enrollment_id: e.id,
+      title,
+      score,
+      max_score: max,
+      taken_on: req.body.taken_on
+        ? date(req.body.taken_on, "Date")
+        : now().slice(0, 10),
+      user_id: req.user.id,
+    });
+    n++;
+  }
+  audit(
+    req.user.id,
+    null,
+    `Marks recorded for ${c.name}: ${title} (${n}).`,
+    "enrollment",
+  );
+  return { count: n };
+});
+del("/api/grades/:id", teachRoles, (req) => {
+  const g = found("grades", req.params.id, "Mark");
+  drop("DELETE FROM grades WHERE id=?", g.id);
+  return { ok: true };
+});
+/** Finish this level and continue in a group of the next level. */
+write(
+  "/api/enrollments/:id/promote",
+  ["admin", "academic", "admissions"],
+  (req) => {
+    const e = found("enrollments", req.params.id, "Enrollment");
+    must(
+      e.status === "Active",
+      "Only an active enrollment can move to the next level.",
+      409,
+    );
+    const target = cohortAccess(req.user, req.body.cohort_id);
+    must(target.id !== e.cohort_id, "Choose the group of the next level.");
+    const used = one(
+      "SELECT COUNT(*) n FROM enrollments WHERE cohort_id=? AND status='Active'",
+      target.id,
+    ).n;
+    must(used < target.capacity, "That group is full.", 409);
+    const level = text(req.body.level || "", "Level reached", 40, false);
+    run(
+      "UPDATE enrollments SET status='Completed', completed_at=?, level=? WHERE id=?",
+      now(),
+      level,
+      e.id,
+    );
+    if (level)
+      run("UPDATE contacts SET level=? WHERE id=?", level, e.contact_id);
+    const id = insert("enrollments", {
+      contact_id: e.contact_id,
+      cohort_id: target.id,
+      status: "Active",
+      created_at: now(),
+    });
+    const p = program(target.program_id);
+    if (p.price > 0 && req.body.charge !== false)
+      insert("charges", {
+        contact_id: e.contact_id,
+        enrollment_id: id,
+        label: `${p.name} · Tuition`,
+        amount: p.price,
+        currency: p.currency,
+        due_date: now().slice(0, 10),
+        created_at: now(),
+      });
+    audit(
+      req.user.id,
+      e.contact_id,
+      `Level completed${level ? ` (${level})` : ""}; continues in ${target.name}.`,
+      "enrollment",
+    );
+    return { id };
+  },
+);
+write(
+  "/api/enrollments/:id/certificate",
+  ["admin", "academic", "admissions", "instructor"],
+  (req) => {
+    const e = found("enrollments", req.params.id, "Enrollment");
+    must(e.status === "Completed", "Complete the course first.");
+    const existing = one(
+      "SELECT * FROM certificates WHERE enrollment_id=?",
+      e.id,
+    );
+    if (existing) return existing;
+    const code = randomBytes(6).toString("hex").toUpperCase();
+    insert("certificates", { code, enrollment_id: e.id, issued_at: now() });
+    return { code, enrollment_id: e.id };
   },
 );
 
