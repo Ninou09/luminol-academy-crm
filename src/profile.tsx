@@ -22,6 +22,12 @@ import {
 import { useApp } from "./context";
 import { Dialog, Button, Badge, Avatar, Tabs, Empty, TaskRows } from "./ui";
 import { useRequestLabel, serviceTone, useRemove } from "./pages";
+import {
+  PackagesSection,
+  PrintButton,
+  useCertificate,
+  useReceipt,
+} from "./tools";
 
 export default function Profile({
   id,
@@ -47,6 +53,8 @@ export default function Profile({
   const contact = person(id);
   const label = useRequestLabel();
   const remove = useRemove();
+  const certificate = useCertificate();
+  const receipt = useReceipt();
   const appointments = (data.appointments || []).filter(
     (a) => a.contact_id === id,
   );
@@ -132,6 +140,14 @@ export default function Profile({
             {t("Book appointment")}
           </Button>
         )}
+        {contact.phone && (
+          <Button
+            icon={<MessageSquare size={15} />}
+            onClick={() => open({ type: "whatsapp", contact })}
+          >
+            {t("WhatsApp message")}
+          </Button>
+        )}
         {data.permissions.editAdmissions && (
           <Button
             variant="primary"
@@ -196,6 +212,14 @@ export default function Profile({
                   <dt>{t("Preferred language")}</dt>
                   <dd>{contact.language}</dd>
                 </div>
+                {contact.level && (
+                  <div>
+                    <dt>{t("Level")}</dt>
+                    <dd>
+                      <Badge tone="blue">{contact.level}</Badge>
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt>{t("Communication consent")}</dt>
                   <dd>
@@ -301,6 +325,7 @@ export default function Profile({
                 ))}
               </div>
             )}
+            <PackagesSection contact={contact} />
             {appointments.length > 0 && (
               <div className="profile-section">
                 <div className="section-label">
@@ -429,6 +454,16 @@ export default function Profile({
                       </Button>
                     </div>
                   )}
+                  {e.status === "Completed" && (
+                    <div className="row-actions">
+                      <PrintButton
+                        label="Print certificate"
+                        onClick={() =>
+                          certificate({ ...e, level: e.level || contact.level })
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -539,6 +574,17 @@ export default function Profile({
                     <strong>{money(ch.balance, ch.currency)}</strong>
                   </div>
                 </div>
+                {data.payments
+                  .filter((p) => p.charge_id === ch.id)
+                  .map((p) => (
+                    <div className="payment-line" key={p.id}>
+                      <span>
+                        {date(p.created_at)} · {t(p.method)} ·{" "}
+                        <strong>{money(p.amount, p.currency)}</strong>
+                      </span>
+                      <PrintButton label="Receipt" onClick={() => receipt(p)} />
+                    </div>
+                  ))}
                 <div className="charge-footer">
                   <span>
                     {t("Due date")} · {date(ch.due_date)}
@@ -588,7 +634,7 @@ export default function Profile({
                     <small>
                       {date(a.created_at)} · {time(a.created_at)}{" "}
                       {a.visibility !== "general" &&
-                        `· ${t(a.visibility === "finance" ? "Finance only" : "Admissions only")}`}
+                        `· ${t(a.visibility === "finance" ? "Finance only" : a.visibility === "private" ? "🔒 Only me (private)" : "Admissions only")}`}
                     </small>
                   </div>
                 </div>

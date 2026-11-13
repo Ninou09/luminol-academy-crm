@@ -83,6 +83,22 @@ export function createHostedHandler(app, store) {
           );
         });
       });
+      // The first successful request of each day also triggers a backup copy.
+      const day = new Date().toISOString().slice(0, 10);
+      let backupDue = false;
+      if (store.backup && res.statusCode < 400) {
+        const last = connection
+          .prepare("SELECT value FROM meta WHERE key='last_backup'")
+          .get()?.value;
+        if (last !== day) {
+          connection
+            .prepare(
+              "INSERT INTO meta(key,value) VALUES ('last_backup',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            )
+            .run(day);
+          backupDue = true;
+        }
+      }
       const changed =
         connection.prepare("SELECT total_changes() AS n").get().n !==
         changesBefore;
@@ -95,6 +111,12 @@ export function createHostedHandler(app, store) {
             "Workspace exceeded the snapshot size limit. Move it to managed SQL storage.",
           );
         await store.write(bytes, snapshot?.etag);
+        if (backupDue)
+          await store
+            .backup(bytes, day)
+            .catch((error) =>
+              console.error("Daily backup failed:", error?.message),
+            );
       }
       res.write = originalWrite;
       res.writeHead = originalWriteHead;

@@ -252,6 +252,169 @@ test("account password change requires the current password", async () => {
   );
 });
 
+test("packages count sessions; double bookings need confirmation; weekly repeats", async () => {
+  const c = await request("/contacts", {
+    name: "Package Client",
+    phone: "0555 99 88 77",
+  });
+  const pack = await request("/packages", {
+    contact_id: c.json.id,
+    title: "Therapy pack",
+    sessions_total: 3,
+    price: 1500000,
+  });
+  assert.equal(pack.status, 200, JSON.stringify(pack.json));
+  const slot = {
+    kind: "Psychology consultation",
+    title: "Session",
+    contact_id: c.json.id,
+    staff_id: 1,
+    package_id: pack.json.id,
+    starts_at: "2027-01-05T09:00:00.000Z",
+    ends_at: "2027-01-05T10:00:00.000Z",
+    repeat: 3,
+  };
+  const series = await request("/appointments", slot);
+  assert.equal(series.status, 200);
+  assert.equal(series.json.ids.length, 3);
+  const clash = await request("/appointments", {
+    ...slot,
+    repeat: 1,
+    package_id: null,
+    title: "Other",
+  });
+  assert.equal(clash.status, 409);
+  assert.equal(clash.json.overlap, true);
+  assert.equal(
+    (
+      await request("/appointments", {
+        ...slot,
+        repeat: 1,
+        package_id: null,
+        title: "Other",
+        allow_overlap: true,
+      })
+    ).status,
+    200,
+  );
+  await request(
+    `/appointments/${series.json.ids[0]}`,
+    { status: "Done" },
+    "PATCH",
+  );
+  await request(
+    `/appointments/${series.json.ids[1]}`,
+    { status: "No-show" },
+    "PATCH",
+  );
+  const s = await state();
+  const p = s.packages.find((x) => x.id === pack.json.id);
+  assert.equal(p.used, 2);
+  assert.equal(p.booked, 1);
+  assert.ok(
+    s.charges.some((ch) => ch.id === p.charge_id && ch.amount === 1500000),
+  );
+});
+
+test("private notes are visible only to their author", async () => {
+  const c = await request("/contacts", {
+    name: "Private Client",
+    phone: "0555 10 20 30",
+  });
+  await request("/notes", {
+    contact_id: c.json.id,
+    text: "Confidential observation",
+    visibility: "private",
+  });
+  assert.ok(
+    (await state()).activities.some(
+      (a) => a.text === "Confidential observation",
+    ),
+  );
+  await request("/users", {
+    name: "Second Admin",
+    email: "second@academy.test",
+    role: "admin",
+    password: "SecondAdmin!2026",
+  });
+  const other = await request(
+    "/login",
+    { email: "second@academy.test", password: "SecondAdmin!2026" },
+    "POST",
+    "",
+  );
+  const theirs = (await request("/state", undefined, "GET", other.cookie)).json;
+  assert.ok(
+    !theirs.activities.some((a) => a.text === "Confidential observation"),
+  );
+});
+
+test("deleted clients go to the trash and can be restored", async () => {
+  const c = await request("/contacts", {
+    name: "Restore Me",
+    email: "restore@academy.test",
+  });
+  await request("/notes", { contact_id: c.json.id, text: "keep me" });
+  assert.equal(
+    (await request(`/contacts/${c.json.id}`, {}, "DELETE")).status,
+    200,
+  );
+  let s = await state();
+  const item = s.trash.find((t) => t.label.startsWith("Restore Me"));
+  assert.ok(item);
+  assert.equal((await request(`/trash/${item.id}/restore`, {})).status, 200);
+  s = await state();
+  assert.ok(s.contacts.some((x) => x.id === c.json.id));
+  assert.ok(s.activities.some((a) => a.text === "keep me"));
+});
+
+test("clients import from a spreadsheet, skipping duplicates and bad rows", async () => {
+  const r = await request("/import/contacts", {
+    create_requests: true,
+    rows: [
+      {
+        name: "Imported One",
+        phone: "661223355",
+        interest: "Arabic for kids",
+        service_type: "Language course",
+        level: "A2",
+      },
+      { name: "Imported Two", email: "two@import.test" },
+      { name: "", phone: "0770000000" },
+      { name: "Duplicate", phone: "0661 22 33 55" },
+    ],
+  });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.created, 2);
+  assert.equal(r.json.requests, 1);
+  assert.equal(r.json.skippedCount, 2);
+  const s = await state();
+  const one = s.contacts.find((c) => c.name === "Imported One");
+  assert.equal(one.phone, "0661223355");
+  assert.equal(one.level, "A2");
+});
+
+test("templates can be edited and a backup can be downloaded", async () => {
+  const s = await state();
+  assert.ok(s.templates.length >= 4);
+  assert.equal(
+    (
+      await request(
+        `/templates/${s.templates[0].id}`,
+        { body: "Hello {name}" },
+        "PATCH",
+      )
+    ).status,
+    200,
+  );
+  const res = await fetch(base + "/api/admin/backup", {
+    headers: { cookie: admin },
+  });
+  assert.equal(res.status, 200);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  assert.equal(bytes.subarray(0, 15).toString(), "SQLite format 3");
+});
+
 test("clean start removes sample records from an old demo workspace", async () => {
   server.kill();
   await start({

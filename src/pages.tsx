@@ -59,6 +59,7 @@ import { type Row, localDate } from "./types";
 import { roleNames } from "./i18n";
 import { N8nInbox } from "./n8n";
 import { api } from "./types";
+import { PrintButton, TemplatesPanel, TrashPanel, useReceipt } from "./tools";
 
 /** What the client asked for: the linked program, or the free-text interest. */
 export function useRequestLabel() {
@@ -198,6 +199,38 @@ export function Overview({
     (o) => !["Enrolled", "Lost", "Nurture"].includes(o.stage),
   );
   const currency = data.settings.currency;
+  const { person: who, user: staffName } = useApp();
+  const today = [
+    ...(data.appointments || [])
+      .filter(
+        (a) =>
+          a.status !== "Cancelled" &&
+          localDate(new Date(a.starts_at), data.settings.timezone) ===
+            data.today,
+      )
+      .map((a) => ({
+        key: "a" + a.id,
+        kind: "appointment",
+        record: a,
+        status: a.status,
+        color: "appointment",
+        title: a.contact_id ? who(a.contact_id).name : a.title,
+        sub: `${t(a.kind)}${a.contact_id ? " · " + a.title : ""}`,
+        meta: [a.staff_id ? staffName(a.staff_id).name : "", a.location]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    ...sessions.map((s) => ({
+      key: "s" + s.id,
+      kind: "session",
+      record: s,
+      status: "Scheduled",
+      color: program(cohort(s.cohort_id).program_id).color,
+      title: cohort(s.cohort_id).name,
+      sub: t(s.title),
+      meta: `${s.room} · ${data.enrollments.filter((e) => e.cohort_id === s.cohort_id && e.status === "Active").length} ${t("students")}`,
+    })),
+  ].sort((x, y) => x.record.starts_at.localeCompare(y.record.starts_at));
   return (
     <>
       <PageHead
@@ -384,8 +417,8 @@ export function Overview({
           </div>
         </Panel>
         <Panel
-          title="Today’s sessions"
-          subtitle="Learning in motion."
+          title="Today"
+          subtitle="Who is booked today, and when."
           action={
             <div className="date-tile">
               <span>{date(data.today, { month: "short" })}</span>
@@ -394,42 +427,39 @@ export function Overview({
           }
         >
           <div className="schedule-list">
-            {sessions.slice(0, 4).map((s) => (
+            {today.slice(0, 6).map((it) => (
               <button
-                className="schedule-row"
-                key={s.id}
-                onClick={() => open({ type: "sessionDetail", record: s })}
+                className={`schedule-row status-${it.status.toLowerCase()}`}
+                key={it.key}
+                onClick={() =>
+                  open(
+                    it.kind === "appointment"
+                      ? { type: "appointment", record: it.record }
+                      : { type: "sessionDetail", record: it.record },
+                  )
+                }
               >
                 <div className="schedule-time">
-                  {time(s.starts_at)}
-                  <small>{time(s.ends_at)}</small>
+                  {time(it.record.starts_at)}
+                  <small>{time(it.record.ends_at)}</small>
                 </div>
-                <div
-                  className={`schedule-line ${program(cohort(s.cohort_id).program_id).color}`}
-                />
+                <div className={`schedule-line ${it.color}`} />
                 <div>
-                  <strong>
-                    {t(program(cohort(s.cohort_id).program_id).name)}
-                  </strong>
-                  <p>{t(s.title)}</p>
-                  <small>
-                    {s.room}
-                    <span>·</span>
-                    {
-                      data.enrollments.filter(
-                        (e) =>
-                          e.cohort_id === s.cohort_id && e.status === "Active",
-                      ).length
-                    }{" "}
-                    {t("students")}
-                  </small>
+                  <strong>{it.title}</strong>
+                  <p>{it.sub}</p>
+                  <small>{it.meta}</small>
                 </div>
               </button>
             ))}
-            {!sessions.length && (
+            {today.length > 6 && (
+              <LinkButton onClick={() => go("Calendar")}>
+                +{today.length - 6} {t("more")}
+              </LinkButton>
+            )}
+            {!today.length && (
               <Empty
-                title="No sessions today"
-                text="Explore the calendar to plan the next session."
+                title="Nothing booked today"
+                text="Add a consultation or class from the calendar."
               />
             )}
           </div>
@@ -1630,222 +1660,11 @@ function WaitlistTable() {
   );
 }
 
-export function Calendar() {
-  const { data, t, open, cohort, program, date, time, person, user } = useApp();
-  const canBook = ["admin", "admissions", "academic", "instructor"].includes(
-    data.user.role,
-  );
-  const [view, setView] = useState("Week"),
-    [anchor, setAnchor] = useState(data.today),
-    [filter, setFilter] = useState("");
-  const change = (n: number) => {
-    const d = new Date(anchor + "T12:00:00Z");
-    if (view === "Month") d.setUTCMonth(d.getUTCMonth() + n, 1);
-    else d.setUTCDate(d.getUTCDate() + n * (view === "Week" ? 7 : 1));
-    setAnchor(d.toISOString().slice(0, 10));
-  };
-  const base = new Date(anchor + "T12:00:00Z");
-  if (view === "Week")
-    base.setUTCDate(base.getUTCDate() - ((base.getUTCDay() + 6) % 7));
-  if (view === "Month") {
-    base.setUTCDate(1);
-    base.setUTCDate(base.getUTCDate() - ((base.getUTCDay() + 6) % 7));
-  }
-  const days = Array.from(
-    { length: view === "Month" ? 42 : view === "Week" ? 7 : 1 },
-    (_, i) =>
-      new Date(base.getTime() + i * 86400000).toISOString().slice(0, 10),
-  );
-  const sessions = data.sessions.filter(
-    (s) =>
-      s.status === "Scheduled" &&
-      filter !== "appointments" &&
-      (!filter || String(s.cohort_id) === filter),
-  );
-  const appointments = (data.appointments || []).filter(
-    (a) => a.status !== "Cancelled" && (!filter || filter === "appointments"),
-  );
-  const onDay = (iso: string, day: string) =>
-    localDate(new Date(iso), data.settings.timezone) === day;
-  return (
-    <>
-      <PageHead
-        title="Calendar"
-        subtitle="Consultations, meetings and group classes, all together."
-      >
-        {data.permissions.editAcademic && (
-          <Button
-            icon={<Plus size={17} />}
-            disabled={!data.cohorts.length}
-            title={!data.cohorts.length ? t("Create a group first") : undefined}
-            onClick={() => open({ type: "session" })}
-          >
-            {t("Group class")}
-          </Button>
-        )}
-        {canBook && (
-          <Button
-            variant="primary"
-            icon={<Plus size={17} />}
-            onClick={() => open({ type: "appointment" })}
-          >
-            {t("Add to calendar")}
-          </Button>
-        )}
-      </PageHead>
-      <div className="panel calendar-panel">
-        <div className="calendar-toolbar">
-          <div className="calendar-navigation">
-            <Button onClick={() => setAnchor(data.today)}>{t("Today")}</Button>
-            <button
-              className="icon-button"
-              aria-label={t("Previous")}
-              onClick={() => change(-1)}
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              className="icon-button"
-              aria-label={t("Next")}
-              onClick={() => change(1)}
-            >
-              <ChevronRight size={18} />
-            </button>
-            <h2>{date(anchor, { month: "long", year: "numeric" })}</h2>
-          </div>
-          <div className="heading-actions">
-            <select
-              aria-label={t("Cohort")}
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            >
-              <option value="">{t("Everything")}</option>
-              <option value="appointments">
-                {t("Consultations & meetings")}
-              </option>
-              {data.cohorts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <div className="segmented">
-              {["Day", "Week", "Month"].map((v) => (
-                <button
-                  className={view === v ? "active" : ""}
-                  key={v}
-                  onClick={() => setView(v)}
-                >
-                  {t(v)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className={`calendar-grid ${view.toLowerCase()}`}>
-          {days.map((day) => (
-            <div
-              key={day}
-              className={`calendar-day ${day === data.today ? "is-today" : ""} ${view === "Month" && day.slice(0, 7) !== anchor.slice(0, 7) ? "outside-month" : ""}`}
-            >
-              <div className="calendar-day-label">
-                <span>{date(day, { weekday: "short" })}</span>
-                <strong>{date(day, { day: "numeric" })}</strong>
-                {canBook && (
-                  <button
-                    className="day-add"
-                    aria-label={`${t("Add to calendar")} ${day}`}
-                    title={t("Add to calendar")}
-                    onClick={() =>
-                      open({ type: "appointment", extra: { day } })
-                    }
-                  >
-                    <Plus size={14} />
-                  </button>
-                )}
-              </div>
-              <div className="calendar-events">
-                {appointments
-                  .filter((a) => onDay(a.starts_at, day))
-                  .map((a) => (
-                    <button
-                      key={"a" + a.id}
-                      className={`calendar-event appointment ${a.status === "Done" ? "done" : ""}`}
-                      onClick={() => open({ type: "appointment", record: a })}
-                    >
-                      <small>
-                        {time(a.starts_at)} – {time(a.ends_at)}
-                      </small>
-                      <strong>{a.title}</strong>
-                      <span>
-                        {t(a.kind)}
-                        {a.contact_id ? ` · ${person(a.contact_id).name}` : ""}
-                      </span>
-                      <small>
-                        {[a.location, a.staff_id ? user(a.staff_id).name : ""]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </small>
-                    </button>
-                  ))}
-                {sessions
-                  .filter(
-                    (s) =>
-                      localDate(
-                        new Date(s.starts_at),
-                        data.settings.timezone,
-                      ) === day,
-                  )
-                  .map((s) => (
-                    <button
-                      key={s.id}
-                      className={`calendar-event ${program(cohort(s.cohort_id).program_id).color}`}
-                      onClick={() => open({ type: "sessionDetail", record: s })}
-                    >
-                      <small>
-                        {time(s.starts_at)} – {time(s.ends_at)}
-                      </small>
-                      <strong>{t(s.title)}</strong>
-                      <span>{cohort(s.cohort_id).name}</span>
-                      <small>{s.room}</small>
-                    </button>
-                  ))}
-                {view === "Day" &&
-                  !sessions.some((s) => onDay(s.starts_at, day)) &&
-                  !appointments.some((a) => onDay(a.starts_at, day)) && (
-                    <Empty
-                      title="No sessions"
-                      text="Explore the calendar to plan the next session."
-                    />
-                  )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="panel-bottom">
-          <span className="muted">
-            <Globe size={13} /> {data.settings.timezone}
-          </span>
-          <div className="legend">
-            <span>
-              <i className="program-dot appointment" />
-              {t("Consultations & meetings")}
-            </span>
-            {data.programs.slice(0, 6).map((p) => (
-              <span key={p.id}>
-                <i className={`program-dot ${p.color}`} />
-                {t(p.name)}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+export { Calendar } from "./calendar";
 
 export function Payments() {
   const { data, t, open, money, date, person, profile, pageFilter } = useApp();
+  const receipt = useReceipt();
   const remove = useRemove();
   const [tab, setTab] = useState(
       pageFilter.startsWith("received:") ? "Payment history" : "All charges",
@@ -2133,6 +1952,7 @@ export function Payments() {
                 label: "Record refund",
                 render: (p) => (
                   <div>
+                    <PrintButton label="Receipt" onClick={() => receipt(p)} />
                     <small className="block muted">
                       {money(
                         data.refunds
@@ -2344,7 +2164,8 @@ export function SettingsPage() {
     "Workspace settings",
     "Team & permissions",
     "My account",
-    ...(data.permissions.admin ? ["Data & import"] : []),
+    ...(data.permissions.editAdmissions ? ["Message templates"] : []),
+    ...(data.permissions.admin ? ["Data & import", "Trash"] : []),
     "Integrations",
     "Automation history",
   ];
@@ -2579,6 +2400,35 @@ export function SettingsPage() {
             </div>
           </Panel>
           <Panel
+            title="Import clients from Excel"
+            subtitle="Upload your existing list of clients or students (.xlsx or .csv). Duplicates are skipped."
+          >
+            <div className="data-actions">
+              <span>{t("Name, phone, email, course, level, notes…")}</span>
+              <Button
+                variant="primary"
+                icon={<Upload size={16} />}
+                onClick={() => open({ type: "import" })}
+              >
+                {t("Import from Excel")}
+              </Button>
+            </div>
+          </Panel>
+          <Panel
+            title="Backups"
+            subtitle="A copy of the whole database is saved automatically every day and kept 30 days. You can also download one now."
+          >
+            <div className="data-actions">
+              <span>{t("File type: SQLite database (keep it private).")}</span>
+              <Button
+                icon={<Database size={16} />}
+                onClick={() => window.open("/api/admin/backup", "_self")}
+              >
+                {t("Download backup")}
+              </Button>
+            </div>
+          </Panel>
+          <Panel
             title="Export"
             subtitle="Download your data as spreadsheets (CSV, opens in Excel)."
           >
@@ -2613,6 +2463,10 @@ export function SettingsPage() {
             </Button>
           </Panel>
         </div>
+      ) : tab === "Message templates" ? (
+        <TemplatesPanel />
+      ) : tab === "Trash" ? (
+        <TrashPanel />
       ) : tab === "Integrations" ? (
         <>
           <div className="integration-grid">

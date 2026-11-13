@@ -35,7 +35,11 @@ test("n8n normalization excludes opted-out, historic and converted rows and emit
         confidential: "private metadata",
       }),
     },
-    { ...baseline, id: 9, metadata_json: JSON.stringify({ do_not_contact: "true" }) },
+    {
+      ...baseline,
+      id: 9,
+      metadata_json: JSON.stringify({ do_not_contact: "true" }),
+    },
   ].map((json) => ({ json }));
   const result = JSON.parse(
     JSON.stringify(

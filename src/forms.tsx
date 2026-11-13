@@ -16,6 +16,7 @@ import { useApp, type ModalData } from "./context";
 import { api, ApiError, toInstant, type Row } from "./types";
 import { roleNames } from "./i18n";
 import { Dialog, Button, Badge, Avatar, Empty, DataTable } from "./ui";
+import { WhatsAppDialog, ImportDialog } from "./tools";
 
 type Field = {
   key: string;
@@ -159,20 +160,38 @@ export default function Forms({
               ...r,
               contact_id: r.contact_id || "",
               staff_id: r.staff_id || "",
+              package_id: r.package_id || "",
               starts_at: toLocalInput(r.starts_at, zone),
               ends_at: toLocalInput(r.ends_at, zone),
             }
-          : {
-              kind: modal.extra?.kind || "Psychology consultation",
-              title: "",
-              contact_id: c?.id || "",
-              staff_id: data.user.id,
-              starts_at: `${modal.extra?.day || data.today}T10:00`,
-              ends_at: `${modal.extra?.day || data.today}T11:00`,
-              location: "",
-              notes: "",
-              status: "Scheduled",
-            };
+          : (() => {
+              const day = modal.extra?.day || data.today;
+              const start = modal.extra?.time || "10:00";
+              const [h, m] = start.split(":").map(Number);
+              const endMin = Math.min(h * 60 + m + 60, 23 * 60 + 59);
+              const end = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+              const pack = c
+                ? (data.packages || []).find(
+                    (p) =>
+                      p.contact_id === c.id &&
+                      p.status === "Active" &&
+                      p.used + p.booked < p.sessions_total,
+                  )
+                : null;
+              return {
+                kind: modal.extra?.kind || "Psychology consultation",
+                title: modal.extra?.title || (pack ? pack.title : ""),
+                contact_id: c?.id || "",
+                staff_id: data.user.id,
+                package_id: pack?.id || "",
+                starts_at: `${day}T${start}`,
+                ends_at: `${day}T${end}`,
+                location: "",
+                notes: "",
+                status: "Scheduled",
+                repeat: 1,
+              };
+            })();
       case "staff":
         return r.id
           ? {
@@ -223,7 +242,28 @@ export default function Forms({
           visibility: data.user.role === "finance" ? "finance" : "general",
         };
       case "contact":
-        return { ...r, notes: r.notes || "", consent: !!r.consent };
+        return {
+          ...r,
+          notes: r.notes || "",
+          level: r.level || "",
+          consent: !!r.consent,
+        };
+      case "package":
+        return r.id
+          ? {
+              title: r.title,
+              sessions_total: r.sessions_total,
+              status: r.status,
+            }
+          : {
+              title: "",
+              sessions_total: 5,
+              price: "",
+              currency: data.settings.currency,
+              due_date: data.today,
+            };
+      case "template":
+        return r.id ? { name: r.name, body: r.body } : { name: "", body: "" };
       case "payment":
         return {
           charge_id:
@@ -335,6 +375,7 @@ export default function Forms({
     [file, setFile] = useState<File | null>(null),
     [attendance, setAttendance] = useState<Record<number, string>>({});
   const keyRef = useRef({ signature: "", key: "" });
+  const overlapRef = useRef(false);
   useEffect(() => {
     const listener = (e: BeforeUnloadEvent) => {
       if (dirty) {
@@ -577,6 +618,25 @@ export default function Forms({
           activeUsers.map((u) => [u.id, u.name]),
           { required: false },
         ),
+        ...((data.packages || []).some(
+          (p) => String(p.contact_id) === String(values.contact_id),
+        )
+          ? [
+              select(
+                "package_id",
+                "Counts in package",
+                (data.packages || [])
+                  .filter(
+                    (p) => String(p.contact_id) === String(values.contact_id),
+                  )
+                  .map((p) => [
+                    p.id,
+                    `${p.title} · ${p.used}/${p.sessions_total} ${t("used")}`,
+                  ]),
+                { required: false },
+              ),
+            ]
+          : []),
         textField("starts_at", "Start time", {
           type: "datetime-local",
           hint: data.settings.timezone,
@@ -593,10 +653,20 @@ export default function Forms({
               select("status", "Status", [
                 ["Scheduled", t("Scheduled")],
                 ["Done", t("Done")],
+                ["No-show", t("No-show")],
                 ["Cancelled", t("Cancelled")],
               ]),
             ]
-          : []),
+          : [
+              select(
+                "repeat",
+                "Repeat",
+                [1, 2, 4, 6, 8, 10, 12].map((n) => [
+                  n,
+                  n === 1 ? t("Only once") : `${t("Every week")} × ${n}`,
+                ]),
+              ),
+            ]),
         textField("notes", "Notes", {
           type: "textarea",
           required: false,
@@ -758,6 +828,7 @@ export default function Forms({
           "Visibility",
           [
             ["general", t("General staff")],
+            ["private", t("Only me (private)")],
             ...(data.permissions.admissions
               ? [["internal", t("Admissions only")] as [string, string]]
               : []),
@@ -776,6 +847,22 @@ export default function Forms({
         textField("phone", "Phone", { required: false }),
         textField("email", "Email", { type: "email", required: false }),
         combo("language", "Preferred language", suggestions.language),
+        combo(
+          "level",
+          "Level",
+          [
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2",
+            "Beginner",
+            "Intermediate",
+            "Advanced",
+          ],
+          { required: false },
+        ),
         textField("guardian", "Guardian or sponsor", { required: false }),
         textField("notes", "Notes", {
           type: "textarea",
@@ -1040,6 +1127,55 @@ export default function Forms({
         textField("body", "Message", { type: "textarea", full: true }),
       ];
       break;
+    case "package":
+      title = r.id ? "Edit package" : "New session package";
+      fields = [
+        combo(
+          "title",
+          "Package name",
+          [
+            "Psychology consultations",
+            "Couple therapy",
+            "Child follow-up",
+            "Private lessons",
+          ],
+          { full: true },
+        ),
+        textField("sessions_total", "Number of sessions", {
+          type: "number",
+          min: 1,
+          max: 200,
+        }),
+        ...(r.id
+          ? [
+              select("status", "Status", [
+                ["Active", t("Active")],
+                ["Finished", t("Finished")],
+              ]),
+            ]
+          : [
+              textField("price", "Price for the whole package", {
+                type: "number",
+                min: 0,
+                step: "0.01",
+                required: false,
+                hint: "Creates a charge in Payments. Leave empty if free or paid per session.",
+              }),
+              textField("due_date", "Payment due date", { type: "date" }),
+            ]),
+      ];
+      break;
+    case "template":
+      title = r.id ? "Edit template" : "New template";
+      fields = [
+        textField("name", "Template name", { full: true }),
+        textField("body", "Message", {
+          type: "textarea",
+          full: true,
+          hint: "You can use {name} {date} {time} {course} {amount} {due} {academy}",
+        }),
+      ];
+      break;
     case "saveView":
       title = "Save view";
       fields = [textField("name", "View name", { full: true })];
@@ -1112,6 +1248,12 @@ export default function Forms({
       ],
       appointment: [`/appointments/${r.id}`, "Delete this appointment?", true],
       task: [`/tasks/${r.id}`, "Delete this task?", true],
+      package: [
+        `/packages/${r.id}`,
+        "Delete this package? Its sessions stay in the calendar.",
+        true,
+      ],
+      template: [`/templates/${r.id}`, "Delete this template?", true],
       charge: [
         `/charges/${r.id}`,
         "Delete this charge?",
@@ -1176,6 +1318,17 @@ export default function Forms({
             title: values.title,
             contact_id: values.contact_id ? Number(values.contact_id) : null,
             staff_id: values.staff_id ? Number(values.staff_id) : null,
+            package_id:
+              values.package_id &&
+              (data.packages || []).some(
+                (p) =>
+                  p.id === Number(values.package_id) &&
+                  String(p.contact_id) === String(values.contact_id),
+              )
+                ? Number(values.package_id)
+                : null,
+            repeat: r.id ? undefined : Number(values.repeat || 1),
+            allow_overlap: overlapRef.current || undefined,
             location: values.location || "",
             notes: values.notes || "",
             status: values.status,
@@ -1325,6 +1478,22 @@ export default function Forms({
           path = "/drafts";
           body = { ...values, contact_id: c?.id };
           break;
+        case "package":
+          path = r.id ? `/packages/${r.id}` : "/packages";
+          method = r.id ? "PATCH" : "POST";
+          body = r.id
+            ? { ...values, sessions_total: Number(values.sessions_total) }
+            : {
+                ...values,
+                contact_id: c?.id,
+                sessions_total: Number(values.sessions_total),
+                price: values.price ? cents(values.price) : 0,
+              };
+          break;
+        case "template":
+          path = r.id ? `/templates/${r.id}` : "/templates";
+          method = r.id ? "PATCH" : "POST";
+          break;
         case "saveView":
           path = "/saved-views";
           body = { name: values.name, filters: modal.extra };
@@ -1375,6 +1544,17 @@ export default function Forms({
       onClose();
       if (modal.type === "client" && result.id) profile(result.id);
     } catch (e: any) {
+      if (
+        e instanceof ApiError &&
+        e.details.overlap &&
+        !overlapRef.current &&
+        window.confirm(e.message + "\n\n" + t("Book anyway?"))
+      ) {
+        overlapRef.current = true;
+        setBusy(false);
+        return submit(new Event("submit") as any);
+      }
+      overlapRef.current = false;
       setError(e.message);
       if (e instanceof ApiError && e.details.duplicate)
         setDuplicate(e.details.duplicate);
@@ -1677,6 +1857,15 @@ export default function Forms({
         </div>
       </Dialog>
     );
+  if (modal.type === "whatsapp")
+    return (
+      <WhatsAppDialog
+        contact={modal.contact!}
+        appointment={modal.record?.id ? modal.record : undefined}
+        onClose={onClose}
+      />
+    );
+  if (modal.type === "import") return <ImportDialog onClose={onClose} />;
   if (modal.type === "draftDetail")
     return (
       <Dialog title={r.subject} onClose={onClose}>
@@ -1909,6 +2098,21 @@ export default function Forms({
               disabled={busy}
             >
               {t("Delete")}
+            </Button>
+          )}
+          {modal.type === "appointment" && r.id && r.contact_id && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() =>
+                open({
+                  type: "whatsapp",
+                  contact: person(r.contact_id),
+                  record: r,
+                })
+              }
+            >
+              {t("WhatsApp reminder")}
             </Button>
           )}
           <Button type="button" onClick={close} disabled={busy}>

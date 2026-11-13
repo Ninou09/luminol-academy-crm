@@ -1,4 +1,4 @@
-import { get, put } from "@vercel/blob";
+import { get, put, list, del } from "@vercel/blob";
 
 /** The database blob is private; its URL is never exposed to the browser. */
 export function createBlobSnapshotStore() {
@@ -20,6 +20,23 @@ export function createBlobSnapshotStore() {
         bytes: Buffer.from(await new Response(result.stream).arrayBuffer()),
         etag: result.blob.etag,
       };
+    },
+    /** One private copy per day, the last 30 days are kept. */
+    async backup(bytes, day) {
+      await put(`luminol-crm/${environment}/backups/${day}.sqlite`, bytes, {
+        access: "private",
+        contentType: "application/vnd.sqlite3",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      });
+      const { blobs } = await list({
+        prefix: `luminol-crm/${environment}/backups/`,
+      });
+      const old = blobs
+        .map((b) => b.pathname)
+        .sort()
+        .slice(0, -30);
+      if (old.length) await del(old);
     },
     async write(bytes, etag) {
       // The first create must not overwrite a concurrent first initialization.

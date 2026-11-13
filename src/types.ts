@@ -15,6 +15,9 @@ export type State = {
   waitlists: Row[];
   sessions: Row[];
   appointments: Row[];
+  packages: Row[];
+  templates: Row[];
+  trash: Row[];
   serviceTypes: string[];
   attendance: Row[];
   tasks: Row[];

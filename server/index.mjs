@@ -3,6 +3,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   installN8nIntake,
   installN8nReview,
@@ -286,7 +289,18 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 
+function packageRows() {
+  return all(
+    `SELECT p.*, (SELECT COUNT(*) FROM appointments a WHERE a.package_id=p.id AND a.status IN ('Done','No-show')) used,
+      (SELECT COUNT(*) FROM appointments a WHERE a.package_id=p.id AND a.status='Scheduled') booked
+     FROM packages p ORDER BY p.id DESC`,
+  );
+}
 function state(u) {
+  run(
+    "DELETE FROM trash WHERE deleted_at < ?",
+    new Date(Date.now() - 30 * 86400000).toISOString(),
+  );
   const instructor = u.role === "instructor";
   const contacts = instructor
     ? all(
@@ -305,6 +319,7 @@ function state(u) {
     (a) =>
       (!instructor || ids.has(a.contact_id)) &&
       (a.visibility !== "finance" || canFinance(u)) &&
+      (a.visibility !== "private" || a.user_id === u.id) &&
       (a.visibility !== "internal" || canAdmissions(u)),
   );
   const charges = canFinance(u) ? chargeRows() : [];
@@ -397,6 +412,14 @@ function state(u) {
         (a.contact_id && ids.has(a.contact_id)),
     ),
     serviceTypes,
+    packages: packageRows().filter((p) => ids.has(p.contact_id)),
+    templates: all("SELECT * FROM message_templates ORDER BY sort, id"),
+    trash:
+      u.role === "admin"
+        ? all(
+            "SELECT t.id,t.kind,t.label,t.deleted_at,u.name user_name FROM trash t JOIN users u ON u.id=t.user_id ORDER BY t.id DESC LIMIT 200",
+          )
+        : [],
     attendance,
     tasks: all(
       "SELECT t.*,i.id intake_id FROM tasks t LEFT JOIN incoming_inquiries i ON i.task_id=t.id ORDER BY t.due_at",
@@ -838,7 +861,12 @@ write(
     must(e, "Enrollment not found.", 404);
     must(e.status === "Active", "Only active enrollments can be changed.", 409);
     if (req.body.status === "Completed") {
-      run("UPDATE enrollments SET status='Completed' WHERE id=?", e.id);
+      run(
+        "UPDATE enrollments SET status='Completed', completed_at=?, level=? WHERE id=?",
+        now(),
+        text(req.body.level || e.level || "", "Level", 40, false),
+        e.id,
+      );
       audit(
         req.user.id,
         e.contact_id,
@@ -1002,7 +1030,7 @@ write(
     const c = contactAccess(req.user, req.body.contact_id);
     const visibility = req.body.visibility || "general";
     must(
-      ["general", "internal", "finance"].includes(visibility),
+      ["general", "internal", "finance", "private"].includes(visibility),
       "Invalid visibility.",
     );
     if (visibility === "internal")
@@ -1060,7 +1088,8 @@ write(
       409,
     );
     run(
-      "UPDATE contacts SET name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      "UPDATE contacts SET level=?,name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      text(b.level ?? c.level ?? "", "Level", 40, false),
       text(b.name ?? c.name, "Name", 100),
       email,
       text(b.notes ?? c.notes ?? "", "Notes", 4000, false),
@@ -1736,38 +1765,89 @@ app.get("/api/documents/:id", (req, res, next) => {
 // ---------------------------------------------------------------------------
 // Everyday administration: edit, remove and add records directly in the CRM.
 // ---------------------------------------------------------------------------
-const del = (path, roles, fn) => write(path, roles, fn, "delete");
+/**
+ * Deletions go through drop(): the rows are copied into the trash first, so
+ * an administrator can restore them for 30 days.
+ */
+let bin = null;
+function encodeRow(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row))
+    out[k] =
+      v instanceof Uint8Array
+        ? { __b64: Buffer.from(v).toString("base64") }
+        : v;
+  return out;
+}
+function drop(sql, ...params) {
+  const m = sql.match(/^DELETE FROM (\w+)( WHERE .*)?$/s);
+  must(m, "Invalid delete.", 500);
+  const rows = all(`SELECT * FROM ${m[1]}${m[2] || ""}`, ...params);
+  if (rows.length && bin) bin.push({ table: m[1], rows: rows.map(encodeRow) });
+  return run(sql, ...params);
+}
+const del = (path, roles, fn) =>
+  write(
+    path,
+    roles,
+    (req) => {
+      bin = [];
+      try {
+        const result = fn(req) ?? { ok: true };
+        if (bin.length && !result.deactivated) {
+          // The main record is deleted last; its rows describe the entry.
+          const main = bin[bin.length - 1];
+          const r = main.rows[0];
+          const label =
+            r.name || r.title || r.label || r.subject || r.text || `#${r.id}`;
+          const extra = bin.reduce((n, x) => n + x.rows.length, 0) - 1;
+          insert("trash", {
+            kind: main.table,
+            label: `${String(label).slice(0, 150)}${extra ? ` (+${extra})` : ""}`,
+            payload: JSON.stringify(bin),
+            user_id: req.user.id,
+            deleted_at: now(),
+          });
+        }
+        return result;
+      } finally {
+        bin = null;
+      }
+    },
+    "delete",
+  );
 function found(table, id, label) {
   const row = one(`SELECT * FROM ${table} WHERE id=?`, integer(id, label));
   must(row, `${label} not found.`, 404);
   return row;
 }
-/** Remove a client and everything recorded about them. */
+/** Remove a client and everything recorded about them (kept in the trash). */
 function deleteContactRecords(contactId) {
-  const charges = all("SELECT id FROM charges WHERE contact_id=?", contactId);
-  for (const ch of charges) {
-    run(
-      "DELETE FROM refunds WHERE payment_id IN (SELECT id FROM payments WHERE charge_id=?)",
-      ch.id,
-    );
-    run("DELETE FROM payments WHERE charge_id=?", ch.id);
-  }
-  run("DELETE FROM charges WHERE contact_id=?", contactId);
-  run("DELETE FROM attendance WHERE contact_id=?", contactId);
-  run("DELETE FROM waitlists WHERE contact_id=?", contactId);
-  run("DELETE FROM enrollments WHERE contact_id=?", contactId);
+  drop("DELETE FROM appointments WHERE contact_id=?", contactId);
+  drop("DELETE FROM packages WHERE contact_id=?", contactId);
+  drop(
+    "DELETE FROM refunds WHERE payment_id IN (SELECT p.id FROM payments p JOIN charges c ON c.id=p.charge_id WHERE c.contact_id=?)",
+    contactId,
+  );
+  drop(
+    "DELETE FROM payments WHERE charge_id IN (SELECT id FROM charges WHERE contact_id=?)",
+    contactId,
+  );
+  drop("DELETE FROM attendance WHERE contact_id=?", contactId);
+  drop("DELETE FROM waitlists WHERE contact_id=?", contactId);
+  drop("DELETE FROM charges WHERE contact_id=?", contactId);
+  drop("DELETE FROM enrollments WHERE contact_id=?", contactId);
   run(
     "UPDATE incoming_inquiries SET opportunity_id=NULL WHERE opportunity_id IN (SELECT id FROM opportunities WHERE contact_id=?)",
     contactId,
   );
-  run("DELETE FROM opportunities WHERE contact_id=?", contactId);
-  run("DELETE FROM tasks WHERE contact_id=?", contactId);
-  run("DELETE FROM activities WHERE contact_id=?", contactId);
-  run("DELETE FROM documents WHERE contact_id=?", contactId);
-  run("DELETE FROM drafts WHERE contact_id=?", contactId);
-  run("DELETE FROM flag_resolutions WHERE contact_id=?", contactId);
-  run("DELETE FROM appointments WHERE contact_id=?", contactId);
-  run("DELETE FROM contacts WHERE id=?", contactId);
+  drop("DELETE FROM opportunities WHERE contact_id=?", contactId);
+  drop("DELETE FROM tasks WHERE contact_id=?", contactId);
+  drop("DELETE FROM activities WHERE contact_id=?", contactId);
+  drop("DELETE FROM documents WHERE contact_id=?", contactId);
+  drop("DELETE FROM drafts WHERE contact_id=?", contactId);
+  drop("DELETE FROM flag_resolutions WHERE contact_id=?", contactId);
+  drop("DELETE FROM contacts WHERE id=?", contactId);
 }
 
 // Clients ------------------------------------------------------------------
@@ -1814,7 +1894,7 @@ del("/api/opportunities/:id", ["admin", "admissions"], (req) => {
     "UPDATE incoming_inquiries SET opportunity_id=NULL WHERE opportunity_id=?",
     o.id,
   );
-  run("DELETE FROM opportunities WHERE id=?", o.id);
+  drop("DELETE FROM opportunities WHERE id=?", o.id);
   audit(req.user.id, o.contact_id, "Request deleted.", "admissions");
   return { ok: true };
 });
@@ -1830,25 +1910,25 @@ del("/api/programs/:id", ["admin", "academic"], (req) => {
     "Students are enrolled in this program. Remove or move them first.",
     409,
   );
-  run(
+  drop(
     "DELETE FROM attendance WHERE session_id IN (SELECT s.id FROM sessions s JOIN cohorts c ON c.id=s.cohort_id WHERE c.program_id=?)",
     p.id,
   );
-  run(
+  drop(
     "DELETE FROM sessions WHERE cohort_id IN (SELECT id FROM cohorts WHERE program_id=?)",
     p.id,
   );
-  run(
+  drop(
     "DELETE FROM waitlists WHERE cohort_id IN (SELECT id FROM cohorts WHERE program_id=?)",
     p.id,
   );
-  run("DELETE FROM cohorts WHERE program_id=?", p.id);
+  drop("DELETE FROM cohorts WHERE program_id=?", p.id);
   run(
     "UPDATE opportunities SET program_id=NULL, interest=CASE WHEN interest='' THEN ? ELSE interest END WHERE program_id=?",
     p.name,
     p.id,
   );
-  run("DELETE FROM programs WHERE id=?", p.id);
+  drop("DELETE FROM programs WHERE id=?", p.id);
   audit(req.user.id, null, `Program deleted: ${p.name}.`, "program");
   return { ok: true };
 });
@@ -1900,19 +1980,19 @@ del("/api/cohorts/:id", ["admin", "academic"], (req) => {
     "Students are enrolled in this group. Move or complete them first.",
     409,
   );
-  run(
+  drop(
     "DELETE FROM attendance WHERE session_id IN (SELECT id FROM sessions WHERE cohort_id=?)",
     c.id,
   );
-  run("DELETE FROM sessions WHERE cohort_id=?", c.id);
-  run("DELETE FROM waitlists WHERE cohort_id=?", c.id);
-  run("DELETE FROM cohorts WHERE id=?", c.id);
+  drop("DELETE FROM sessions WHERE cohort_id=?", c.id);
+  drop("DELETE FROM waitlists WHERE cohort_id=?", c.id);
+  drop("DELETE FROM cohorts WHERE id=?", c.id);
   audit(req.user.id, null, `Group deleted: ${c.name}.`, "cohort");
   return { ok: true };
 });
 del("/api/waitlists/:id", ["admin", "admissions", "academic"], (req) => {
   const w = found("waitlists", req.params.id, "Waitlist entry");
-  run("DELETE FROM waitlists WHERE id=?", w.id);
+  drop("DELETE FROM waitlists WHERE id=?", w.id);
   audit(req.user.id, w.contact_id, "Removed from the waitlist.", "enrollment");
   return { ok: true };
 });
@@ -1947,8 +2027,8 @@ write(
 );
 del("/api/sessions/:id", ["admin", "academic"], (req) => {
   const s = found("sessions", req.params.id, "Session");
-  run("DELETE FROM attendance WHERE session_id=?", s.id);
-  run("DELETE FROM sessions WHERE id=?", s.id);
+  drop("DELETE FROM attendance WHERE session_id=?", s.id);
+  drop("DELETE FROM sessions WHERE id=?", s.id);
   audit(req.user.id, null, `Session deleted: ${s.title}.`, "session");
   return { ok: true };
 });
@@ -1958,33 +2038,74 @@ function appointmentFields(b, existing = {}) {
   const start = instant(b.starts_at ?? existing.starts_at, "Start time"),
     end = instant(b.ends_at ?? existing.ends_at, "End time");
   must(end > start, "The appointment must end after it starts.");
-  const contactId = b.contact_id ?? existing.contact_id;
-  const staffId = b.staff_id ?? existing.staff_id;
+  const contactId =
+    b.contact_id !== undefined ? b.contact_id : existing.contact_id;
+  const staffId = b.staff_id !== undefined ? b.staff_id : existing.staff_id;
+  const packageId =
+    b.package_id !== undefined ? b.package_id : existing.package_id;
+  const contact = contactId ? found("contacts", contactId, "Client") : null;
+  let pack = null;
+  if (packageId) {
+    pack = found("packages", packageId, "Package");
+    must(
+      contact && pack.contact_id === contact.id,
+      "This package belongs to another client.",
+    );
+  }
   return {
     kind: text(b.kind ?? existing.kind ?? "Consultation", "Type", 60),
     title: text(b.title ?? existing.title, "Title", 150),
-    contact_id: contactId ? found("contacts", contactId, "Client").id : null,
+    contact_id: contact?.id ?? null,
     staff_id: staffId ? found("users", staffId, "Staff member").id : null,
+    package_id: pack?.id ?? null,
     starts_at: start,
     ends_at: end,
     location: text(b.location ?? existing.location ?? "", "Place", 300, false),
     notes: text(b.notes ?? existing.notes ?? "", "Notes", 4000, false),
-    status: ["Scheduled", "Done", "Cancelled"].includes(b.status)
+    status: ["Scheduled", "Done", "No-show", "Cancelled"].includes(b.status)
       ? b.status
       : existing.status || "Scheduled",
   };
 }
+/** The same person cannot be booked twice at the same time (unless forced). */
+function checkOverlap(values, ignoreId, force) {
+  if (force || !values.staff_id || values.status === "Cancelled") return;
+  const clash = one(
+    "SELECT a.title, a.starts_at FROM appointments a WHERE a.staff_id=? AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
+    values.staff_id,
+    ignoreId || 0,
+    values.ends_at,
+    values.starts_at,
+  );
+  must(
+    !clash,
+    `This person already has “${clash?.title}” at that time. Choose another time or confirm the double booking.`,
+    409,
+    { overlap: true },
+  );
+}
 const calendarRoles = ["admin", "admissions", "academic", "instructor"];
 write("/api/appointments", calendarRoles, (req) => {
   const values = appointmentFields(req.body);
-  const id = insert("appointments", { ...values, created_at: now() });
+  const repeat = integer(req.body.repeat || 1, "Weekly repeats", 1, 26);
+  const ids = [];
+  for (let i = 0; i < repeat; i++) {
+    const shift = i * 7 * 86400000;
+    const v = {
+      ...values,
+      starts_at: new Date(Date.parse(values.starts_at) + shift).toISOString(),
+      ends_at: new Date(Date.parse(values.ends_at) + shift).toISOString(),
+    };
+    checkOverlap(v, 0, req.body.allow_overlap);
+    ids.push(insert("appointments", { ...v, created_at: now() }));
+  }
   audit(
     req.user.id,
     values.contact_id,
-    `${values.kind} scheduled: ${values.title}.`,
+    `${values.kind} scheduled: ${values.title}${repeat > 1 ? ` (${repeat} weeks)` : ""}.`,
     "appointment",
   );
-  return { id };
+  return { id: ids[0], ids };
 });
 write(
   "/api/appointments/:id",
@@ -1992,15 +2113,23 @@ write(
   (req) => {
     const a = found("appointments", req.params.id, "Appointment");
     const values = appointmentFields(req.body, a);
+    if (
+      values.starts_at !== a.starts_at ||
+      values.ends_at !== a.ends_at ||
+      values.staff_id !== a.staff_id
+    )
+      checkOverlap(values, a.id, req.body.allow_overlap);
     run(
-      "UPDATE appointments SET kind=?,title=?,contact_id=?,staff_id=?,starts_at=?,ends_at=?,location=?,notes=?,status=? WHERE id=?",
+      "UPDATE appointments SET kind=?,title=?,contact_id=?,staff_id=?,package_id=?,starts_at=?,ends_at=?,location=?,notes=?,status=? WHERE id=?",
       ...Object.values(values),
       a.id,
     );
     audit(
       req.user.id,
       values.contact_id,
-      `${values.kind} updated: ${values.title}.`,
+      values.status !== a.status
+        ? `${values.title}: ${values.status}.`
+        : `${values.kind} updated: ${values.title}.`,
       "appointment",
     );
     return { ok: true };
@@ -2009,7 +2138,7 @@ write(
 );
 del("/api/appointments/:id", calendarRoles, (req) => {
   const a = found("appointments", req.params.id, "Appointment");
-  run("DELETE FROM appointments WHERE id=?", a.id);
+  drop("DELETE FROM appointments WHERE id=?", a.id);
   audit(
     req.user.id,
     a.contact_id,
@@ -2053,7 +2182,7 @@ write(
 del("/api/tasks/:id", taskRoles, (req) => {
   const t = ownTask(req);
   run("UPDATE incoming_inquiries SET task_id=NULL WHERE task_id=?", t.id);
-  run("DELETE FROM tasks WHERE id=?", t.id);
+  drop("DELETE FROM tasks WHERE id=?", t.id);
   return { ok: true };
 });
 
@@ -2096,7 +2225,8 @@ del("/api/charges/:id", ["admin", "finance"], (req) => {
     "Payments are recorded on this charge. Delete the payments first.",
     409,
   );
-  run("DELETE FROM charges WHERE id=?", ch.id);
+  run("UPDATE packages SET charge_id=NULL WHERE charge_id=?", ch.id);
+  drop("DELETE FROM charges WHERE id=?", ch.id);
   audit(
     req.user.id,
     ch.contact_id,
@@ -2114,7 +2244,7 @@ del("/api/payments/:id", ["admin", "finance"], (req) => {
     409,
   );
   const ch = one("SELECT * FROM charges WHERE id=?", p.charge_id);
-  run("DELETE FROM payments WHERE id=?", p.id);
+  drop("DELETE FROM payments WHERE id=?", p.id);
   audit(
     req.user.id,
     ch.contact_id,
@@ -2138,25 +2268,25 @@ del("/api/activities/:id", taskRoles, (req) => {
     "Only the author can delete this note.",
     403,
   );
-  run("DELETE FROM activities WHERE id=?", a.id);
+  drop("DELETE FROM activities WHERE id=?", a.id);
   return { ok: true };
 });
 del("/api/documents/:id", ["admin", "admissions", "academic"], (req) => {
   const d = found("documents", req.params.id, "Document");
   contactAccess(req.user, d.contact_id);
-  run("DELETE FROM documents WHERE id=?", d.id);
+  drop("DELETE FROM documents WHERE id=?", d.id);
   audit(req.user.id, d.contact_id, `Document deleted: ${d.name}.`, "document");
   return { ok: true };
 });
 del("/api/drafts/:id", ["admin", "admissions"], (req) => {
   const d = found("drafts", req.params.id, "Draft");
-  run("DELETE FROM drafts WHERE id=?", d.id);
+  drop("DELETE FROM drafts WHERE id=?", d.id);
   return { ok: true };
 });
 del("/api/saved-views/:id", ["admin", "admissions", "manager"], (req) => {
   const v = found("saved_views", req.params.id, "Saved view");
   must(v.user_id === req.user.id, "This view belongs to someone else.", 403);
-  run("DELETE FROM saved_views WHERE id=?", v.id);
+  drop("DELETE FROM saved_views WHERE id=?", v.id);
   return { ok: true };
 });
 
@@ -2354,6 +2484,9 @@ write("/api/admin/clean-start", ["admin"], (req) => {
   );
   const me = req.user.id;
   for (const table of [
+    "trash",
+    "appointments",
+    "packages",
     "refunds",
     "payments",
     "charges",
@@ -2361,7 +2494,6 @@ write("/api/admin/clean-start", ["admin"], (req) => {
     "sessions",
     "waitlists",
     "enrollments",
-    "appointments",
     "flag_resolutions",
     "drafts",
     "documents",
@@ -2397,6 +2529,313 @@ write("/api/admin/clean-start", ["admin"], (req) => {
     "system",
   );
   return { ok: true, leads };
+});
+
+// ---------------------------------------------------------------------------
+// Consultation packages, message templates, trash, backups and import.
+// ---------------------------------------------------------------------------
+const packageRoles = ["admin", "admissions", "academic", "finance"];
+write("/api/packages", packageRoles, (req) => {
+  const b = req.body;
+  const c = contactAccess(req.user, b.contact_id);
+  const title = text(b.title, "Package name", 120);
+  const total = integer(b.sessions_total, "Number of sessions", 1, 200);
+  let chargeId = null;
+  const price = b.price ? integer(b.price, "Price", 0) : 0;
+  if (price > 0) {
+    must(
+      ["admin", "finance", "admissions"].includes(req.user.role),
+      "Only finance can add a price.",
+      403,
+    );
+    const currency = text(
+      b.currency || one("SELECT currency FROM settings").currency,
+      "Currency",
+      3,
+    ).toUpperCase();
+    must(
+      ["DZD", "EUR", "USD", "GBP"].includes(currency),
+      "Unsupported currency.",
+    );
+    chargeId = insert("charges", {
+      contact_id: c.id,
+      enrollment_id: null,
+      label: `${title} · ${total} sessions`,
+      amount: price,
+      currency,
+      due_date: b.due_date ? date(b.due_date, "Due date") : now().slice(0, 10),
+      created_at: now(),
+    });
+  }
+  const id = insert("packages", {
+    contact_id: c.id,
+    title,
+    sessions_total: total,
+    charge_id: chargeId,
+    status: "Active",
+    created_at: now(),
+  });
+  audit(
+    req.user.id,
+    c.id,
+    `Package started: ${title} (${total} sessions).`,
+    "package",
+  );
+  return { id };
+});
+write(
+  "/api/packages/:id",
+  packageRoles,
+  (req) => {
+    const p = found("packages", req.params.id, "Package");
+    contactAccess(req.user, p.contact_id);
+    const b = req.body;
+    run(
+      "UPDATE packages SET title=?, sessions_total=?, status=? WHERE id=?",
+      text(b.title ?? p.title, "Package name", 120),
+      integer(
+        b.sessions_total ?? p.sessions_total,
+        "Number of sessions",
+        1,
+        200,
+      ),
+      ["Active", "Finished"].includes(b.status) ? b.status : p.status,
+      p.id,
+    );
+    audit(
+      req.user.id,
+      p.contact_id,
+      `Package updated: ${b.title ?? p.title}.`,
+      "package",
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/packages/:id", packageRoles, (req) => {
+  const p = found("packages", req.params.id, "Package");
+  run("UPDATE appointments SET package_id=NULL WHERE package_id=?", p.id);
+  drop("DELETE FROM packages WHERE id=?", p.id);
+  return { ok: true };
+});
+
+// Message templates ---------------------------------------------------------
+write("/api/templates", ["admin", "admissions"], (req) => {
+  const id = insert("message_templates", {
+    name: text(req.body.name, "Template name", 80),
+    body: text(req.body.body, "Message", 2000),
+    sort: 50,
+  });
+  return { id };
+});
+write(
+  "/api/templates/:id",
+  ["admin", "admissions"],
+  (req) => {
+    const t = found("message_templates", req.params.id, "Template");
+    run(
+      "UPDATE message_templates SET name=?, body=? WHERE id=?",
+      text(req.body.name ?? t.name, "Template name", 80),
+      text(req.body.body ?? t.body, "Message", 2000),
+      t.id,
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/templates/:id", ["admin", "admissions"], (req) => {
+  const t = found("message_templates", req.params.id, "Template");
+  drop("DELETE FROM message_templates WHERE id=?", t.id);
+  return { ok: true };
+});
+
+// Trash ---------------------------------------------------------------------
+write("/api/trash/:id/restore", ["admin"], (req) => {
+  const t = found("trash", req.params.id, "Deleted item");
+  const groups = JSON.parse(t.payload);
+  // Rows were deleted children-first, so parents are restored first.
+  for (const { table, rows } of [...groups].reverse()) {
+    for (const row of rows) {
+      const values = {};
+      for (const [k, v] of Object.entries(row))
+        values[k] =
+          v && typeof v === "object" && v.__b64
+            ? Buffer.from(v.__b64, "base64")
+            : v;
+      if (
+        values.user_id &&
+        !one("SELECT id FROM users WHERE id=?", values.user_id)
+      )
+        values.user_id = req.user.id;
+      if (
+        values.owner_id &&
+        !one("SELECT id FROM users WHERE id=?", values.owner_id)
+      )
+        values.owner_id = req.user.id;
+      try {
+        try {
+          insert(table, values);
+        } catch (error) {
+          // History rows nothing points to get a fresh number if theirs was reused.
+          const leaf = [
+            "activities",
+            "tasks",
+            "documents",
+            "drafts",
+            "attendance",
+            "appointments",
+            "flag_resolutions",
+            "message_templates",
+            "waitlists",
+          ];
+          if (!error.message.includes(`${table}.id`) || !leaf.includes(table))
+            throw error;
+          const { id, ...rest } = values;
+          insert(table, rest);
+        }
+      } catch (error) {
+        throw new ApiError(
+          409,
+          /UNIQUE/.test(error.message)
+            ? "This item cannot be restored because a record with the same email, phone or number now exists."
+            : "This item cannot be restored because something it depends on was removed.",
+        );
+      }
+    }
+  }
+  run("DELETE FROM trash WHERE id=?", t.id);
+  audit(
+    req.user.id,
+    null,
+    `Restored from trash: ${t.label}.`,
+    "system",
+    "internal",
+  );
+  return { ok: true };
+});
+write(
+  "/api/trash/:id",
+  ["admin"],
+  (req) => {
+    const t = found("trash", req.params.id, "Deleted item");
+    run("DELETE FROM trash WHERE id=?", t.id);
+    return { ok: true };
+  },
+  "delete",
+);
+
+// Full backup (download) ---------------------------------------------------
+app.get("/api/admin/backup", async (req, res, next) => {
+  try {
+    allow(req, ["admin"]);
+    const folder = await mkdtemp(join(tmpdir(), "luminol-backup-"));
+    const file = join(folder, "backup.sqlite");
+    try {
+      db.exec(`VACUUM INTO '${file.replaceAll("'", "''")}'`);
+      const bytes = await readFile(file);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="luminol-backup-${now().slice(0, 10)}.sqlite"`,
+      );
+      res.type("application/vnd.sqlite3").send(bytes);
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Import clients from Excel / CSV -------------------------------------------
+write("/api/import/contacts", ["admin", "admissions"], (req) => {
+  const rows = req.body.rows;
+  must(
+    Array.isArray(rows) && rows.length > 0 && rows.length <= 2000,
+    "Choose a file with 1 to 2000 rows.",
+  );
+  const advisor = req.body.create_requests
+    ? owner(req.body.owner_id || req.user.id)
+    : null;
+  let created = 0,
+    requests = 0;
+  const skipped = [];
+  const clean = (v, max) =>
+    String(v ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, max);
+  rows.forEach((raw, index) => {
+    const line = index + 2; // row 1 is the header in the spreadsheet
+    db.exec("SAVEPOINT import_row");
+    try {
+      const name = clean(raw.name, 100);
+      const email = clean(raw.email, 254).toLowerCase();
+      let phone = clean(raw.phone, 40);
+      if (/^[567]\d{8}$/.test(phone.replace(/\D/g, "")))
+        phone = "0" + phone.replace(/\D/g, ""); // Excel removes the leading 0
+      must(name, "Name is missing.");
+      must(email || phone, "Phone or email is missing.");
+      must(
+        !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+        "Email is not valid.",
+      );
+      must(!findDuplicate(email, phone), "Already in the CRM.");
+      const id = insert("contacts", {
+        name,
+        email,
+        phone,
+        language: clean(raw.language, 40) || "العربية",
+        level: clean(raw.level, 40),
+        consent: /^(1|yes|oui|true|نعم|x)$/i.test(clean(raw.consent, 10))
+          ? 1
+          : 0,
+        guardian: clean(raw.guardian, 300),
+        notes: clean(raw.notes, 4000),
+        created_at: now(),
+      });
+      created++;
+      const interest = clean(raw.interest, 180);
+      const service = clean(raw.service_type, 80);
+      if (advisor && (interest || service)) {
+        const p = interest
+          ? all("SELECT * FROM programs").find(
+              (x) => x.name.toLowerCase() === interest.toLowerCase(),
+            )
+          : null;
+        insert("opportunities", {
+          contact_id: id,
+          program_id: p?.id ?? null,
+          owner_id: advisor,
+          service_type: service || (p ? "Course" : "Other"),
+          interest: interest || p?.name || "",
+          stage: "New inquiry",
+          source: clean(raw.source, 100) || "Import",
+          tags: "import",
+          created_at: now(),
+          stage_at: now(),
+          version: 1,
+        });
+        requests++;
+      }
+      db.exec("RELEASE import_row");
+    } catch (error) {
+      db.exec("ROLLBACK TO import_row");
+      db.exec("RELEASE import_row");
+      skipped.push({ line, name: clean(raw.name, 100), reason: error.message });
+    }
+  });
+  audit(
+    req.user.id,
+    null,
+    `Imported ${created} client(s) from a file${requests ? `, ${requests} request(s)` : ""}.`,
+    "contact",
+  );
+  return {
+    created,
+    requests,
+    skipped: skipped.slice(0, 200),
+    skippedCount: skipped.length,
+  };
 });
 
 app.use("/api", (req, res) =>
