@@ -18,11 +18,15 @@ import {
   Languages,
   Pencil,
   Trash2,
+  UserRound,
+  Star,
+  CreditCard,
 } from "lucide-react";
 import { useApp } from "./context";
 import { Dialog, Button, Badge, Avatar, Tabs, Empty, TaskRows } from "./ui";
 import { useRequestLabel, serviceTone, useRemove } from "./pages";
 import { LanguageSection, PsychologySection } from "./academy";
+import { useFeedbackRequest, useInvoice } from "./growth";
 import {
   PackagesSection,
   PrintButton,
@@ -55,6 +59,8 @@ export default function Profile({
   const label = useRequestLabel();
   const remove = useRemove();
   const certificate = useCertificate();
+  const invoice = useInvoice();
+  const askFeedback = useFeedbackRequest();
   const receipt = useReceipt();
   const appointments = (data.appointments || []).filter(
     (a) => a.contact_id === id,
@@ -147,6 +153,31 @@ export default function Profile({
             onClick={() => open({ type: "whatsapp", contact })}
           >
             {t("WhatsApp message")}
+          </Button>
+        )}
+        {["admin", "admissions", "academic"].includes(data.user.role) && (
+          <Button
+            icon={<UserRound size={15} />}
+            onClick={() => open({ type: "portal", contact })}
+          >
+            {t("Client space")}
+          </Button>
+        )}
+        {["admin", "admissions", "academic", "instructor"].includes(
+          data.user.role,
+        ) && (
+          <Button
+            icon={<Star size={15} />}
+            onClick={() =>
+              askFeedback(
+                contact,
+                enrollments.length
+                  ? cohort(enrollments[enrollments.length - 1].cohort_id).name
+                  : t("Your experience"),
+              )
+            }
+          >
+            {t("Ask for feedback")}
           </Button>
         )}
         {data.permissions.editAdmissions && (
@@ -591,6 +622,18 @@ export default function Profile({
                 <div className="charge-footer">
                   <span>
                     {t("Due date")} · {date(ch.due_date)}
+                  </span>
+                  <span className="row-actions">
+                    <PrintButton label="Invoice" onClick={() => invoice(ch)} />
+                    {ch.balance > 0 && ch.currency === "DZD" && (
+                      <Button
+                        variant="small"
+                        icon={<CreditCard size={14} />}
+                        onClick={() => open({ type: "paylink", record: ch })}
+                      >
+                        {t("Pay link")}
+                      </Button>
+                    )}
                   </span>
                   {data.permissions.editFinance && ch.balance > 0 && (
                     <Button

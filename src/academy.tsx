@@ -1464,6 +1464,11 @@ const help: Record<string, string[]> = {
     "Charges = what clients owe. Record a payment when money is received.",
     "Cash book, debts and pay are in the tabs. Each payment has a printable receipt.",
   ],
+  Campaigns: [
+    "Choose who receives the message with the filters, then write the message.",
+    "Only clients who agreed to be contacted are included.",
+    "Send one by one with the WhatsApp buttons, or all at once when WhatsApp is connected.",
+  ],
   Reports: [
     "Choose the period at the top. Use Print to save the report as PDF.",
   ],

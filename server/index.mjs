@@ -7,6 +7,20 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  installPublicIntegrations,
+  createCheckout,
+  chargilyConfigured,
+  whatsappConfigured,
+  sendWhatsApp,
+  dueMessages,
+  runDailyMessages,
+  waitlistTasks,
+  fillTemplate,
+  originOf,
+  newToken,
+  tokenHash,
+} from "./integrations.mjs";
+import {
   installPasswordRecovery,
   newTotpSecret,
   verifyTotp,
@@ -42,7 +56,15 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "6mb" }));
+app.use(
+  express.json({
+    limit: "6mb",
+    // Kept for webhook signatures (Chargily).
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");
@@ -218,6 +240,7 @@ const write = (path, roles, fn, method = "post") =>
 installN8nIntake(app);
 installPublicBooking(app);
 installPasswordRecovery(app, { isHosted });
+installPublicIntegrations(app, { isHosted });
 app.get("/api/public/certificate/:code", (req, res, next) => {
   try {
     const c = one(
@@ -475,6 +498,34 @@ function state(u) {
     grades: all("SELECT * FROM grades ORDER BY taken_on, id"),
     certificates: all("SELECT * FROM certificates"),
     mailConfigured: mailConfigured(),
+    integrations: {
+      chargily: chargilyConfigured(),
+      whatsapp: whatsappConfigured(),
+      chargilyMode: process.env.CHARGILY_MODE === "live" ? "live" : "test",
+      cron: !!process.env.CRON_SECRET,
+    },
+    expenses: canFinance(u)
+      ? all("SELECT * FROM expenses ORDER BY spent_on DESC, id DESC")
+      : [],
+    feedback: all(
+      "SELECT id,contact_id,about,staff_id,rating,comment,sent_at,answered_at FROM feedback ORDER BY id DESC",
+    ).filter((f) => ids.has(f.contact_id)),
+    campaigns: canAdmissions(u)
+      ? all("SELECT * FROM campaigns ORDER BY id DESC").map((c) => ({
+          ...c,
+          filters: JSON.parse(c.filters),
+          recipients: all(
+            "SELECT contact_id,status,sent_at FROM campaign_recipients WHERE campaign_id=?",
+            c.id,
+          ),
+        }))
+      : [],
+    checkouts: canFinance(u)
+      ? all("SELECT * FROM checkouts ORDER BY created_at DESC LIMIT 200")
+      : [],
+    portalLinks: all("SELECT id FROM contacts WHERE portal_token_hash<>''").map(
+      (r) => r.id,
+    ),
     staffHours: all(
       "SELECT * FROM staff_hours ORDER BY user_id, weekday, start_min",
     ),
@@ -954,6 +1005,7 @@ write(
         "Enrollment marked completed.",
         "enrollment",
       );
+      waitlistTasks();
       return { ok: true };
     }
     const previous = cohortAccess(req.user, e.cohort_id);
@@ -980,6 +1032,7 @@ write(
       409,
     );
     run("UPDATE enrollments SET status='Transferred' WHERE id=?", e.id);
+    waitlistTasks();
     const id = insert("enrollments", {
       contact_id: e.contact_id,
       cohort_id: target.id,
@@ -1169,7 +1222,15 @@ write(
       409,
     );
     run(
-      "UPDATE contacts SET emergency_contact=?,level=?,name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      "UPDATE contacts SET company=?,company_nif=?,company_address=?,emergency_contact=?,level=?,name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      text(b.company ?? c.company ?? "", "Company", 150, false),
+      text(b.company_nif ?? c.company_nif ?? "", "Company NIF", 40, false),
+      text(
+        b.company_address ?? c.company_address ?? "",
+        "Company address",
+        300,
+        false,
+      ),
       text(
         b.emergency_contact ?? c.emergency_contact ?? "",
         "Emergency contact",
@@ -1942,6 +2003,12 @@ function deleteContactRecords(contactId) {
   );
   drop("DELETE FROM attendance WHERE contact_id=?", contactId);
   drop("DELETE FROM waitlists WHERE contact_id=?", contactId);
+  drop(
+    "DELETE FROM checkouts WHERE charge_id IN (SELECT id FROM charges WHERE contact_id=?)",
+    contactId,
+  );
+  drop("DELETE FROM feedback WHERE contact_id=?", contactId);
+  drop("DELETE FROM campaign_recipients WHERE contact_id=?", contactId);
   drop("DELETE FROM charges WHERE contact_id=?", contactId);
   drop("DELETE FROM enrollments WHERE contact_id=?", contactId);
   run(
@@ -2076,6 +2143,7 @@ write(
       c.id,
     );
     audit(req.user.id, null, `Group updated: ${fields.name}.`, "cohort");
+    waitlistTasks();
     return { ok: true };
   },
   "patch",
@@ -2169,12 +2237,29 @@ function appointmentFields(b, existing = {}) {
     ends_at: end,
     location: text(b.location ?? existing.location ?? "", "Place", 300, false),
     notes: text(b.notes ?? existing.notes ?? "", "Notes", 4000, false),
+    meeting_url: meetingUrl(b, existing),
     status: ["Pending", "Scheduled", "Done", "No-show", "Cancelled"].includes(
       b.status,
     )
       ? b.status
       : existing.status || "Scheduled",
   };
+}
+/** Online consultations get a free Jitsi Meet room (or a pasted Meet/Zoom link). */
+function meetingUrl(b, existing) {
+  if (
+    b.meeting_url !== undefined &&
+    b.meeting_url !== null &&
+    b.meeting_url !== ""
+  ) {
+    const url = text(b.meeting_url, "Meeting link", 300);
+    must(/^https:\/\//.test(url), "The meeting link must start with https://");
+    return url;
+  }
+  if (b.online === true && !existing.meeting_url)
+    return `https://meet.jit.si/Luminol-${randomBytes(8).toString("hex")}`;
+  if (b.online === false) return "";
+  return existing.meeting_url || "";
 }
 /** The same person cannot be booked twice at the same time (unless forced). */
 function checkOverlap(values, ignoreId, force) {
@@ -2238,7 +2323,7 @@ write(
     )
       checkOverlap(values, a.id, req.body.allow_overlap);
     run(
-      "UPDATE appointments SET kind=?,title=?,contact_id=?,staff_id=?,package_id=?,starts_at=?,ends_at=?,location=?,notes=?,status=? WHERE id=?",
+      "UPDATE appointments SET kind=?,title=?,contact_id=?,staff_id=?,package_id=?,starts_at=?,ends_at=?,location=?,notes=?,meeting_url=?,status=? WHERE id=?",
       ...Object.values(values),
       a.id,
     );
@@ -2346,6 +2431,7 @@ del("/api/charges/:id", ["admin", "finance"], (req) => {
     409,
   );
   run("UPDATE packages SET charge_id=NULL WHERE charge_id=?", ch.id);
+  drop("DELETE FROM checkouts WHERE charge_id=?", ch.id);
   drop("DELETE FROM charges WHERE id=?", ch.id);
   audit(
     req.user.id,
@@ -2609,6 +2695,11 @@ write("/api/admin/clean-start", ["admin"], (req) => {
   for (const table of [
     "trash",
     "password_resets",
+    "checkouts",
+    "expenses",
+    "feedback",
+    "campaign_recipients",
+    "campaigns",
     "session_notes",
     "intake_forms",
     "placement_results",
@@ -3010,6 +3101,7 @@ function serviceFields(b, existing = {}) {
       false,
     ),
     active: (b.active ?? existing.active ?? 1) ? 1 : 0,
+    online: (b.online ?? existing.online ?? 0) ? 1 : 0,
   };
 }
 function setServiceStaff(serviceId, ids) {
@@ -3040,12 +3132,13 @@ write(
     const s = found("booking_services", req.params.id, "Service");
     const v = serviceFields(req.body, s);
     run(
-      "UPDATE booking_services SET name=?,kind=?,duration_min=?,description=?,active=? WHERE id=?",
+      "UPDATE booking_services SET name=?,kind=?,duration_min=?,description=?,active=?,online=? WHERE id=?",
       v.name,
       v.kind,
       v.duration_min,
       v.description,
       v.active,
+      v.online,
       s.id,
     );
     if (req.body.staff_ids) setServiceStaff(s.id, req.body.staff_ids);
@@ -3521,6 +3614,7 @@ write(
       `Level completed${level ? ` (${level})` : ""}; continues in ${target.name}.`,
       "enrollment",
     );
+    waitlistTasks();
     return { id };
   },
 );
@@ -3540,6 +3634,290 @@ write(
     return { code, enrollment_id: e.id };
   },
 );
+
+// ---------------------------------------------------------------------------
+// Online payment, WhatsApp sending, client portal, surveys, expenses,
+// invoices and campaigns (staff side).
+// ---------------------------------------------------------------------------
+const financeRoles = ["admin", "finance"];
+app.post("/api/charges/:id/checkout", async (req, res, next) => {
+  try {
+    allow(req, ["admin", "finance", "admissions"]);
+    res.json(
+      await createCheckout(req.params.id, originOf(req, isHosted), req.user.id),
+    );
+  } catch (e) {
+    next(e);
+  }
+});
+write(
+  "/api/charges/:id/invoice",
+  financeRoles.concat(["admissions"]),
+  (req) => {
+    const ch = found("charges", req.params.id, "Charge");
+    if (!ch.invoice_no)
+      run(
+        "UPDATE charges SET invoice_no=(SELECT COALESCE(MAX(invoice_no),0)+1 FROM charges) WHERE id=?",
+        ch.id,
+      );
+    return {
+      invoice_no: one("SELECT invoice_no FROM charges WHERE id=?", ch.id)
+        .invoice_no,
+    };
+  },
+);
+write(
+  "/api/settings/legal",
+  ["admin"],
+  (req) => {
+    const b = req.body;
+    const f = (k, label, max = 200) => text(b[k] ?? "", label, max, false);
+    const vat = Number(b.vat_rate || 0);
+    must(vat >= 0 && vat <= 30, "VAT must be between 0 and 30 %.");
+    run(
+      "UPDATE settings SET legal_name=?,legal_address=?,legal_nif=?,legal_rc=?,legal_nis=?,legal_ai=?,legal_rib=?,vat_rate=? WHERE id=1",
+      f("legal_name", "Company name"),
+      f("legal_address", "Address", 400),
+      f("legal_nif", "NIF", 40),
+      f("legal_rc", "RC", 40),
+      f("legal_nis", "NIS", 40),
+      f("legal_ai", "AI", 40),
+      f("legal_rib", "RIB", 60),
+      vat,
+    );
+    audit(req.user.id, null, "Invoice details updated.", "settings");
+    return { ok: true };
+  },
+  "patch",
+);
+
+write(
+  "/api/contacts/:id/portal-link",
+  ["admin", "admissions", "academic"],
+  (req) => {
+    const c = contactAccess(req.user, req.params.id);
+    const token = newToken();
+    run(
+      "UPDATE contacts SET portal_token_hash=? WHERE id=?",
+      tokenHash(token),
+      c.id,
+    );
+    audit(
+      req.user.id,
+      c.id,
+      "Client space link created (previous link no longer works).",
+      "contact",
+    );
+    return { token };
+  },
+);
+write(
+  "/api/contacts/:id/portal-link/revoke",
+  ["admin", "admissions", "academic"],
+  (req) => {
+    const c = contactAccess(req.user, req.params.id);
+    run("UPDATE contacts SET portal_token_hash='' WHERE id=?", c.id);
+    return { ok: true };
+  },
+);
+
+write(
+  "/api/feedback",
+  ["admin", "admissions", "academic", "instructor"],
+  (req) => {
+    const c = contactAccess(req.user, req.body.contact_id);
+    const token = newToken();
+    insert("feedback", {
+      contact_id: c.id,
+      token_hash: tokenHash(token),
+      about: text(req.body.about || "Your experience", "About", 150),
+      staff_id: req.body.staff_id
+        ? found("users", req.body.staff_id, "Staff member").id
+        : null,
+      sent_at: now(),
+    });
+    return { token };
+  },
+);
+
+write("/api/expenses", financeRoles, (req) => {
+  const b = req.body;
+  const currency = text(
+    b.currency || one("SELECT currency FROM settings").currency,
+    "Currency",
+    3,
+  ).toUpperCase();
+  must(
+    ["DZD", "EUR", "USD", "GBP"].includes(currency),
+    "Unsupported currency.",
+  );
+  const id = insert("expenses", {
+    spent_on: date(b.spent_on, "Date"),
+    category: text(b.category, "Category", 80),
+    label: text(b.label || "", "Description", 200, false),
+    amount: integer(b.amount, "Amount"),
+    currency,
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  audit(
+    req.user.id,
+    null,
+    `Expense recorded: ${b.category} ${(b.amount / 100).toFixed(2)} ${currency}.`,
+    "finance",
+    "finance",
+  );
+  return { id };
+});
+del("/api/expenses/:id", financeRoles, (req) => {
+  const x = found("expenses", req.params.id, "Expense");
+  drop("DELETE FROM expenses WHERE id=?", x.id);
+  return { ok: true };
+});
+
+/** Send one message through the WhatsApp Business API and log it. */
+app.post("/api/whatsapp/send", async (req, res, next) => {
+  try {
+    allow(req, ["admin", "admissions", "academic", "instructor", "finance"]);
+    const c = contactAccess(req.user, req.body.contact_id);
+    must(
+      c.consent,
+      "Communication consent is required before sending a message.",
+    );
+    const body = text(req.body.text, "Message", 2000);
+    await sendWhatsApp(c.phone, body);
+    transaction(() => {
+      if (req.body.kind && req.body.ref_id)
+        insert("reminders", {
+          kind: String(req.body.kind).slice(0, 20),
+          ref_id: Number(req.body.ref_id),
+          contact_id: c.id,
+          user_id: req.user.id,
+          channel: "whatsapp-api",
+          sent_at: now(),
+        });
+      audit(
+        req.user.id,
+        c.id,
+        `WhatsApp sent: ${body.slice(0, 120)}`,
+        "communication",
+      );
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+app.get("/api/automations/whatsapp/due", (req, res, next) => {
+  try {
+    allow(req, ["admin", "admissions", "finance"]);
+    res.json({ configured: whatsappConfigured(), messages: dueMessages() });
+  } catch (e) {
+    next(e);
+  }
+});
+app.post("/api/automations/whatsapp/run", async (req, res, next) => {
+  try {
+    allow(req, ["admin"]);
+    res.json(await runDailyMessages(req.user.id));
+  } catch (e) {
+    next(e);
+  }
+});
+
+write("/api/campaigns", ["admin", "admissions"], (req) => {
+  const b = req.body;
+  const ids = b.contact_ids;
+  must(
+    Array.isArray(ids) && ids.length > 0 && ids.length <= 2000,
+    "Choose at least one client.",
+  );
+  const id = insert("campaigns", {
+    name: text(b.name, "Campaign name", 120),
+    filters: JSON.stringify(b.filters || {}),
+    message: text(b.message, "Message", 2000),
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  let n = 0;
+  for (const cid of ids) {
+    const c = one(
+      "SELECT id, consent FROM contacts WHERE id=?",
+      integer(cid, "Client"),
+    );
+    if (!c || !c.consent) continue;
+    run(
+      "INSERT OR IGNORE INTO campaign_recipients(campaign_id,contact_id) VALUES (?,?)",
+      id,
+      c.id,
+    );
+    n++;
+  }
+  must(n > 0, "None of these clients agreed to be contacted.");
+  audit(
+    req.user.id,
+    null,
+    `Campaign created: ${b.name} (${n} recipients).`,
+    "communication",
+  );
+  return { id, recipients: n };
+});
+write("/api/campaigns/:id/sent", ["admin", "admissions"], (req) => {
+  const camp = found("campaigns", req.params.id, "Campaign");
+  run(
+    "UPDATE campaign_recipients SET status='sent', sent_at=? WHERE campaign_id=? AND contact_id=?",
+    now(),
+    camp.id,
+    integer(req.body.contact_id, "Client"),
+  );
+  return { ok: true };
+});
+app.post("/api/campaigns/:id/send-auto", async (req, res, next) => {
+  try {
+    allow(req, ["admin", "admissions"]);
+    const camp = found("campaigns", req.params.id, "Campaign");
+    must(whatsappConfigured(), "WhatsApp sending is not set up yet.", 503);
+    let sent = 0,
+      failed = 0;
+    for (const r of all(
+      "SELECT r.*, c.name, c.phone FROM campaign_recipients r JOIN contacts c ON c.id=r.contact_id WHERE r.campaign_id=? AND r.status='pending'",
+      camp.id,
+    )) {
+      try {
+        await sendWhatsApp(
+          r.phone,
+          fillTemplate(camp.message, {
+            name: r.name.split(" ")[0],
+            academy: one("SELECT academy FROM settings").academy,
+          }),
+        );
+        run(
+          "UPDATE campaign_recipients SET status='sent', sent_at=? WHERE campaign_id=? AND contact_id=?",
+          now(),
+          camp.id,
+          r.contact_id,
+        );
+        sent++;
+      } catch {
+        run(
+          "UPDATE campaign_recipients SET status='failed' WHERE campaign_id=? AND contact_id=?",
+          camp.id,
+          r.contact_id,
+        );
+        failed++;
+      }
+    }
+    res.json({ sent, failed });
+  } catch (e) {
+    next(e);
+  }
+});
+del("/api/campaigns/:id", ["admin", "admissions"], (req) => {
+  const camp = found("campaigns", req.params.id, "Campaign");
+  drop("DELETE FROM campaign_recipients WHERE campaign_id=?", camp.id);
+  drop("DELETE FROM campaigns WHERE id=?", camp.id);
+  return { ok: true };
+});
 
 app.use("/api", (req, res) =>
   res.status(404).json({ error: "This endpoint does not exist." }),

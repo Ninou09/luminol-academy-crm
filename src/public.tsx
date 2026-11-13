@@ -208,3 +208,299 @@ export function VerifyPage() {
     </Shell>
   );
 }
+
+const money = (lang: string, cents: number, currency: string) =>
+  new Intl.NumberFormat(locales[lang], {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(cents / 100);
+const when = (lang: string, iso: string, opts: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat(locales[lang], {
+    timeZone: "Africa/Algiers",
+    hourCycle: "h23",
+    ...opts,
+  }).format(new Date(iso.length === 10 ? iso + "T12:00:00Z" : iso));
+
+/** The client's private page, opened from the link sent by WhatsApp. */
+export function PortalPage() {
+  const { lang, setLang, t } = useLang();
+  const token = window.location.pathname.split("/").pop() || "";
+  const [d, setD] = useState<any>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    api(`/portal/${encodeURIComponent(token)}`)
+      .then(setD)
+      .catch((e) => setError(t(e.message)));
+  }, []);
+  async function pay(id: number) {
+    try {
+      window.location.href = (
+        await api(`/portal/${encodeURIComponent(token)}/pay/${id}`, {})
+      ).url;
+    } catch (e: any) {
+      setError(t(e.message));
+    }
+  }
+  const dt = (iso: string) =>
+    when(lang, iso, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  return (
+    <Shell lang={lang} setLang={setLang}>
+      {error && (
+        <div className="booking-card center">
+          <ShieldX size={44} className="bad" />
+          <p>{error}</p>
+        </div>
+      )}
+      {!d && !error && <LoaderCircle className="spin" />}
+      {d && (
+        <div className="portal">
+          <h1>
+            {t("Hello")} {d.name.split(" ")[0]} 👋
+          </h1>
+          <p className="muted">
+            {d.academy}
+            {d.level ? ` · ${t("Level")} ${d.level}` : ""}
+          </p>
+          <section className="booking-step">
+            <h2>{t("My appointments")}</h2>
+            {!d.appointments.length && (
+              <p className="muted">{t("No upcoming appointment.")}</p>
+            )}
+            {d.appointments.map((a: any) => (
+              <div key={a.id} className="portal-row">
+                <strong>{dt(a.starts_at)}</strong>
+                <span>
+                  {a.title}
+                  {a.staff ? ` · ${a.staff}` : ""}
+                  {a.location ? ` · ${a.location}` : ""}
+                  {a.status === "Pending" ? ` · ${t("To confirm")}` : ""}
+                </span>
+                {a.meeting_url && (
+                  <a
+                    className="button small primary"
+                    href={a.meeting_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("Join video call")}
+                  </a>
+                )}
+              </div>
+            ))}
+            <a className="button small" href="/book">
+              {t("Book an appointment")}
+            </a>
+          </section>
+          {d.groups.map((g: any) => (
+            <section key={g.id} className="booking-step">
+              <h2>
+                {g.cohort} <small className="muted">· {g.program}</small>
+              </h2>
+              {!g.sessions.length && (
+                <p className="muted">{t("No upcoming class.")}</p>
+              )}
+              {g.sessions.map((s: any, i: number) => (
+                <div key={i} className="portal-row">
+                  <strong>{dt(s.starts_at)}</strong>
+                  <span>
+                    {s.title}
+                    {s.room ? ` · ${s.room}` : ""}
+                  </span>
+                </div>
+              ))}
+            </section>
+          ))}
+          {d.packages.length > 0 && (
+            <section className="booking-step">
+              <h2>{t("Session packages")}</h2>
+              {d.packages.map((p: any, i: number) => (
+                <div key={i} className="portal-row">
+                  <strong>{p.title}</strong>
+                  <span>
+                    {p.sessions_total - p.used} {t("sessions left")} /{" "}
+                    {p.sessions_total}
+                  </span>
+                </div>
+              ))}
+            </section>
+          )}
+          {d.grades.length > 0 && (
+            <section className="booking-step">
+              <h2>{t("My marks")}</h2>
+              {d.grades.map((g: any, i: number) => (
+                <div key={i} className="portal-row">
+                  <strong>
+                    {g.score}/{g.max_score}
+                  </strong>
+                  <span>
+                    {g.title} · {g.cohort} ·{" "}
+                    {when(lang, g.taken_on, { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+              ))}
+            </section>
+          )}
+          {d.certificates.length > 0 && (
+            <section className="booking-step">
+              <h2>{t("My certificates")}</h2>
+              {d.certificates.map((c: any) => (
+                <div key={c.code} className="portal-row">
+                  <strong>{c.program}</strong>
+                  <span>
+                    {c.cohort}
+                    {c.level ? ` · ${c.level}` : ""}
+                  </span>
+                  <a className="button small" href={`/verify/${c.code}`}>
+                    {t("Check")}
+                  </a>
+                </div>
+              ))}
+            </section>
+          )}
+          <section className="booking-step">
+            <h2>{t("To pay")}</h2>
+            {!d.charges.length && (
+              <p className="muted">{t("Nothing to pay. Thank you!")}</p>
+            )}
+            {d.charges.map((c: any) => (
+              <div key={c.id} className="portal-row">
+                <strong>{money(lang, c.balance, c.currency)}</strong>
+                <span>
+                  {c.label} · {t("Due date")}{" "}
+                  {when(lang, c.due_date, { day: "numeric", month: "short" })}
+                </span>
+                {d.payOnline && c.currency === "DZD" && (
+                  <button
+                    className="button small primary"
+                    onClick={() => pay(c.id)}
+                  >
+                    {t("Pay by card (CIB / Edahabia)")}
+                  </button>
+                )}
+              </div>
+            ))}
+          </section>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+/** Short satisfaction survey (1–5 stars + comment). */
+export function FeedbackPage() {
+  const { lang, setLang, t } = useLang();
+  const token = window.location.pathname.split("/").pop() || "";
+  const [info, setInfo] = useState<any>(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    api(`/public/feedback/${encodeURIComponent(token)}`)
+      .then(setInfo)
+      .catch((e) => setError(t(e.message)));
+  }, []);
+  async function send() {
+    try {
+      await api(`/public/feedback/${encodeURIComponent(token)}`, {
+        rating,
+        comment,
+      });
+      setDone(true);
+    } catch (e: any) {
+      setError(t(e.message));
+    }
+  }
+  return (
+    <Shell lang={lang} setLang={setLang}>
+      <div className="booking-card center">
+        {done || info?.answered ? (
+          <>
+            <CheckCircle2 size={44} className="ok" />
+            <h1>{t("Thank you for your feedback!")}</h1>
+          </>
+        ) : info ? (
+          <>
+            <h1>{t("How was it?")}</h1>
+            <p>
+              {info.academy} · {info.about}
+            </p>
+            <div
+              className="star-picker"
+              role="radiogroup"
+              aria-label={t("Rating")}
+            >
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  className={n <= rating ? "on" : ""}
+                  onClick={() => setRating(n)}
+                  aria-label={`${n}/5`}
+                  role="radio"
+                  aria-checked={rating === n}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="big-textarea"
+              rows={4}
+              placeholder={t("A comment? (optional)")}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              maxLength={2000}
+            />
+            <button
+              className="button primary"
+              disabled={!rating}
+              onClick={send}
+            >
+              {t("Send")}
+            </button>
+          </>
+        ) : null}
+        {error && <div className="form-error">{error}</div>}
+      </div>
+    </Shell>
+  );
+}
+
+/** Where Chargily sends the client back after paying. */
+export function PaidPage() {
+  const { lang, setLang, t } = useLang();
+  const failed = new URLSearchParams(window.location.search).has("failed");
+  return (
+    <Shell lang={lang} setLang={setLang}>
+      <div className="booking-card center">
+        {failed ? (
+          <ShieldX size={48} className="bad" />
+        ) : (
+          <CheckCircle2 size={48} className="ok" />
+        )}
+        <h1>
+          {t(
+            failed
+              ? "The payment did not go through"
+              : "Payment received, thank you!",
+          )}
+        </h1>
+        <p>
+          {t(
+            failed
+              ? "No money was taken. You can try again from the link."
+              : "Your receipt is recorded by the academy.",
+          )}
+        </p>
+      </div>
+    </Shell>
+  );
+}

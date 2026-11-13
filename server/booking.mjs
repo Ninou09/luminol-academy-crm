@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { all, one, run, insert, transaction, audit, now } from "./db.mjs";
 import { normalizePhone } from "./n8n-intake.mjs";
 
@@ -140,7 +140,7 @@ export function installPublicBooking(app) {
       if (!s.booking_enabled)
         return res.json({ enabled: false, academy: s.academy });
       const services = all(
-        "SELECT id,name,kind,duration_min,description FROM booking_services WHERE active=1 ORDER BY sort,id",
+        "SELECT id,name,kind,duration_min,description,online FROM booking_services WHERE active=1 ORDER BY sort,id",
       )
         .map((x) => ({
           ...x,
@@ -311,6 +311,9 @@ export function installPublicBooking(app) {
             .slice(0, 1000),
           status: "Pending",
           source: "booking",
+          meeting_url: service.online
+            ? `https://meet.jit.si/Luminol-${randomBytes(8).toString("hex")}`
+            : "",
           created_at: now(),
         });
         const owner = one(

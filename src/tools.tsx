@@ -131,7 +131,11 @@ export function useTemplateValues() {
       timeZone: data.settings.timezone,
       ...opts,
     }).format(new Date(s.length === 10 ? s + "T12:00:00Z" : s));
-  return (contact: Row, appointment?: Row) => {
+  return (
+    contact: Row,
+    appointment?: Row,
+    extra: Record<string, string> = {},
+  ) => {
     const next =
       appointment ||
       (data.appointments || [])
@@ -174,6 +178,8 @@ export function useTemplateValues() {
       course: enrollment
         ? cohort(enrollment.cohort_id).name
         : charge?.label || opportunity?.interest || "",
+      link: next?.meeting_url || "",
+      ...extra,
     };
     return (body: string) =>
       body.replace(/\{(\w+)\}/g, (_, k) => values[k] ?? "");
@@ -184,14 +190,49 @@ export function WhatsAppDialog({
   contact,
   appointment,
   onClose,
+  options = {},
 }: {
   contact: Row;
   appointment?: Row;
   onClose: () => void;
+  /** link: value for {link}; preset: template name chosen first; kind/refId: log as reminder. */
+  options?: { link?: string; preset?: string; kind?: string; refId?: number };
 }) {
-  const { data, t, go } = useApp();
-  const fill = useTemplateValues()(contact, appointment);
-  const [text, setText] = useState("");
+  const { data, t, go, refresh, toast } = useApp();
+  const fill = useTemplateValues()(
+    contact,
+    appointment,
+    options.link ? { link: options.link } : {},
+  );
+  const presetBody = data.templates.find(
+    (x) => x.name === options.preset,
+  )?.body;
+  const [text, setText] = useState(presetBody ? fill(presetBody) : "");
+  const [sending, setSending] = useState(false);
+  const record = () =>
+    options.kind && options.refId
+      ? api("/reminders", { kind: options.kind, ref_id: options.refId })
+          .then(refresh)
+          .catch(() => undefined)
+      : undefined;
+  async function sendDirect() {
+    setSending(true);
+    try {
+      await api("/whatsapp/send", {
+        contact_id: contact.id,
+        text,
+        kind: options.kind,
+        ref_id: options.refId,
+      });
+      await refresh();
+      toast(t("Message sent"));
+      onClose();
+    } catch (e: any) {
+      toast(t(e.message));
+    } finally {
+      setSending(false);
+    }
+  }
   const digits = contact.phone.replace(/\D/g, "").replace(/^0(?=[567])/, "213");
   return (
     <Dialog title={`WhatsApp · ${contact.name}`} onClose={onClose} wide>
@@ -241,6 +282,11 @@ export function WhatsAppDialog({
           {t("Edit templates")}
         </Button>
         <Button onClick={onClose}>{t("Close")}</Button>
+        {data.integrations?.whatsapp && contact.consent ? (
+          <Button disabled={!text || !digits || sending} onClick={sendDirect}>
+            {t("Send directly")}
+          </Button>
+        ) : null}
         <a
           className={`button primary ${!digits || !text ? "disabled" : ""}`}
           href={
@@ -250,7 +296,11 @@ export function WhatsAppDialog({
           }
           target="_blank"
           rel="noreferrer"
-          onClick={() => digits && text && onClose()}
+          onClick={() => {
+            if (!digits || !text) return;
+            record();
+            onClose();
+          }}
         >
           <MessageCircle size={17} />
           {t("Open WhatsApp")}

@@ -6376,3 +6376,110 @@ html[data-theme="dark"] video {
     break-inside: avoid;
   }
 }
+
+/* Round 6: payment links, portal, surveys, campaigns ------------------------ */
+.share-link {
+  display: grid;
+  gap: 10px;
+}
+.share-link code {
+  word-break: break-all;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.meeting-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6a3fa0;
+  text-decoration: none;
+  margin-top: 4px;
+}
+.stars {
+  color: #d9a21b;
+  font-size: 15px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.star-picker {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 18px 0;
+}
+.star-picker button {
+  font-size: 40px;
+  color: #d5d9d6;
+  line-height: 1;
+}
+.star-picker button.on {
+  color: #e2a817;
+}
+.portal {
+  display: grid;
+  gap: 4px;
+}
+.portal h1 {
+  font-size: 28px;
+  margin: 0;
+}
+.portal-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14.5px;
+}
+.portal-row > strong {
+  min-width: 120px;
+  text-transform: capitalize;
+}
+.portal-row > span {
+  flex: 1;
+  color: #4f5e57;
+}
+.campaign-grid .form-grid.padded-grid {
+  padding: 0 24px 10px;
+}
+.campaign-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 24px 20px;
+  font-size: 15px;
+  color: var(--teal);
+}
+.campaign-count strong {
+  font-size: 24px;
+}
+.text-input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #d8e0d9;
+  border-radius: 8px;
+  font-size: 15px;
+}
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 5px 11px;
+  font-size: 12.5px;
+  background: #fff;
+}
+.chip:hover {
+  border-color: var(--teal);
+}
+.red-text {
+  color: #b4483a;
+}
+.parties {
+  display: flex;
+  gap: 30px;
+  justify-content: space-between;
+  margin-top: 20px;
+  font-size: 14px;
+}

@@ -2,7 +2,13 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import BookingPage from "./booking";
-import { ResetPage, VerifyPage } from "./public";
+import {
+  ResetPage,
+  VerifyPage,
+  PortalPage,
+  FeedbackPage,
+  PaidPage,
+} from "./public";
 const path = window.location.pathname;
 import "@fontsource-variable/dm-sans";
 import "@fontsource-variable/noto-sans-arabic";
@@ -15,6 +21,12 @@ createRoot(document.getElementById("root")!).render(
       <ResetPage />
     ) : path.startsWith("/verify/") ? (
       <VerifyPage />
+    ) : path.startsWith("/portal/") ? (
+      <PortalPage />
+    ) : path.startsWith("/feedback/") ? (
+      <FeedbackPage />
+    ) : path.startsWith("/paid") ? (
+      <PaidPage />
     ) : (
       <App />
     )}

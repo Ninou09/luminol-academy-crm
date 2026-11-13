@@ -18,6 +18,7 @@ import { roleNames } from "./i18n";
 import { Dialog, Button, Badge, Avatar, Empty, DataTable } from "./ui";
 import { WhatsAppDialog, ImportDialog } from "./tools";
 import { HoursDialog } from "./schedule";
+import { PayLinkDialog, PortalLinkDialog } from "./growth";
 import {
   HelpDialog,
   IntakeDialog,
@@ -168,6 +169,8 @@ export default function Forms({
               contact_id: r.contact_id || "",
               staff_id: r.staff_id || "",
               package_id: r.package_id || "",
+              online: !!r.meeting_url,
+              meeting_url: r.meeting_url || "",
               session_note:
                 (data.sessionNotes || []).find((n) => n.appointment_id === r.id)
                   ?.text || "",
@@ -295,7 +298,7 @@ export default function Forms({
         };
       case "bookingService":
         return r.id
-          ? { ...r, active: !!r.active }
+          ? { ...r, active: !!r.active, online: !!r.online }
           : {
               name: "",
               kind: "Psychology consultation",
@@ -384,6 +387,25 @@ export default function Forms({
           ends_at: `${data.today}T11:30`,
           repeat: 1,
           room: "",
+        };
+      case "expense":
+        return {
+          spent_on: data.today,
+          category: "",
+          label: "",
+          amount: "",
+          currency: data.settings.currency,
+        };
+      case "legal":
+        return {
+          legal_name: data.settings.legal_name || "",
+          legal_address: data.settings.legal_address || "",
+          legal_nif: data.settings.legal_nif || "",
+          legal_rc: data.settings.legal_rc || "",
+          legal_nis: data.settings.legal_nis || "",
+          legal_ai: data.settings.legal_ai || "",
+          legal_rib: data.settings.legal_rib || "",
+          vat_rate: String(data.settings.vat_rate ?? 0),
         };
       case "settings":
         return { ...r };
@@ -695,6 +717,22 @@ export default function Forms({
         combo("location", "Place or link", suggestions.room, {
           required: false,
         }),
+        {
+          key: "online",
+          label: "Online consultation (video link)",
+          type: "checkbox",
+          hint: "A free video room is created (Jitsi Meet). You can paste a Google Meet or Zoom link below instead.",
+          full: true,
+        },
+        ...(values.online
+          ? [
+              textField("meeting_url", "Video link", {
+                required: false,
+                full: true,
+                hint: "Leave empty to create one automatically",
+              }),
+            ]
+          : []),
         ...(r.id
           ? [
               select("status", "Status", [
@@ -917,6 +955,12 @@ export default function Forms({
         textField("emergency_contact", "Emergency contact", {
           required: false,
           hint: "Name and phone of someone to call if needed",
+        }),
+        textField("company", "Company (for invoices)", { required: false }),
+        textField("company_nif", "Company NIF", { required: false }),
+        textField("company_address", "Company address", {
+          required: false,
+          full: true,
         }),
         textField("notes", "Notes", {
           type: "textarea",
@@ -1246,6 +1290,12 @@ export default function Forms({
           full: true,
         }),
         {
+          key: "online",
+          label: "Online (a video link is created for each booking)",
+          type: "checkbox",
+          full: true,
+        },
+        {
           key: "staff_ids",
           label: "Who provides it",
           type: "checks",
@@ -1382,6 +1432,60 @@ export default function Forms({
           min: 0,
           required: false,
           hint: data.settings.currency,
+        }),
+      ];
+      break;
+    case "expense":
+      title = "Add an expense";
+      fields = [
+        textField("spent_on", "Date", { type: "date" }),
+        combo(
+          "category",
+          "Category",
+          [
+            "Rent",
+            "Salaries",
+            "Advertising",
+            "Supplies",
+            "Electricity, water, internet",
+            "Taxes",
+            "Other",
+            ...(data.expenses || []).map((x) => x.category),
+          ].filter((x, i, a) => a.indexOf(x) === i),
+        ),
+        textField("label", "Description", { required: false, full: true }),
+        textField("amount", "Amount", {
+          type: "number",
+          step: "0.01",
+          min: "0.01",
+        }),
+        select(
+          "currency",
+          "Currency",
+          ["DZD", "EUR", "USD", "GBP"].map((s) => [s, s]),
+        ),
+      ];
+      break;
+    case "legal":
+      title = "Invoice details";
+      fields = [
+        textField("legal_name", "Company name", {
+          required: false,
+          full: true,
+          hint: "Example: SARL Luminol Academy",
+        }),
+        textField("legal_address", "Address", { required: false, full: true }),
+        textField("legal_nif", "NIF", { required: false }),
+        textField("legal_rc", "RC", { required: false }),
+        textField("legal_nis", "NIS", { required: false }),
+        textField("legal_ai", "AI", { required: false }),
+        textField("legal_rib", "RIB", { required: false, full: true }),
+        textField("vat_rate", "VAT (%)", {
+          type: "number",
+          min: 0,
+          max: 30,
+          step: "0.5",
+          hint: "0 = VAT not applicable",
         }),
       ];
       break;
@@ -1564,6 +1668,8 @@ export default function Forms({
             repeat: r.id ? undefined : Number(values.repeat || 1),
             allow_overlap: overlapRef.current || undefined,
             location: values.location || "",
+            online: !!values.online,
+            meeting_url: values.online ? values.meeting_url || "" : "",
             notes: values.notes || "",
             status: values.status,
             starts_at: toInstant(values.starts_at, data.settings.timezone),
@@ -1728,6 +1834,15 @@ export default function Forms({
           path = r.id ? `/templates/${r.id}` : "/templates";
           method = r.id ? "PATCH" : "POST";
           break;
+        case "expense":
+          path = "/expenses";
+          body = { ...values, amount: cents(values.amount) };
+          break;
+        case "legal":
+          path = "/settings/legal";
+          method = "PATCH";
+          body = { ...values, vat_rate: Number(values.vat_rate || 0) };
+          break;
         case "placement":
           path = "/placement";
           body = { ...values, contact_id: c?.id };
@@ -1758,6 +1873,7 @@ export default function Forms({
             description: values.description || "",
             staff_ids: values.staff_ids,
             active: values.active,
+            online: !!values.online,
           };
           break;
         case "saveView":
@@ -2143,6 +2259,7 @@ export default function Forms({
       <WhatsAppDialog
         contact={modal.contact!}
         appointment={modal.record?.id ? modal.record : undefined}
+        options={modal.extra || {}}
         onClose={onClose}
       />
     );
@@ -2153,6 +2270,10 @@ export default function Forms({
     return <IntakeQuestionsDialog onClose={onClose} />;
   if (modal.type === "grades")
     return <MarkSheetDialog cohortRow={modal.record!} onClose={onClose} />;
+  if (modal.type === "paylink")
+    return <PayLinkDialog charge={modal.record!} onClose={onClose} />;
+  if (modal.type === "portal")
+    return <PortalLinkDialog contact={modal.contact!} onClose={onClose} />;
   if (modal.type === "help")
     return <HelpDialog page={modal.extra} onClose={onClose} />;
   if (modal.type === "hours")

@@ -41,6 +41,7 @@ import {
   Database,
   Upload,
   Stethoscope,
+  CreditCard,
 } from "lucide-react";
 import { useApp } from "./context";
 import {
@@ -60,6 +61,13 @@ import { roleNames } from "./i18n";
 import { N8nInbox } from "./n8n";
 import { api, matchesPerson } from "./types";
 import { PrintButton, TemplatesPanel, TrashPanel, useReceipt } from "./tools";
+import {
+  ExpensesPanel,
+  FeedbackPanel,
+  IntegrationStatus,
+  ProfitPanel,
+  useInvoice,
+} from "./growth";
 import {
   CashReport,
   DebtsReport,
@@ -1678,6 +1686,7 @@ export { Calendar } from "./calendar";
 
 export function Payments() {
   const { data, t, open, money, date, person, profile, pageFilter } = useApp();
+  const invoice = useInvoice();
   const receipt = useReceipt();
   const remove = useRemove();
   const [tab, setTab] = useState(
@@ -1779,6 +1788,7 @@ export function Payments() {
             "All charges",
             "Payment history",
             "Cash book",
+            "Expenses",
             "Who owes what",
             "Pay",
           ]}
@@ -1792,6 +1802,8 @@ export function Payments() {
         <DebtsReport />
       ) : tab === "Pay" ? (
         <PayrollReport />
+      ) : tab === "Expenses" ? (
+        <ExpensesPanel />
       ) : (
         <div className="panel">
           <div className="toolbar">
@@ -1909,6 +1921,24 @@ export function Payments() {
                         >
                           <Pencil size={15} />
                         </button>
+                        <button
+                          className="icon-button"
+                          aria-label={t("Invoice")}
+                          title={t("Invoice")}
+                          onClick={() => invoice(c)}
+                        >
+                          <FileText size={15} />
+                        </button>
+                        {c.balance > 0 && c.currency === "DZD" && (
+                          <button
+                            className="icon-button"
+                            aria-label={t("Online payment link")}
+                            title={t("Online payment link")}
+                            onClick={() => open({ type: "paylink", record: c })}
+                          >
+                            <CreditCard size={15} />
+                          </button>
+                        )}
                         {c.balance > 0 && (
                           <Button
                             variant="small"
@@ -2051,6 +2081,10 @@ export function Reports({
         <PrintReportButton />
       </PageHead>
       <DirectorReport start={stats.start} />
+      <div className="reports-grid">
+        {data.permissions.finance && <ProfitPanel />}
+        <FeedbackPanel />
+      </div>
       <div className="reports-grid">
         {data.permissions.admissions && (
           <Panel
@@ -2277,6 +2311,12 @@ export function SettingsPage() {
                   onClick={() => open({ type: "intakeQuestions" })}
                 >
                   {t("First consultation questions")}
+                </Button>
+                <Button
+                  icon={<FileText size={16} />}
+                  onClick={() => open({ type: "legal" })}
+                >
+                  {t("Invoice details")}
                 </Button>
               </div>
             )}
@@ -2560,6 +2600,7 @@ export function SettingsPage() {
         <TrashPanel />
       ) : tab === "Integrations" ? (
         <>
+          <IntegrationStatus />
           <div className="integration-grid">
             {[
               ["Email", Mail],

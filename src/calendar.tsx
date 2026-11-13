@@ -13,6 +13,7 @@ import {
   UserX,
 } from "lucide-react";
 import { useApp } from "./context";
+import { MeetingLink } from "./growth";
 import { Badge, Button, Empty, PageHead } from "./ui";
 import type { Row } from "./types";
 
@@ -542,7 +543,10 @@ export function Calendar() {
                           {it.status === "Done" && <Check size={12} />}
                           {it.status === "No-show" && <UserX size={12} />}
                         </small>
-                        <strong>{it.title}</strong>
+                        <strong>
+                          {it.record.meeting_url ? "🎥 " : ""}
+                          {it.title}
+                        </strong>
                         {!narrow && height > 44 && <span>{it.sub}</span>}
                         {!narrow && height > 64 && (it.who || it.place) && (
                           <span className="tg-meta">
@@ -664,6 +668,9 @@ export function Calendar() {
                                 </span>
                               )}
                             </small>
+                            {it.record.meeting_url && (
+                              <MeetingLink url={it.record.meeting_url} />
+                            )}
                           </span>
                         </button>
                         {it.type === "appointment" &&

@@ -28,6 +28,17 @@ export type State = {
   grades: Row[];
   certificates: Row[];
   mailConfigured?: boolean;
+  integrations?: {
+    chargily: boolean;
+    whatsapp: boolean;
+    chargilyMode: string;
+    cron: boolean;
+  };
+  expenses: Row[];
+  feedback: Row[];
+  campaigns: Row[];
+  checkouts: Row[];
+  portalLinks: number[];
   serviceTypes: string[];
   attendance: Row[];
   tasks: Row[];

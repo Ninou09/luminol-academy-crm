@@ -25,6 +25,7 @@ import {
   EyeOff,
   LoaderCircle,
   ClipboardCheck,
+  Megaphone,
   CircleHelp,
   Moon,
   Sun,
@@ -87,6 +88,7 @@ import {
 } from "./pages";
 import Forms from "./forms";
 import { AttendancePage } from "./academy";
+import { CampaignsPage } from "./growth";
 import Profile from "./profile";
 
 const nav = [
@@ -97,6 +99,7 @@ const nav = [
   ["Attendance", ClipboardCheck],
   ["Programs & Cohorts", GraduationCap],
   ["Payments", Wallet],
+  ["Campaigns", Megaphone],
   ["Reports", ChartNoAxesCombined],
 ] as const;
 /** Plain names shown in the menu; page keys stay stable. */
@@ -303,7 +306,8 @@ export default function App() {
     ([name]) =>
       !(name === "Admissions" && !data.permissions.admissions) &&
       !(name === "Payments" && !data.permissions.finance) &&
-      !(name === "Attendance" && !data.permissions.attendance),
+      !(name === "Attendance" && !data.permissions.attendance) &&
+      !(name === "Campaigns" && !data.permissions.editAdmissions),
   );
   const title = navLabels[page] || page;
   const views: Record<string, ReactNode> = {
@@ -317,6 +321,7 @@ export default function App() {
     Settings: <SettingsPage />,
     "My tasks": <Tasks />,
     Attendance: <AttendancePage />,
+    Campaigns: <CampaignsPage />,
   };
   return (
     <AppContext.Provider value={context}>

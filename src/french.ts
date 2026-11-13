@@ -1155,3 +1155,149 @@ Object.assign(french, {
   "Tick a task when it is done. The pencil changes its date or person.":
     "Cochez une tâche quand elle est faite. Le crayon change sa date ou la personne.",
 });
+
+// Round 6
+Object.assign(french, {
+  Campaigns: "Campagnes",
+  "Send one message to a group of clients: new term, new course, event…":
+    "Envoyez un message à un groupe de clients : rentrée, nouvelle formation, événement…",
+  "1. Who receives it?": "1. Qui le reçoit ?",
+  "Only clients who agreed to be contacted and have a phone number.":
+    "Uniquement les clients qui ont accepté d’être contactés et ont un téléphone.",
+  "2. The message": "2. Le message",
+  "{name} is replaced by each client's first name.":
+    "{name} est remplacé par le prénom de chaque client.",
+  All: "Tous",
+  "Enrolled in": "Inscrit en",
+  "Current students": "Élèves actuels",
+  "Former students": "Anciens élèves",
+  "Never enrolled": "Jamais inscrits",
+  "clients match": "clients correspondent",
+  "Campaign name": "Nom de la campagne",
+  "Example: Registrations September": "Exemple : Inscriptions septembre",
+  "Example: English": "Exemple : Anglais",
+  "Prepare the campaign": "Préparer la campagne",
+  recipients: "destinataires",
+  sent: "envoyés",
+  failed: "échecs",
+  "Send all automatically": "Tout envoyer automatiquement",
+  "Previous campaigns": "Campagnes précédentes",
+  "Delete this campaign?": "Supprimer cette campagne ?",
+  "Online payment link": "Lien de paiement en ligne",
+  "Online card payment (CIB / Edahabia) is ready but not switched on. Add the Chargily key in Vercel (see Settings → Integrations).":
+    "Le paiement par carte (CIB / Edahabia) est prêt mais pas activé. Ajoutez la clé Chargily dans Vercel (voir Paramètres → Connexions).",
+  "The client pays by CIB or Edahabia card. The payment is recorded automatically in the CRM.":
+    "Le client paie par carte CIB ou Edahabia. Le paiement est enregistré automatiquement dans le CRM.",
+  "test mode": "mode test",
+  "Create the payment link": "Créer le lien de paiement",
+  "Pay link": "Lien de paiement",
+  "Card (online)": "Carte (en ligne)",
+  Invoice: "Facture",
+  "Invoice details": "Coordonnées de facturation",
+  "Company name": "Raison sociale",
+  Address: "Adresse",
+  "VAT (%)": "TVA (%)",
+  "0 = VAT not applicable": "0 = TVA non applicable",
+  "Company (for invoices)": "Entreprise (pour les factures)",
+  "Company NIF": "NIF de l’entreprise",
+  "Company address": "Adresse de l’entreprise",
+  "Client space": "Espace client",
+  "A private page for the client: upcoming appointments and classes, video links, marks, certificates, balance and online payment. No password needed.":
+    "Une page privée pour le client : prochains rendez-vous et cours, liens vidéo, notes, certificats, solde et paiement en ligne. Sans mot de passe.",
+  "A link already exists. Creating a new one stops the old one.":
+    "Un lien existe déjà. En créer un nouveau désactive l’ancien.",
+  "Stop the link": "Désactiver le lien",
+  "Create a new link": "Créer un nouveau lien",
+  "Create the link": "Créer le lien",
+  "The link no longer works": "Le lien ne fonctionne plus",
+  "Ask for feedback": "Demander un avis",
+  "Your experience": "Votre expérience",
+  "Client satisfaction": "Satisfaction des clients",
+  "Answers to the surveys sent after a course or consultations.":
+    "Réponses aux questionnaires envoyés après une formation ou des consultations.",
+  "No answers yet": "Pas encore de réponses",
+  "Ask for feedback from a client's card (button “Ask for feedback”).":
+    "Demandez un avis depuis la fiche d’un client (bouton « Demander un avis »).",
+  "surveys waiting for an answer": "questionnaires en attente de réponse",
+  Expenses: "Dépenses",
+  "Rent, salaries, advertising, supplies… to see the real profit.":
+    "Loyer, salaires, publicité, fournitures… pour voir le vrai bénéfice.",
+  "Add an expense": "Ajouter une dépense",
+  "Delete this expense?": "Supprimer cette dépense ?",
+  Rent: "Loyer",
+  Salaries: "Salaires",
+  Advertising: "Publicité",
+  Supplies: "Fournitures",
+  "Electricity, water, internet": "Électricité, eau, internet",
+  Taxes: "Impôts et taxes",
+  "Income − expenses": "Recettes − dépenses",
+  "Money received minus expenses, month by month.":
+    "Argent encaissé moins les dépenses, mois par mois.",
+  Month: "Mois",
+  Result: "Résultat",
+  "Salaries count only once you record them as an expense.":
+    "Les salaires ne comptent qu’une fois enregistrés comme dépense.",
+  "Online consultation (video link)": "Consultation en ligne (lien vidéo)",
+  "A free video room is created (Jitsi Meet). You can paste a Google Meet or Zoom link below instead.":
+    "Une salle vidéo gratuite est créée (Jitsi Meet). Vous pouvez coller un lien Google Meet ou Zoom à la place.",
+  "Video link": "Lien vidéo",
+  "Leave empty to create one automatically":
+    "Laisser vide pour en créer un automatiquement",
+  "Online (a video link is created for each booking)":
+    "En ligne (un lien vidéo est créé pour chaque réservation)",
+  "Join video call": "Rejoindre l’appel vidéo",
+  "Place available": "Place disponible",
+  "Feedback request": "Demande d’avis",
+  "Online consultation link": "Lien de consultation en ligne",
+  "Message sent": "Message envoyé",
+  "Send directly": "Envoyer directement",
+  "Connected services": "Services connectés",
+  "Each service works as soon as its key is added in Vercel → Settings → Environment Variables, then redeployed.":
+    "Chaque service fonctionne dès que sa clé est ajoutée dans Vercel → Settings → Environment Variables, puis redéployé.",
+  Connected: "Connecté",
+  "Not connected": "Non connecté",
+  "Online card payment (Chargily)": "Paiement par carte en ligne (Chargily)",
+  "Automatic WhatsApp (Meta)": "WhatsApp automatique (Meta)",
+  "Password e-mails (Resend)": "E-mails de mot de passe (Resend)",
+  "Daily automatic reminders": "Rappels automatiques chaque jour",
+  "Send today's reminders now": "Envoyer les rappels maintenant",
+  // portal & public pages
+  Hello: "Bonjour",
+  "My appointments": "Mes rendez-vous",
+  "No upcoming appointment.": "Aucun rendez-vous à venir.",
+  "No upcoming class.": "Aucun cours à venir.",
+  "My marks": "Mes notes",
+  "My certificates": "Mes certificats",
+  Check: "Vérifier",
+  "To pay": "À payer",
+  "Nothing to pay. Thank you!": "Rien à payer. Merci !",
+  "Pay by card (CIB / Edahabia)": "Payer par carte (CIB / Edahabia)",
+  "This link is no longer valid. Ask the academy for a new one.":
+    "Ce lien n’est plus valable. Demandez-en un nouveau à l’académie.",
+  "How was it?": "Comment ça s’est passé ?",
+  Rating: "Note",
+  "A comment? (optional)": "Un commentaire ? (facultatif)",
+  Send: "Envoyer",
+  "Thank you for your feedback!": "Merci pour votre avis !",
+  "Thank you, your answer was already recorded.":
+    "Merci, votre réponse a déjà été enregistrée.",
+  "Choose from 1 to 5 stars.": "Choisissez de 1 à 5 étoiles.",
+  "The payment did not go through": "Le paiement n’a pas abouti",
+  "Payment received, thank you!": "Paiement reçu, merci !",
+  "No money was taken. You can try again from the link.":
+    "Aucun montant n’a été prélevé. Vous pouvez réessayer depuis le lien.",
+  "Your receipt is recorded by the academy.":
+    "Votre reçu est enregistré par l’académie.",
+  "Online payment is not set up yet (Chargily key missing).":
+    "Le paiement en ligne n’est pas encore configuré (clé Chargily manquante).",
+  "WhatsApp sending is not set up yet.":
+    "L’envoi WhatsApp n’est pas encore configuré.",
+});
+Object.assign(french, {
+  "Choose who receives the message with the filters, then write the message.":
+    "Choisissez les destinataires avec les filtres, puis écrivez le message.",
+  "Only clients who agreed to be contacted are included.":
+    "Seuls les clients ayant accepté d’être contactés sont inclus.",
+  "Send one by one with the WhatsApp buttons, or all at once when WhatsApp is connected.":
+    "Envoyez un par un avec les boutons WhatsApp, ou tous d’un coup quand WhatsApp est connecté.",
+});

@@ -510,7 +510,7 @@ export function PendingBookings() {
 
 /** Who to remind today: tomorrow's appointments and payments due soon. */
 export function RemindersPanel() {
-  const { data, t, person, time, date, money, refresh } = useApp();
+  const { data, t, person, time, date, money, refresh, toast } = useApp();
   const fill = useTemplateValues();
   const [showAll, setShowAll] = useState(false);
   if (
@@ -546,7 +546,14 @@ export function RemindersPanel() {
         id: a.id,
         contact: person(a.contact_id),
         what: `${a.title} · ${localDay(a.starts_at) === data.today ? t("Today") : t("Tomorrow")} ${time(a.starts_at)}`,
-        text: fill(person(a.contact_id), a)(tpl("Appointment reminder")),
+        text: fill(
+          person(a.contact_id),
+          a,
+        )(
+          tpl(
+            a.meeting_url ? "Online consultation link" : "Appointment reminder",
+          ),
+        ),
       })),
     ...data.charges
       .filter((c) => {
@@ -563,6 +570,28 @@ export function RemindersPanel() {
         what: `${c.label} · ${money(c.balance, c.currency)} · ${c.due_date < data.today ? t("Overdue") : date(c.due_date)}`,
         text: fill(person(c.contact_id))(tpl("Payment reminder")),
       })),
+    // A place freed up in a full group: tell the first person waiting.
+    ...data.cohorts.flatMap((h) => {
+      const used = data.enrollments.filter(
+        (e) => e.cohort_id === h.id && e.status === "Active",
+      ).length;
+      const first = data.waitlists
+        .filter((w) => w.cohort_id === h.id)
+        .sort((a, b) => a.id - b.id)[0];
+      if (!first || used >= h.capacity) return [];
+      return [
+        {
+          key: "w" + first.id,
+          kind: "waitlist",
+          id: first.id,
+          contact: person(first.contact_id),
+          what: `${t("Place available")} · ${h.name}`,
+          text: fill(person(first.contact_id), undefined, { course: h.name })(
+            tpl("Place available"),
+          ),
+        },
+      ];
+    }),
   ];
   const record = (kind: string, id: number) =>
     api("/reminders", { kind, ref_id: id })
@@ -573,11 +602,33 @@ export function RemindersPanel() {
       title="Reminders to send"
       subtitle="Tomorrow's appointments and payments due within 3 days. One tap opens WhatsApp with the message ready."
       action={
-        <Badge
-          tone={items.some((i) => !sent(i.kind, i.id)) ? "amber" : "neutral"}
-        >
-          {items.filter((i) => !sent(i.kind, i.id)).length}
-        </Badge>
+        <span className="row-actions">
+          {data.integrations?.whatsapp &&
+            data.permissions.admin &&
+            items.some((i) => !sent(i.kind, i.id)) && (
+              <Button
+                variant="small primary"
+                onClick={async () => {
+                  try {
+                    const r = await api("/automations/whatsapp/run", {});
+                    await refresh();
+                    toast(
+                      `${r.sent} ${t("sent")}${r.failed ? ` · ${r.failed} ${t("failed")}` : ""}`,
+                    );
+                  } catch (e: any) {
+                    toast(t(e.message));
+                  }
+                }}
+              >
+                {t("Send all automatically")}
+              </Button>
+            )}
+          <Badge
+            tone={items.some((i) => !sent(i.kind, i.id)) ? "amber" : "neutral"}
+          >
+            {items.filter((i) => !sent(i.kind, i.id)).length}
+          </Badge>
+        </span>
       }
     >
       <div className="reminder-list">
