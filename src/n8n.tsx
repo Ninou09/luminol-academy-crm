@@ -1,36 +1,48 @@
 import { useState, type FormEvent } from "react";
+import { Check, Download, RefreshCw, X } from "lucide-react";
 import { useApp } from "./context";
-import { Button, Badge, Panel, DataTable, Dialog, Empty } from "./ui";
-import { type Row } from "./types";
+import { Button, Badge, Panel, DataTable, Dialog } from "./ui";
+import { api, type Row } from "./types";
 
+const guess = (text: string) => {
+  const v = text.toLowerCase();
+  if (/consult|استشار|therap/.test(v)) return "Psychology consultation";
+  if (/psych|نفس/.test(v)) return "Psychology course";
+  if (/lang|english|french|anglais|إنجليز|فرنس|لغ/.test(v))
+    return "Language course";
+  if (/train|formation|تدريب|تكوين/.test(v)) return "Training";
+  return "Course";
+};
+
+/** Leads that arrive from the website / Google form through n8n. */
 export function N8nInbox() {
   const { data, t, perform, toast, profile, date, refresh } = useApp();
   const [review, setReview] = useState<Row | null>(null);
-  const [email, setEmail] = useState("");
-  const [program, setProgram] = useState("");
-  const [owner, setOwner] = useState("");
+  const [form, setForm] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const rows = data.incoming || [];
+  const editable = data.permissions.editAdmissions;
+  const advisors = data.users.filter(
+    (u) => u.active !== 0 && ["admin", "admissions"].includes(u.role),
+  );
   function open(row: Row) {
     setReview(row);
-    setEmail(row.email);
-    setProgram("");
-    setOwner(String(row.owner_id));
+    const programMatch = data.programs.find(
+      (p) => p.name.toLowerCase() === (row.course_interest || "").toLowerCase(),
+    );
+    setForm({
+      email: row.email,
+      service_type: guess(`${row.service_type} ${row.course_interest}`),
+      interest: row.course_interest || row.service_type || "",
+      program_id: programMatch ? String(programMatch.id) : "",
+      owner_id: String(
+        advisors.some((u) => u.id === row.owner_id)
+          ? row.owner_id
+          : data.user.id,
+      ),
+    });
     setError("");
-  }
-  function close() {
-    if (busy) return;
-    const changed =
-      review &&
-      (email !== review.email ||
-        program !== "" ||
-        owner !== String(review.owner_id));
-    if (
-      !changed ||
-      window.confirm(t("You have unsaved changes. Discard changes?"))
-    )
-      setReview(null);
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -41,9 +53,9 @@ export function N8nInbox() {
       const result = await perform(
         `/integrations/n8n/inquiries/${review.id}/convert`,
         {
-          email,
-          program_id: Number(program),
-          owner_id: Number(owner),
+          ...form,
+          program_id: form.program_id ? Number(form.program_id) : null,
+          owner_id: Number(form.owner_id),
           version: review.version,
         },
       );
@@ -56,38 +68,97 @@ export function N8nInbox() {
       setBusy(false);
     }
   }
+  async function importAll() {
+    if (
+      !window.confirm(
+        t(
+          "Add every waiting lead to the requests board? You can edit each one afterwards.",
+        ),
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const result = await perform("/integrations/n8n/inquiries/import-all", {
+        owner_id: data.user.id,
+      });
+      toast(
+        `${result.imported} ${t("leads imported")}` +
+          (result.skipped.length
+            ? ` · ${result.skipped.length} ${t("need a manual review")}`
+            : ""),
+      );
+    } catch (e: any) {
+      toast(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function dismiss(row: Row) {
+    if (!window.confirm(t("Dismiss this lead (spam, duplicate or test)?")))
+      return;
+    try {
+      await api(`/integrations/n8n/inquiries/${row.id}/dismiss`, {});
+      await refresh();
+      toast(t("Lead dismissed"));
+    } catch (e: any) {
+      toast(e.message);
+    }
+  }
+  const set = (key: string, value: string) =>
+    setForm((f) => ({ ...f, [key]: value }));
+  if (!rows.length && !data.permissions.admin) return null;
   return (
     <>
       <Panel
-        title="Incoming from n8n"
-        subtitle="Review the program and advisor before adding an inquiry to the pipeline."
+        title="New leads from the website / Google"
+        subtitle="Check each lead and add it to your requests, or import them all at once."
+        className="inbox-panel"
         action={
           <div className="n8n-actions">
-            <Badge tone={data.n8n?.configured ? "teal" : "neutral"}>
-              {t(data.n8n?.configured ? "Ready to receive" : "Setup required")}{" "}
-              · {rows.length}
+            <Badge tone={rows.length ? "amber" : "neutral"}>
+              {rows.length} {t("waiting")}
             </Badge>
             <Button
               variant="small"
+              icon={<RefreshCw size={14} />}
               onClick={() => refresh().catch((e) => toast(e.message))}
             >
               {t("Refresh")}
             </Button>
+            {editable && rows.length > 0 && (
+              <Button
+                variant="small primary"
+                icon={<Download size={14} />}
+                disabled={busy}
+                onClick={importAll}
+              >
+                {t("Import all")}
+              </Button>
+            )}
           </div>
         }
       >
         {rows.length ? (
           <DataTable
             rows={rows}
+            pageSize={5}
             columns={[
               {
                 key: "name",
                 label: "Name",
-                render: (row) => <strong>{row.name}</strong>,
+                render: (row) => (
+                  <span>
+                    <strong>{row.name}</strong>
+                    <small className="block muted">
+                      {row.phone || row.email}
+                    </small>
+                  </span>
+                ),
               },
               {
                 key: "interest",
-                label: "Program of interest",
+                label: "Asked about",
                 render: (row) => (
                   <span>
                     {row.course_interest || row.service_type || t("To confirm")}
@@ -95,23 +166,31 @@ export function N8nInbox() {
                 ),
               },
               {
-                key: "contact",
-                label: "Contact",
-                render: (row) => <span>{row.email || row.phone}</span>,
-              },
-              {
                 key: "received",
                 label: "Received",
-                render: (row) => date(row.received_at),
+                render: (row) => date(row.submitted_at || row.received_at),
               },
               {
                 key: "review",
-                label: "Review",
+                label: "",
                 render: (row) =>
-                  data.permissions.editAdmissions ? (
-                    <Button variant="small" onClick={() => open(row)}>
-                      {t("Review inquiry")}
-                    </Button>
+                  editable ? (
+                    <div className="row-actions">
+                      <Button
+                        variant="small primary"
+                        icon={<Check size={14} />}
+                        onClick={() => open(row)}
+                      >
+                        {t("Accept")}
+                      </Button>
+                      <Button
+                        variant="small"
+                        icon={<X size={14} />}
+                        onClick={() => dismiss(row)}
+                      >
+                        {t("Dismiss")}
+                      </Button>
+                    </div>
                   ) : (
                     t("Read only")
                   ),
@@ -119,49 +198,71 @@ export function N8nInbox() {
             ]}
           />
         ) : (
-          <Empty
-            title="No incoming inquiries"
-            text="New inquiries from your n8n lead table will appear here."
-          />
+          <p className="inbox-empty">
+            {t(
+              data.n8n?.configured
+                ? "No new leads right now. New requests from your website form appear here automatically."
+                : "No new leads. The website connection is not configured on this server yet.",
+            )}
+          </p>
         )}
       </Panel>
       {review && (
-        <Dialog title={t("Review inquiry")} onClose={close}>
+        <Dialog
+          title={t("Accept lead")}
+          onClose={() => !busy && setReview(null)}
+          wide
+        >
           <form onSubmit={submit}>
-            <div className="detail-content">
-              <h3>{review.name}</h3>
-              <p>{review.course_interest || review.service_type}</p>
-              <p className="muted">
-                {review.phone} ·{" "}
-                {t(
-                  review.consent
-                    ? "Communication consent recorded"
-                    : "Communication consent not recorded",
-                )}
-              </p>
-              <p className="muted">
-                {t(
-                  "Existing contact details and consent are preserved when a match is found.",
-                )}
-              </p>
+            <div className="form-body">
+              <div className="form-person">
+                <div>
+                  <strong>{review.name}</strong>
+                  <small>
+                    {[review.phone, review.email].filter(Boolean).join(" · ")} ·{" "}
+                    {t(
+                      review.consent
+                        ? "Communication consent recorded"
+                        : "Communication consent not recorded",
+                    )}
+                  </small>
+                </div>
+              </div>
               <div className="form-grid">
-                <label className="field">
-                  <span>{t("Email")}</span>
+                <label>
+                  <span>{t("What does the client want?")}</span>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    maxLength={254}
-                  />
-                </label>
-                <label className="field">
-                  <span>{t("Program of interest")} *</span>
-                  <select
+                    list="lead-service"
                     required
-                    value={program}
-                    onChange={(e) => setProgram(e.target.value)}
+                    value={form.service_type}
+                    onChange={(e) => set("service_type", e.target.value)}
+                  />
+                  <datalist id="lead-service">
+                    {(data.serviceTypes || []).map((x) => (
+                      <option key={x} value={x} />
+                    ))}
+                  </datalist>
+                </label>
+                <label>
+                  <span>{t("Course, language or topic")}</span>
+                  <input
+                    list="lead-interest"
+                    value={form.interest}
+                    onChange={(e) => set("interest", e.target.value)}
+                  />
+                  <datalist id="lead-interest">
+                    {data.programs.map((p) => (
+                      <option key={p.id} value={p.name} />
+                    ))}
+                  </datalist>
+                </label>
+                <label>
+                  <span>{t("Linked program (optional)")}</span>
+                  <select
+                    value={form.program_id}
+                    onChange={(e) => set("program_id", e.target.value)}
                   >
-                    <option value="">{t("Choose…")}</option>
+                    <option value="">{t("— None —")}</option>
                     {data.programs.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -169,22 +270,33 @@ export function N8nInbox() {
                     ))}
                   </select>
                 </label>
-                <label className="field">
-                  <span>{t("Assign advisor")} *</span>
+                <label>
+                  <span>{t("Responsible person")} *</span>
                   <select
                     required
-                    value={owner}
-                    onChange={(e) => setOwner(e.target.value)}
+                    value={form.owner_id}
+                    onChange={(e) => set("owner_id", e.target.value)}
                   >
-                    <option value="">{t("Choose…")}</option>
-                    {data.users
-                      .filter((u) => ["admin", "admissions"].includes(u.role))
-                      .map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
+                    {advisors.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
                   </select>
+                </label>
+                <label className="full-field">
+                  <span>{t("Email")}</span>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => set("email", e.target.value)}
+                    maxLength={254}
+                  />
+                  <small className="form-hint">
+                    {t(
+                      "Optional. Existing contact details and consent are preserved when a match is found.",
+                    )}
+                  </small>
                 </label>
               </div>
               {error && (
@@ -194,11 +306,15 @@ export function N8nInbox() {
               )}
             </div>
             <div className="dialog-footer">
-              <Button disabled={busy} onClick={close}>
+              <Button
+                type="button"
+                disabled={busy}
+                onClick={() => setReview(null)}
+              >
                 {t("Cancel")}
               </Button>
               <Button type="submit" variant="primary" disabled={busy}>
-                {t(busy ? "Saving…" : "Add to admissions")}
+                {t(busy ? "Saving…" : "Add to requests")}
               </Button>
             </div>
           </form>

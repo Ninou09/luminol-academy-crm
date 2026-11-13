@@ -29,7 +29,33 @@ type Field = {
   max?: string | number;
   step?: string;
   disabled?: boolean;
+  suggestions?: string[];
 };
+/** Show a stored instant as a wall-clock value in the academy time zone. */
+export function toLocalInput(iso: string, zone: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: zone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  })
+    .format(new Date(iso))
+    .replace(" ", "T");
+}
+const unique = (items: string[]) =>
+  Array.from(new Set(items.map((x) => (x || "").trim()).filter(Boolean)));
+export const appointmentKinds = [
+  "Psychology consultation",
+  "Consultation",
+  "Trial lesson",
+  "Placement test",
+  "Meeting",
+  "Exam",
+  "Other",
+];
 function cents(value: unknown) {
   const s = String(value || "0").trim();
   if (!/^\d+(\.\d{1,2})?$/.test(s))
@@ -67,9 +93,10 @@ export default function Forms({
   const r = modal.record || ({ id: 0 } as Row),
     c = modal.contact;
   const defaultValues = () => {
+    const zone = data.settings.timezone;
     const common: any = {
       contact_id: c?.id || "",
-      owner_id: data.user.role === "admin" ? 2 : data.user.id,
+      owner_id: data.user.id,
       program_id: data.programs[0]?.id || "",
       currency: data.settings.currency,
       language: "English",
@@ -82,19 +109,96 @@ export default function Forms({
           name: c?.name || "",
           email: c?.email || "",
           phone: c?.phone || "",
-          source: "Website",
+          service_type: modal.extra?.service_type || "",
+          interest: "",
+          source: "",
           campaign: "",
           tags: "",
+          notes: "",
           expected_date: "",
+        };
+      case "request":
+        return {
+          service_type: r.service_type || "",
+          interest: r.interest || program(r.program_id).name || "",
+          program_id: r.program_id || "",
+          owner_id: r.owner_id,
+          source: r.source || "",
+          expected_date: r.expected_date || "",
+          notes: r.notes || "",
+        };
+      case "client":
+        return {
+          name: "",
+          phone: "",
+          email: "",
+          language: "العربية",
+          guardian: "",
+          notes: "",
+          consent: false,
         };
       case "task":
       case "bulkTask":
+        return r.id
+          ? {
+              title: r.title,
+              contact_id: r.contact_id || "",
+              owner_id: r.owner_id,
+              due_at: toLocalInput(r.due_at, zone),
+              priority: r.priority,
+            }
+          : {
+              ...common,
+              title: "",
+              due_at: `${data.today}T16:00`,
+              priority: "Normal",
+            };
+      case "appointment":
+        return r.id
+          ? {
+              ...r,
+              contact_id: r.contact_id || "",
+              staff_id: r.staff_id || "",
+              starts_at: toLocalInput(r.starts_at, zone),
+              ends_at: toLocalInput(r.ends_at, zone),
+            }
+          : {
+              kind: modal.extra?.kind || "Psychology consultation",
+              title: "",
+              contact_id: c?.id || "",
+              staff_id: data.user.id,
+              starts_at: `${modal.extra?.day || data.today}T10:00`,
+              ends_at: `${modal.extra?.day || data.today}T11:00`,
+              location: "",
+              notes: "",
+              status: "Scheduled",
+            };
+      case "staff":
+        return r.id
+          ? {
+              name: r.name,
+              email: r.email.endsWith("@no-login.local") ? "" : r.email,
+              phone: r.phone || "",
+              role: r.role,
+            }
+          : {
+              name: "",
+              email: "",
+              phone: "",
+              role: modal.extra?.role || "instructor",
+              password: "",
+            };
+      case "password":
+        return { password: "" };
+      case "account":
         return {
-          ...common,
-          title: "",
-          due_at: `${data.today}T16:00`,
-          priority: "Normal",
+          name: data.user.name,
+          email: data.user.email,
+          current_password: "",
+          new_password: "",
         };
+      case "cleanStart":
+        return { confirm: "" };
       case "stage":
         return {
           stage: modal.extra || r.stage,
@@ -102,11 +206,13 @@ export default function Forms({
           reason: r.reason || "",
         };
       case "bulkAssign":
-        return { owner_id: 2 };
+        return { owner_id: data.user.id };
       case "enroll":
         return {
           cohort_id:
-            data.cohorts.find((h) => h.program_id === r.program_id)?.id || "",
+            data.cohorts.find(
+              (h) => !r.program_id || h.program_id === r.program_id,
+            )?.id || "",
           due_date: data.today,
           waitlist: true,
         };
@@ -117,7 +223,7 @@ export default function Forms({
           visibility: data.user.role === "finance" ? "finance" : "general",
         };
       case "contact":
-        return { ...r, consent: !!r.consent };
+        return { ...r, notes: r.notes || "", consent: !!r.consent };
       case "payment":
         return {
           charge_id:
@@ -131,6 +237,12 @@ export default function Forms({
           reference: "",
         };
       case "charge":
+        if (r.id)
+          return {
+            label: r.label,
+            amount: (r.amount / 100).toFixed(2),
+            due_date: r.due_date,
+          };
         return {
           ...common,
           label: "",
@@ -149,10 +261,10 @@ export default function Forms({
         return r.id
           ? { ...r, price: (r.price / 100).toFixed(2) }
           : {
-              name: "",
-              category: "Psychology",
+              name: modal.extra?.name || "",
+              category: "",
               description: "",
-              duration: "8 weeks",
+              duration: "",
               price: "",
               currency: data.settings.currency,
               color: "teal",
@@ -160,11 +272,16 @@ export default function Forms({
       case "role":
         return { role: r.role };
       case "cohort":
+        if (r.id)
+          return {
+            ...r,
+            instructor_name: r.instructor_id ? user(r.instructor_id).name : "",
+          };
         return {
           ...common,
+          program_id: modal.extra?.program_id || common.program_id,
           name: "",
-          instructor_id:
-            data.users.find((u) => u.role === "instructor")?.id || "",
+          instructor_name: "",
           capacity: 12,
           start_date: data.today,
           end_date: new Date(Date.parse(data.today) + 56 * 86400000)
@@ -173,6 +290,13 @@ export default function Forms({
           room: "",
         };
       case "session":
+        if (r.id)
+          return {
+            title: r.title,
+            starts_at: toLocalInput(r.starts_at, zone),
+            ends_at: toLocalInput(r.ends_at, zone),
+            room: r.room || "",
+          };
         return {
           cohort_id: r.cohort_id || data.cohorts[0]?.id || "",
           title: "",
@@ -236,9 +360,78 @@ export default function Forms({
     setDirty(true);
     setError("");
   };
-  const staffOptions = data.users
+  const activeUsers = data.users.filter((u) => u.active !== 0);
+  const staffOptions = activeUsers
     .filter((u) => ["admin", "admissions"].includes(u.role))
     .map((u) => [u.id, u.name] as [number, string]);
+  const suggestions = {
+    service: unique([
+      ...(data.serviceTypes || []),
+      ...data.opportunities.map((o) => o.service_type),
+    ]),
+    interest: unique([
+      ...data.programs.map((p) => p.name),
+      ...data.opportunities.map((o) => o.interest),
+      ...(data.incoming || []).map((i) => i.course_interest),
+    ]),
+    source: unique([
+      "Website",
+      "Google form",
+      "Instagram",
+      "Facebook",
+      "WhatsApp",
+      "Phone call",
+      "Referral",
+      "Walk-in",
+      ...data.opportunities.map((o) => o.source),
+    ]),
+    language: unique([
+      "العربية",
+      "Français",
+      "English",
+      ...data.contacts.map((c) => c.language),
+    ]),
+    category: unique([
+      "Psychology",
+      "Languages",
+      "Training",
+      ...data.programs.map((p) => p.category),
+    ]),
+    teacher: unique(
+      activeUsers
+        .filter((u) => ["instructor", "academic"].includes(u.role))
+        .map((u) => u.name),
+    ),
+    duration: unique([
+      "4 weeks",
+      "8 weeks",
+      "12 weeks",
+      "3 months",
+      "6 months",
+      ...data.programs.map((p) => p.duration),
+    ]),
+    room: unique([
+      ...data.cohorts.map((h) => h.room),
+      ...(data.appointments || []).map((a) => a.location),
+    ]),
+    kind: unique([
+      ...appointmentKinds,
+      ...(data.appointments || []).map((a) => a.kind),
+    ]),
+  };
+  const combo = (
+    key: string,
+    label: string,
+    list: string[],
+    extra: Partial<Field> = {},
+  ): Field => ({
+    key,
+    label,
+    type: "combo",
+    suggestions: list,
+    required: true,
+    ...extra,
+  });
   const contacts = data.contacts.map((c) => [c.id, c.name] as [number, string]);
   const programs = data.programs.map(
     (p) => [p.id, t(p.name)] as [number, string],
@@ -266,43 +459,213 @@ export default function Forms({
     fields: Field[] = [];
   switch (modal.type) {
     case "inquiry":
-      title = "New inquiry";
-      button = "Create inquiry";
+      title = "New client request";
+      button = "Save request";
       fields = [
-        textField("name", "Full name"),
-        textField("email", "Email", { type: "email" }),
-        textField("phone", "Phone", { type: "tel", required: false }),
-        select("program_id", "Program of interest", programs),
-        select("owner_id", "Assign advisor", staffOptions),
-        select(
-          "source",
-          "Source",
-          ["Website", "Instagram", "WhatsApp", "Referral", "Walk-in"].map(
-            (s) => [s, t(s)],
-          ),
+        textField("name", "Full name", { disabled: !!c }),
+        textField("phone", "Phone", {
+          type: "tel",
+          required: false,
+          disabled: !!c,
+          hint: "Phone or email is enough",
+        }),
+        textField("email", "Email", {
+          type: "email",
+          required: false,
+          disabled: !!c,
+        }),
+        combo(
+          "service_type",
+          "What does the client want?",
+          suggestions.service,
+          {
+            hint: "Choose or type your own",
+          },
         ),
-        textField("expected_date", "Expected enrollment", {
+        combo("interest", "Course, language or topic", suggestions.interest, {
+          hint: "Type any name, even if it is not in Programs",
+        }),
+        select("owner_id", "Responsible person", staffOptions),
+        combo("source", "Where did they find us?", suggestions.source, {
+          required: false,
+        }),
+        ...(!c
+          ? [combo("language", "Preferred language", suggestions.language)]
+          : []),
+        textField("expected_date", "Expected start", {
           type: "date",
           required: false,
         }),
-        select("language", "Preferred language", [
-          ["English", "English"],
-          ["العربية", "العربية"],
-        ]),
-        textField("campaign", "Campaign", { required: false }),
-        textField("tags", "Tags", { required: false }),
+        textField("notes", "Notes", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
+        ...(!c
+          ? [
+              {
+                key: "consent",
+                label: "Communication consent",
+                type: "checkbox",
+                hint: "Permission to prepare outbound messages",
+                full: true,
+              } as Field,
+            ]
+          : []),
+      ];
+      break;
+    case "request":
+      title = "Edit request";
+      fields = [
+        combo(
+          "service_type",
+          "What does the client want?",
+          suggestions.service,
+        ),
+        combo("interest", "Course, language or topic", suggestions.interest),
+        select("program_id", "Linked program (optional)", programs, {
+          required: false,
+        }),
+        select("owner_id", "Responsible person", staffOptions),
+        combo("source", "Where did they find us?", suggestions.source),
+        textField("expected_date", "Expected start", {
+          type: "date",
+          required: false,
+        }),
+        textField("notes", "Notes", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
+      ];
+      break;
+    case "client":
+      title = "Add client";
+      button = "Save client";
+      fields = [
+        textField("name", "Full name"),
+        textField("phone", "Phone", {
+          type: "tel",
+          required: false,
+          hint: "Phone or email is enough",
+        }),
+        textField("email", "Email", { type: "email", required: false }),
+        combo("language", "Preferred language", suggestions.language),
+        textField("guardian", "Guardian or sponsor", { required: false }),
+        textField("notes", "Notes", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
         {
           key: "consent",
           label: "Communication consent",
           type: "checkbox",
-          hint: "Permission to prepare outbound messages",
           full: true,
         },
       ];
       break;
+    case "appointment":
+      title = r.id ? "Edit appointment" : "Add to calendar";
+      fields = [
+        combo("kind", "Type", suggestions.kind),
+        textField("title", "Title"),
+        select("contact_id", "Client", contacts, { required: false }),
+        select(
+          "staff_id",
+          "With",
+          activeUsers.map((u) => [u.id, u.name]),
+          { required: false },
+        ),
+        textField("starts_at", "Start time", {
+          type: "datetime-local",
+          hint: data.settings.timezone,
+        }),
+        textField("ends_at", "End time", {
+          type: "datetime-local",
+          hint: data.settings.timezone,
+        }),
+        combo("location", "Place or link", suggestions.room, {
+          required: false,
+        }),
+        ...(r.id
+          ? [
+              select("status", "Status", [
+                ["Scheduled", t("Scheduled")],
+                ["Done", t("Done")],
+                ["Cancelled", t("Cancelled")],
+              ]),
+            ]
+          : []),
+        textField("notes", "Notes", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
+      ];
+      break;
+    case "staff":
+      title = r.id ? "Edit staff member" : "Add staff member";
+      fields = [
+        textField("name", "Full name"),
+        select(
+          "role",
+          "Role",
+          Object.entries(roleNames).map(([key, value]) => [key, t(value)]),
+        ),
+        textField("email", "Email", {
+          type: "email",
+          required: false,
+          hint: "Needed only if this person signs in",
+        }),
+        textField("phone", "Phone", { type: "tel", required: false }),
+        ...(!r.id
+          ? [
+              textField("password", "Password", {
+                type: "password",
+                required: false,
+                hint: "At least 10 characters. Leave empty if they do not sign in.",
+                full: true,
+              }),
+            ]
+          : []),
+      ];
+      break;
+    case "password":
+      title = "Set password";
+      fields = [
+        textField("password", "New password", {
+          type: "password",
+          full: true,
+          hint: "At least 10 characters. Share it privately with the person.",
+        }),
+      ];
+      break;
+    case "account":
+      title = "My account";
+      fields = [
+        textField("name", "Full name"),
+        textField("email", "Email (sign-in)", { type: "email" }),
+        textField("current_password", "Current password", {
+          type: "password",
+          full: true,
+        }),
+        textField("new_password", "New password", {
+          type: "password",
+          required: false,
+          full: true,
+          hint: "Leave empty to keep your password. At least 10 characters.",
+        }),
+      ];
+      break;
+    case "cleanStart":
+      title = "Remove all sample data";
+      button = "Delete sample data";
+      fields = [textField("confirm", "Type DELETE to confirm", { full: true })];
+      break;
     case "task":
     case "bulkTask":
-      title = "Schedule follow-up";
+      title = r.id ? "Edit task" : "Schedule follow-up";
       fields = [
         textField("title", "Title", { full: true }),
         ...(modal.type === "task"
@@ -313,7 +676,7 @@ export default function Forms({
               select(
                 "owner_id",
                 "Owner",
-                data.users
+                activeUsers
                   .filter((u) => u.role !== "manager")
                   .map((u) => [u.id, u.name]),
               ),
@@ -359,7 +722,7 @@ export default function Forms({
           "cohort_id",
           "Choose a cohort",
           data.cohorts
-            .filter((h) => h.program_id === r.program_id)
+            .filter((h) => !r.program_id || h.program_id === r.program_id)
             .map((h) => {
               const used = data.enrollments.filter(
                 (e) => e.cohort_id === h.id && e.status === "Active",
@@ -411,12 +774,14 @@ export default function Forms({
       fields = [
         textField("name", "Full name"),
         textField("phone", "Phone", { required: false }),
-        select("language", "Preferred language", [
-          ["English", "English"],
-          ["العربية", "العربية"],
-          ["French", "Français"],
-        ]),
+        textField("email", "Email", { type: "email", required: false }),
+        combo("language", "Preferred language", suggestions.language),
         textField("guardian", "Guardian or sponsor", { required: false }),
+        textField("notes", "Notes", {
+          type: "textarea",
+          required: false,
+          full: true,
+        }),
         {
           key: "consent",
           label: "Communication consent",
@@ -455,6 +820,19 @@ export default function Forms({
       break;
     case "charge":
       title = "Add charge";
+      if (r.id) {
+        title = "Edit charge";
+        fields = [
+          textField("label", "Description", { full: true }),
+          textField("amount", "Amount", {
+            type: "number",
+            step: "0.01",
+            min: "0.01",
+          }),
+          textField("due_date", "Due date", { type: "date" }),
+        ];
+        break;
+      }
       fields = [
         select("contact_id", "Contact", contacts, { full: true }),
         textField("label", "Description", { full: true }),
@@ -508,12 +886,8 @@ export default function Forms({
       button = "Create program";
       fields = [
         textField("name", "Program name", { full: true }),
-        select(
-          "category",
-          "Category",
-          ["Psychology", "Languages", "Training"].map((s) => [s, t(s)]),
-        ),
-        textField("duration", "Duration"),
+        combo("category", "Category", suggestions.category),
+        combo("duration", "Duration", suggestions.duration),
         textField("description", "Description", {
           type: "textarea",
           required: false,
@@ -525,30 +899,63 @@ export default function Forms({
           "Currency",
           ["DZD", "EUR", "USD", "GBP"].map((s) => [s, s]),
         ),
+        select(
+          "color",
+          "Color",
+          ["teal", "blue", "purple", "amber"].map((s) => [s, t(s)]),
+        ),
       ];
       break;
     case "cohort":
-      title = "New cohort";
-      button = "Create cohort";
+      title = r.id ? "Edit group" : "New group";
+      button = r.id ? "Save" : "Create group";
       fields = [
-        textField("name", "Cohort name", { full: true }),
+        textField("name", "Group name", {
+          full: true,
+          hint: "Example: English A1 · Evening",
+        }),
         select("program_id", "Program", programs),
-        select(
-          "instructor_id",
-          "Instructor",
-          data.users
-            .filter((u) => u.role === "instructor")
-            .map((u) => [u.id, u.name]),
-        ),
+        combo("instructor_name", "Teacher", suggestions.teacher, {
+          required: false,
+          hint: "Choose or type a new teacher's name",
+        }),
         textField("capacity", "Capacity", { type: "number", min: 1, max: 500 }),
-        textField("room", "Room or meeting link"),
+        combo("room", "Room or meeting link", suggestions.room, {
+          required: false,
+        }),
         textField("start_date", "Start date", { type: "date" }),
         textField("end_date", "End date", { type: "date" }),
+        ...(r.id
+          ? [
+              select("status", "Status", [
+                ["Planned", t("Planned")],
+                ["Active", t("Active")],
+                ["Completed", t("Completed")],
+              ]),
+            ]
+          : []),
       ];
       break;
     case "session":
-      title = "Schedule session";
+      title = "Schedule group class";
       button = "Schedule session";
+      if (r.id) {
+        title = "Edit class session";
+        button = "Save";
+        fields = [
+          textField("title", "Session title", { full: true }),
+          textField("starts_at", "Start time", {
+            type: "datetime-local",
+            hint: data.settings.timezone,
+          }),
+          textField("ends_at", "End time", {
+            type: "datetime-local",
+            hint: data.settings.timezone,
+          }),
+          combo("room", "Room", suggestions.room, { required: false }),
+        ];
+        break;
+      }
       fields = [
         select(
           "cohort_id",
@@ -556,7 +963,10 @@ export default function Forms({
           data.cohorts.map((h) => [h.id, h.name]),
           { full: true },
         ),
-        textField("title", "Session title", { full: true }),
+        textField("title", "Session title", {
+          full: true,
+          hint: "Example: Lesson 3 · Grammar",
+        }),
         textField("starts_at", "Start time", {
           type: "datetime-local",
           hint: data.settings.timezone,
@@ -565,7 +975,7 @@ export default function Forms({
           type: "datetime-local",
           hint: data.settings.timezone,
         }),
-        textField("room", "Room", {
+        combo("room", "Room", suggestions.room, {
           required: false,
           hint: cohort(Number(values.cohort_id)).room,
         }),
@@ -586,7 +996,12 @@ export default function Forms({
           "Default currency",
           ["DZD", "EUR", "USD", "GBP"].map((s) => [s, s]),
         ),
-        textField("timezone", "Time zone"),
+        combo("timezone", "Time zone", [
+          "Africa/Algiers",
+          "Europe/Paris",
+          "Europe/Moscow",
+          "UTC",
+        ]),
         select(
           "language",
           "Default language",
@@ -663,8 +1078,70 @@ export default function Forms({
       break;
   }
   if (modal.type === "program" && r.id) {
-    title = "Edit details";
+    title = "Edit program";
     button = "Save";
+  }
+  // Every saved record can be removed from its own edit form.
+  let removal: { path: string; warning: string } | null = null;
+  if (r.id) {
+    const map: Record<string, [string, string, boolean]> = {
+      request: [
+        `/opportunities/${r.id}`,
+        "Delete this request? The client stays in the CRM.",
+        data.permissions.editAdmissions,
+      ],
+      contact: [
+        `/contacts/${r.id}`,
+        "Delete this client and ALL their requests, payments, notes and files? This cannot be undone.",
+        data.permissions.admin,
+      ],
+      program: [
+        `/programs/${r.id}`,
+        "Delete this program and its empty groups and sessions?",
+        data.permissions.editAcademic,
+      ],
+      cohort: [
+        `/cohorts/${r.id}`,
+        "Delete this group and its sessions?",
+        data.permissions.editAcademic,
+      ],
+      session: [
+        `/sessions/${r.id}`,
+        "Delete this class session and its attendance?",
+        data.permissions.editAcademic,
+      ],
+      appointment: [`/appointments/${r.id}`, "Delete this appointment?", true],
+      task: [`/tasks/${r.id}`, "Delete this task?", true],
+      charge: [
+        `/charges/${r.id}`,
+        "Delete this charge?",
+        data.permissions.editFinance,
+      ],
+      staff: [
+        `/users/${r.id}`,
+        "Remove this staff member? If they have history, their account is deactivated instead.",
+        data.permissions.admin && r.id !== data.user.id,
+      ],
+    };
+    const entry = map[modal.type];
+    if (entry && entry[2]) removal = { path: entry[0], warning: entry[1] };
+  }
+  async function remove() {
+    if (!removal || !window.confirm(t(removal.warning))) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api(removal.path, {}, "DELETE");
+      await refresh();
+      toast(
+        t(result.deactivated ? "Account deactivated; history kept" : "Deleted"),
+      );
+      onClose();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -678,8 +1155,54 @@ export default function Forms({
         case "inquiry":
           path = "/opportunities";
           break;
+        case "request":
+          path = `/opportunities/${r.id}`;
+          method = "PATCH";
+          body = {
+            ...values,
+            stage: r.stage,
+            version: r.version,
+            program_id: values.program_id ? Number(values.program_id) : null,
+          };
+          break;
+        case "client":
+          path = "/contacts";
+          break;
+        case "appointment":
+          path = r.id ? `/appointments/${r.id}` : "/appointments";
+          method = r.id ? "PATCH" : "POST";
+          body = {
+            kind: values.kind,
+            title: values.title,
+            contact_id: values.contact_id ? Number(values.contact_id) : null,
+            staff_id: values.staff_id ? Number(values.staff_id) : null,
+            location: values.location || "",
+            notes: values.notes || "",
+            status: values.status,
+            starts_at: toInstant(values.starts_at, data.settings.timezone),
+            ends_at: toInstant(values.ends_at, data.settings.timezone),
+          };
+          break;
+        case "staff":
+          path = r.id ? `/users/${r.id}` : "/users";
+          method = r.id ? "PATCH" : "POST";
+          if (r.id && values.role !== r.role)
+            await api(`/users/${r.id}/role`, { role: values.role }, "PATCH");
+          break;
+        case "password":
+          path = `/users/${r.id}/password`;
+          break;
+        case "account":
+          path = "/account";
+          method = "PATCH";
+          break;
+        case "cleanStart":
+          path = "/admin/clean-start";
+          body = { confirm: values.confirm.trim().toUpperCase() };
+          break;
         case "task":
-          path = "/tasks";
+          path = r.id ? `/tasks/${r.id}/details` : "/tasks";
+          method = r.id ? "PATCH" : "POST";
           body = {
             ...values,
             due_at: toInstant(values.due_at, data.settings.timezone),
@@ -724,6 +1247,12 @@ export default function Forms({
           body = { ...values, amount: cents(values.amount) };
           break;
         case "charge":
+          if (r.id) {
+            path = `/charges/${r.id}`;
+            method = "PATCH";
+            body = { ...values, amount: cents(values.amount) };
+            break;
+          }
           path = "/charges";
           body = {
             ...values,
@@ -754,9 +1283,30 @@ export default function Forms({
           method = "PATCH";
           break;
         case "cohort":
-          path = "/cohorts";
+          path = r.id ? `/cohorts/${r.id}` : "/cohorts";
+          method = r.id ? "PATCH" : "POST";
+          body = {
+            name: values.name,
+            program_id: Number(values.program_id),
+            instructor_name: values.instructor_name || "",
+            capacity: Number(values.capacity),
+            room: values.room || "",
+            start_date: values.start_date,
+            end_date: values.end_date,
+            status: values.status,
+          };
           break;
         case "session":
+          if (r.id) {
+            path = `/sessions/${r.id}`;
+            method = "PATCH";
+            body = {
+              ...values,
+              starts_at: toInstant(values.starts_at, data.settings.timezone),
+              ends_at: toInstant(values.ends_at, data.settings.timezone),
+            };
+            break;
+          }
           path = "/sessions";
           body = {
             ...values,
@@ -816,11 +1366,14 @@ export default function Forms({
           result.waitlisted
             ? "Waitlisted"
             : modal.type === "inquiry"
-              ? "Inquiry created"
-              : "Changes saved",
+              ? "Request saved"
+              : modal.type === "cleanStart"
+                ? "Sample data removed"
+                : "Changes saved",
         ),
       );
       onClose();
+      if (modal.type === "client" && result.id) profile(result.id);
     } catch (e: any) {
       setError(e.message);
       if (e instanceof ApiError && e.details.duplicate)
@@ -949,6 +1502,11 @@ export default function Forms({
               {t("Cancel session")}
             </Button>
           )}
+          {data.permissions.editAcademic && (
+            <Button onClick={() => open({ type: "session", record: session })}>
+              {t("Edit")}
+            </Button>
+          )}
           <Button onClick={close}>{t("Close")}</Button>
           {data.permissions.attendance && (
             <Button
@@ -978,8 +1536,20 @@ export default function Forms({
             <Badge tone={program(r.program_id).color}>
               {t(program(r.program_id).name)}
             </Badge>
-            <span>{user(r.instructor_id).name}</span>
+            <span>
+              {r.instructor_id
+                ? user(r.instructor_id).name
+                : t("No teacher yet")}
+            </span>
             <span>{r.room}</span>
+            {data.permissions.editAcademic && (
+              <Button
+                variant="small"
+                onClick={() => open({ type: "cohort", record: r })}
+              >
+                {t("Edit")}
+              </Button>
+            )}
           </div>
           <div className="cohort-summary">
             <strong>
@@ -1127,6 +1697,10 @@ export default function Forms({
       onClose={close}
       wide={[
         "inquiry",
+        "request",
+        "client",
+        "appointment",
+        "staff",
         "cohort",
         "program",
         "session",
@@ -1149,11 +1723,9 @@ export default function Forms({
             <div className="info-box">
               <GraduationCapIcon />
               <span>
-                {t(program(r.program_id).name)} ·{" "}
-                {money(
-                  program(r.program_id).price,
-                  program(r.program_id).currency,
-                )}
+                {r.program_id
+                  ? `${t(program(r.program_id).name)} · ${money(program(r.program_id).price, program(r.program_id).currency)}`
+                  : `${r.interest || t(r.service_type)} · ${t("Choose the group; its program and price are used.")}`}
               </span>
             </div>
           )}
@@ -1161,6 +1733,16 @@ export default function Forms({
             <div className="info-box">
               <Shield size={17} />
               <span>{t("Manual record only. No money is moved.")}</span>
+            </div>
+          )}
+          {modal.type === "cleanStart" && (
+            <div className="info-box danger">
+              <AlertCircle size={17} />
+              <span>
+                {t(
+                  "This deletes every client, request, program, group, session, payment, task and staff account except yours. Leads received from the website / Google stay and return to the inbox so you can import them.",
+                )}
+              </span>
             </div>
           )}
           {modal.type === "draft" && (
@@ -1195,14 +1777,35 @@ export default function Forms({
                       {t(f.label)}
                       {f.required && <span className="required-dot">*</span>}
                     </span>
-                    {f.type === "select" ? (
+                    {f.type === "combo" ? (
+                      <>
+                        <input
+                          list={`list-${f.key}`}
+                          value={values[f.key] ?? ""}
+                          onChange={(e) => set(f.key, e.target.value)}
+                          required={f.required}
+                          maxLength={180}
+                          autoComplete="off"
+                          placeholder={t("Choose or type…")}
+                        />
+                        <datalist id={`list-${f.key}`}>
+                          {f.suggestions?.map((x) => (
+                            <option key={x} value={x}>
+                              {t(x) !== x ? t(x) : undefined}
+                            </option>
+                          ))}
+                        </datalist>
+                      </>
+                    ) : f.type === "select" ? (
                       <select
                         value={values[f.key] ?? ""}
                         onChange={(e) => set(f.key, e.target.value)}
                         required={f.required}
                         disabled={f.disabled}
                       >
-                        <option value="">{t("Choose…")}</option>
+                        <option value="">
+                          {t(f.required ? "Choose…" : "— None —")}
+                        </option>
                         {f.options?.map(([value, label]) => (
                           <option key={value} value={value}>
                             {label}
@@ -1297,6 +1900,17 @@ export default function Forms({
           )}
         </div>
         <div className="dialog-footer">
+          {removal && (
+            <Button
+              type="button"
+              variant="danger-ghost"
+              className="footer-delete"
+              onClick={remove}
+              disabled={busy}
+            >
+              {t("Delete")}
+            </Button>
+          )}
           <Button type="button" onClick={close} disabled={busy}>
             {t("Cancel")}
           </Button>

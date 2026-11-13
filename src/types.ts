@@ -14,6 +14,8 @@ export type State = {
   enrollments: Row[];
   waitlists: Row[];
   sessions: Row[];
+  appointments: Row[];
+  serviceTypes: string[];
   attendance: Row[];
   tasks: Row[];
   charges: Row[];
@@ -44,7 +46,9 @@ export async function api(
   body?: unknown,
   method = "POST",
   key?: string,
-) {
+  retry = 2,
+): Promise<any> {
+  const idempotencyKey = key || crypto.randomUUID();
   const response = await fetch("/api" + path, {
     method: body === undefined ? "GET" : method,
     headers:
@@ -52,11 +56,21 @@ export async function api(
         ? {}
         : {
             "Content-Type": "application/json",
-            "Idempotency-Key": key || crypto.randomUUID(),
+            "Idempotency-Key": idempotencyKey,
           },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const result = await response.json();
+  // Two people saved at the same moment: the cloud rejected this copy without
+  // saving it, so the same request (same key) can safely be sent again.
+  if (
+    response.status === 409 &&
+    retry > 0 &&
+    /Another request saved first/.test(result.error || "")
+  ) {
+    await new Promise((r) => setTimeout(r, 300 + Math.random() * 500));
+    return api(path, body, method, idempotencyKey, retry - 1);
+  }
   if (!response.ok)
     throw new ApiError(
       response.status,

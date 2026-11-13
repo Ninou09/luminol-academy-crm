@@ -43,21 +43,13 @@ The server listens on **127.0.0.1 only**. The local URL works on this computer; 
 
 ## Sign in
 
-Choose a role on the login screen and click **Enter demo workspace**. All initial accounts use the demo password `LuminolDemo!2026`.
+A new database starts **empty**: one administrator and no fictional records. Its email is `ADMIN_EMAIL` (default `admin@luminol.demo`) and its password is `ADMIN_PASSWORD` (or the older `DEMO_PASSWORD`). Locally, without either variable, the password is `LuminolAdmin!2026` — change it right away in **Settings → My account**.
 
-| Account             | Role                                        |
-| ------------------- | ------------------------------------------- |
-| admin@luminol.demo  | Administrator                               |
-| amel@luminol.demo   | Admissions advisor                          |
-| yacine@luminol.demo | Academic coordinator                        |
-| sarah@luminol.demo  | Instructor, psychology and training cohorts |
-| lina@luminol.demo   | Instructor, language cohorts                |
-| karim@luminol.demo  | Finance                                     |
-| nadia@luminol.demo  | Read-only manager                           |
+The existing hosted workspace keeps its administrator and password. After the update, open **Settings → Data & import → Remove all sample data** to delete the old demo records (fake students, teachers, prices). Leads that came from the website / Google through n8n are kept and go back to **Requests → New leads**, where they can be accepted one by one or with **Import all**.
 
-These are fictional local accounts. The role selector intentionally makes demo exploration easy. Do not expose this demo configuration to the internet or store real student data before production setup.
+Staff are managed in **Settings → Team & permissions**: add advisors, teachers and psychologists, set or reset passwords, deactivate people who leave. Teachers do not need a login.
 
-An optional `DEMO_PASSWORD` environment variable overrides the password **before the database is first created**. Changing that variable later does not change existing accounts. `.env.example` documents settings; the server reads process environment variables and does not automatically load `.env` files.
+For automated tests or a local demonstration only, `SEED_SAMPLE_DATA=1` fills a new database with the old fictional sample.
 
 ## What works
 

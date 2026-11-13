@@ -11,6 +11,7 @@ import {
 } from "./n8n-intake.mjs";
 import {
   db,
+  hashPassword,
   all,
   one,
   run,
@@ -140,7 +141,10 @@ function contactAccess(u, id) {
   return c;
 }
 function owner(id) {
-  const u = one("SELECT id,role FROM users WHERE id=?", integer(id, "Owner"));
+  const u = one(
+    "SELECT id,role FROM users WHERE id=? AND active=1",
+    integer(id, "Owner"),
+  );
   must(
     u &&
       ["admin", "admissions", "academic", "instructor", "finance"].includes(
@@ -220,7 +224,10 @@ app.post("/api/login", (req, res) => {
   const { email, password } = req.body || {};
   const u =
     typeof email === "string"
-      ? one("SELECT * FROM users WHERE email=?", email.trim().toLowerCase())
+      ? one(
+          "SELECT * FROM users WHERE email=? AND active=1",
+          email.trim().toLowerCase(),
+        )
       : null;
   if (
     !u ||
@@ -254,7 +261,7 @@ app.use("/api", (req, res, next) => {
     ?.slice(16);
   const session = token
     ? one(
-        "SELECT u.id,u.name,u.email,u.role FROM auth_sessions a JOIN users u ON u.id=a.user_id WHERE a.token=? AND a.expires>?",
+        "SELECT u.id,u.name,u.email,u.role FROM auth_sessions a JOIN users u ON u.id=a.user_id WHERE a.token=? AND a.expires>? AND u.active=1",
         createHash("sha256").update(token).digest("hex"),
         Date.now(),
       )
@@ -368,7 +375,7 @@ function state(u) {
     programs: all("SELECT * FROM programs").filter(
       (p) => !instructor || cohorts.some((c) => c.program_id === p.id),
     ),
-    users: all("SELECT id,name,email,role FROM users").filter(
+    users: all("SELECT id,name,email,role,active,phone FROM users").filter(
       (s) => !instructor || s.id === u.id,
     ),
     opportunities: canAdmissions(u) ? all("SELECT * FROM opportunities") : [],
@@ -383,6 +390,13 @@ function state(u) {
     sessions: all("SELECT * FROM sessions ORDER BY starts_at").filter((s) =>
       cohortIds.has(s.cohort_id),
     ),
+    appointments: all("SELECT * FROM appointments ORDER BY starts_at").filter(
+      (a) =>
+        !instructor ||
+        a.staff_id === u.id ||
+        (a.contact_id && ids.has(a.contact_id)),
+    ),
+    serviceTypes,
     attendance,
     tasks: all(
       "SELECT t.*,i.id intake_id FROM tasks t LEFT JOIN incoming_inquiries i ON i.task_id=t.id ORDER BY t.due_at",
@@ -405,7 +419,7 @@ function state(u) {
       (v) => ({ ...v, filters: JSON.parse(v.filters) }),
     ),
     flags,
-    demo: true,
+    demo: false,
     hosted: isHosted,
     maxDocumentMb: isHosted ? 3 : 4,
     today,
@@ -468,9 +482,66 @@ app.get("/api/export/:kind", (req, res, next) => {
   }
 });
 
+const serviceTypes = [
+  "Psychology consultation",
+  "Psychology course",
+  "Language course",
+  "Training",
+  "Course",
+  "Other",
+];
+/** A program is optional; free-text interest is kept and linked when it matches. */
+function interestAndProgram(b, fallback = {}) {
+  const interest = text(
+    b.interest ?? fallback.interest ?? "",
+    "Interest",
+    180,
+    false,
+  );
+  let p = null;
+  if (b.program_id) p = program(b.program_id);
+  else if (b.program_id === undefined && fallback.program_id)
+    p = program(fallback.program_id);
+  else if (interest)
+    p =
+      all("SELECT * FROM programs").find(
+        (x) => x.name.toLowerCase() === interest.toLowerCase(),
+      ) || null;
+  const serviceType = text(
+    b.service_type ?? fallback.service_type ?? "Course",
+    "Request type",
+    80,
+  );
+  must(p || interest, "Write what the client is asking about.");
+  return { p, interest: interest || p?.name || "", serviceType };
+}
+function contactFields(b, existing = {}) {
+  const name = text(b.name ?? existing.name, "Name", 100);
+  const email = text(
+    b.email ?? existing.email ?? "",
+    "Email",
+    254,
+    false,
+  ).toLowerCase();
+  must(
+    !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    "Enter a valid email address.",
+  );
+  const phone = text(b.phone ?? existing.phone ?? "", "Phone", 40, false);
+  must(email || phone, "Enter a phone number or an email.");
+  return { name, email, phone };
+}
+function findDuplicate(email, phone, exceptId = 0) {
+  const normal = phone.replace(/\D/g, "");
+  return all("SELECT * FROM contacts WHERE id<>?", exceptId).find(
+    (c) =>
+      (email && c.email.toLowerCase() === email) ||
+      (normal.length >= 7 && c.phone.replace(/\D/g, "") === normal),
+  );
+}
 write("/api/opportunities", ["admin", "admissions"], (req) => {
   const b = req.body;
-  const p = program(b.program_id);
+  const { p, interest, serviceType } = interestAndProgram(b);
   const advisor = owner(b.owner_id);
   must(
     ["admin", "admissions"].includes(
@@ -481,19 +552,8 @@ write("/api/opportunities", ["admin", "admissions"], (req) => {
   let contact;
   if (b.contact_id) contact = contactAccess(req.user, b.contact_id);
   else {
-    const name = text(b.name, "Name", 100);
-    const email = text(b.email, "Email", 254).toLowerCase();
-    must(
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-      "Enter a valid email address.",
-    );
-    const phone = text(b.phone || "", "Phone", 40, false);
-    const normal = phone.replace(/\D/g, "");
-    const duplicate = all("SELECT * FROM contacts").find(
-      (c) =>
-        c.email.toLowerCase() === email ||
-        (normal.length >= 7 && c.phone.replace(/\D/g, "") === normal),
-    );
+    const { name, email, phone } = contactFields(b);
+    const duplicate = findDuplicate(email, phone);
     must(
       !duplicate,
       "This person already exists. Reuse their contact to create a new opportunity.",
@@ -504,21 +564,25 @@ write("/api/opportunities", ["admin", "admissions"], (req) => {
       name,
       email,
       phone,
-      language: b.language === "العربية" ? "العربية" : "English",
+      language: text(b.language || "English", "Language", 40),
       consent: b.consent ? 1 : 0,
       guardian: "",
+      notes: text(b.contact_notes || "", "Notes", 4000, false),
       created_at: now(),
     });
     contact = one("SELECT * FROM contacts WHERE id=?", id);
   }
   const id = insert("opportunities", {
     contact_id: contact.id,
-    program_id: p.id,
+    program_id: p?.id ?? null,
     owner_id: advisor,
+    service_type: serviceType,
+    interest,
     stage: "New inquiry",
     source: text(b.source || "Website", "Source", 100),
     campaign: text(b.campaign || "", "Campaign", 100, false),
     tags: text(b.tags || "", "Tags", 100, false),
+    notes: text(b.notes || "", "Notes", 4000, false),
     expected_date: b.expected_date
       ? date(b.expected_date, "Expected date")
       : "",
@@ -543,7 +607,12 @@ write("/api/opportunities", ["admin", "admissions"], (req) => {
     detail: `First-contact task created for ${contact.name}.`,
     created_at: now(),
   });
-  audit(req.user.id, contact.id, `New inquiry for ${p.name}.`, "admissions");
+  audit(
+    req.user.id,
+    contact.id,
+    `New request: ${serviceType} · ${p?.name || interest}.`,
+    "admissions",
+  );
   return { id, contact_id: contact.id };
 });
 write(
@@ -587,12 +656,27 @@ write(
       ),
       "Choose an admissions advisor.",
     );
+    const b = req.body;
+    const details =
+      "interest" in b || "program_id" in b || "service_type" in b
+        ? interestAndProgram({ ...b, program_id: b.program_id || null }, o)
+        : null;
     run(
-      "UPDATE opportunities SET stage=?,owner_id=?,reason=?,stage_at=?,version=version+1 WHERE id=?",
+      "UPDATE opportunities SET stage=?,owner_id=?,reason=?,stage_at=?,program_id=?,interest=?,service_type=?,source=?,notes=?,expected_date=?,version=version+1 WHERE id=?",
       stage,
       assigned,
       reason,
       stage !== o.stage ? now() : o.stage_at,
+      details ? (details.p?.id ?? null) : o.program_id,
+      details ? details.interest : o.interest,
+      details ? details.serviceType : o.service_type,
+      b.source != null ? text(b.source, "Source", 100) : o.source,
+      b.notes != null ? text(b.notes, "Notes", 4000, false) : o.notes,
+      b.expected_date
+        ? date(b.expected_date, "Expected date")
+        : b.expected_date === ""
+          ? ""
+          : o.expected_date,
       o.id,
     );
     audit(
@@ -600,7 +684,9 @@ write(
       o.contact_id,
       stage !== o.stage
         ? `Stage changed: ${o.stage} → ${stage}.`
-        : "Advisor assignment updated.",
+        : details
+          ? "Request details updated."
+          : "Advisor assignment updated.",
       "admissions",
     );
     return { id: o.id };
@@ -649,7 +735,10 @@ write("/api/enroll", ["admin", "admissions", "academic"], (req) => {
       409,
     );
   const c = cohortAccess(req.user, req.body.cohort_id);
-  must(c.program_id === o.program_id, "Choose a cohort for the same program.");
+  must(
+    !o.program_id || c.program_id === o.program_id,
+    "Choose a cohort for the same program.",
+  );
   must(
     !one(
       "SELECT id FROM enrollments WHERE contact_id=? AND cohort_id=? AND status=?",
@@ -700,11 +789,12 @@ write("/api/enroll", ["admin", "admissions", "academic"], (req) => {
     c.id,
   );
   run(
-    "UPDATE opportunities SET stage='Enrolled',stage_at=?,version=version+1 WHERE id=?",
+    "UPDATE opportunities SET stage='Enrolled',program_id=?,stage_at=?,version=version+1 WHERE id=?",
+    c.program_id,
     now(),
     o.id,
   );
-  const p = program(o.program_id);
+  const p = program(c.program_id);
   if (p.price > 0)
     insert("charges", {
       contact_id: o.contact_id,
@@ -949,9 +1039,31 @@ write(
       "This phone number belongs to another contact.",
       409,
     );
+    const email = text(
+      b.email ?? c.email ?? "",
+      "Email",
+      254,
+      false,
+    ).toLowerCase();
+    must(
+      !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+      "Enter a valid email address.",
+    );
+    must(
+      !email ||
+        !one(
+          "SELECT id FROM contacts WHERE email=? COLLATE NOCASE AND id<>?",
+          email,
+          c.id,
+        ),
+      "This email belongs to another contact.",
+      409,
+    );
     run(
-      "UPDATE contacts SET name=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
+      "UPDATE contacts SET name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
       text(b.name ?? c.name, "Name", 100),
+      email,
+      text(b.notes ?? c.notes ?? "", "Notes", 4000, false),
       phone,
       text(b.language ?? c.language, "Language", 40),
       b.consent == null ? c.consent : b.consent ? 1 : 0,
@@ -1127,25 +1239,54 @@ write("/api/programs", ["admin", "academic"], (req) => {
   audit(req.user.id, null, `Program created: ${b.name}.`, "program");
   return { id };
 });
+/** Teacher by id, or by typed name (a teacher record is created if new). */
+function teacher(b) {
+  if (b.instructor_id) {
+    const u = one(
+      "SELECT id FROM users WHERE id=? AND active=1 AND role IN ('instructor','academic','admin')",
+      integer(b.instructor_id, "Teacher"),
+    );
+    must(u, "Choose a teacher.");
+    return u.id;
+  }
+  const name = text(b.instructor_name || "", "Teacher", 100, false);
+  if (!name) return null;
+  const existing = one(
+    "SELECT id FROM users WHERE lower(name)=lower(?) AND active=1",
+    name,
+  );
+  if (existing) return existing.id;
+  return insert("users", {
+    name,
+    email: `teacher-${randomBytes(6).toString("hex")}@no-login.local`,
+    role: "instructor",
+    password_hash: hashPassword(randomBytes(32).toString("base64url")),
+  });
+}
+function cohortFields(b, existing = {}) {
+  const start = date(b.start_date ?? existing.start_date, "Start date"),
+    end = date(b.end_date ?? existing.end_date, "End date");
+  must(end >= start, "End date must follow start date.");
+  return {
+    name: text(b.name ?? existing.name, "Group name", 100),
+    capacity: integer(b.capacity ?? existing.capacity, "Capacity", 1, 500),
+    start_date: start,
+    end_date: end,
+    room: text(
+      b.room ?? existing.room ?? "",
+      "Room or meeting link",
+      300,
+      false,
+    ),
+  };
+}
 write("/api/cohorts", ["admin", "academic"], (req) => {
   const b = req.body;
   const p = program(b.program_id);
-  const instructor = one(
-    "SELECT id FROM users WHERE id=? AND role='instructor'",
-    integer(b.instructor_id, "Instructor"),
-  );
-  must(instructor, "Choose an instructor.");
-  const start = date(b.start_date, "Start date"),
-    end = date(b.end_date, "End date");
-  must(end >= start, "End date must follow start date.");
   const id = insert("cohorts", {
-    name: text(b.name, "Cohort name", 100),
+    ...cohortFields(b),
     program_id: p.id,
-    instructor_id: instructor.id,
-    capacity: integer(b.capacity, "Capacity", 1, 500),
-    start_date: start,
-    end_date: end,
-    room: text(b.room, "Room or meeting link", 300),
+    instructor_id: teacher(b),
     status: "Active",
   });
   audit(req.user.id, null, `Cohort created: ${b.name}.`, "cohort");
@@ -1241,14 +1382,14 @@ write("/api/sessions", ["admin", "academic"], (req) => {
     end = instant(b.ends_at, "End time");
   must(end > start, "Session must end after it starts.");
   const count = integer(b.repeat || 1, "Repeat count", 1, 16);
-  const room = text(b.room || c.room, "Room", 300);
+  const room = text(b.room || c.room || "", "Room", 300, false);
   const title = text(b.title, "Session title", 120);
   const ids = [];
   for (let i = 0; i < count; i++) {
     const starts = new Date(Date.parse(start) + i * 7 * 86400000).toISOString(),
       ends = new Date(Date.parse(end) + i * 7 * 86400000).toISOString();
     const conflict = one(
-      `SELECT s.id FROM sessions s JOIN cohorts c ON c.id=s.cohort_id WHERE s.status='Scheduled' AND s.starts_at<? AND s.ends_at>? AND (s.room=? OR c.instructor_id=? OR c.id=?)`,
+      `SELECT s.id FROM sessions s JOIN cohorts c ON c.id=s.cohort_id WHERE s.status='Scheduled' AND s.starts_at<? AND s.ends_at>? AND ((s.room=? AND s.room<>'') OR c.instructor_id=? OR c.id=?)`,
       ends,
       starts,
       room,
@@ -1590,6 +1731,672 @@ app.get("/api/documents/:id", (req, res, next) => {
   } catch (e) {
     next(e);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Everyday administration: edit, remove and add records directly in the CRM.
+// ---------------------------------------------------------------------------
+const del = (path, roles, fn) => write(path, roles, fn, "delete");
+function found(table, id, label) {
+  const row = one(`SELECT * FROM ${table} WHERE id=?`, integer(id, label));
+  must(row, `${label} not found.`, 404);
+  return row;
+}
+/** Remove a client and everything recorded about them. */
+function deleteContactRecords(contactId) {
+  const charges = all("SELECT id FROM charges WHERE contact_id=?", contactId);
+  for (const ch of charges) {
+    run(
+      "DELETE FROM refunds WHERE payment_id IN (SELECT id FROM payments WHERE charge_id=?)",
+      ch.id,
+    );
+    run("DELETE FROM payments WHERE charge_id=?", ch.id);
+  }
+  run("DELETE FROM charges WHERE contact_id=?", contactId);
+  run("DELETE FROM attendance WHERE contact_id=?", contactId);
+  run("DELETE FROM waitlists WHERE contact_id=?", contactId);
+  run("DELETE FROM enrollments WHERE contact_id=?", contactId);
+  run(
+    "UPDATE incoming_inquiries SET opportunity_id=NULL WHERE opportunity_id IN (SELECT id FROM opportunities WHERE contact_id=?)",
+    contactId,
+  );
+  run("DELETE FROM opportunities WHERE contact_id=?", contactId);
+  run("DELETE FROM tasks WHERE contact_id=?", contactId);
+  run("DELETE FROM activities WHERE contact_id=?", contactId);
+  run("DELETE FROM documents WHERE contact_id=?", contactId);
+  run("DELETE FROM drafts WHERE contact_id=?", contactId);
+  run("DELETE FROM flag_resolutions WHERE contact_id=?", contactId);
+  run("DELETE FROM appointments WHERE contact_id=?", contactId);
+  run("DELETE FROM contacts WHERE id=?", contactId);
+}
+
+// Clients ------------------------------------------------------------------
+write("/api/contacts", ["admin", "admissions", "academic"], (req) => {
+  const b = req.body;
+  const { name, email, phone } = contactFields(b);
+  const duplicate = findDuplicate(email, phone);
+  must(!duplicate, "This person already exists.", 409, { duplicate });
+  const id = insert("contacts", {
+    name,
+    email,
+    phone,
+    language: text(b.language || "English", "Language", 40),
+    consent: b.consent ? 1 : 0,
+    guardian: text(b.guardian || "", "Guardian or sponsor", 300, false),
+    notes: text(b.notes || "", "Notes", 4000, false),
+    created_at: now(),
+  });
+  audit(req.user.id, id, "Client added.", "contact");
+  return { id };
+});
+del("/api/contacts/:id", ["admin"], (req) => {
+  const c = contactAccess(req.user, req.params.id);
+  deleteContactRecords(c.id);
+  audit(
+    req.user.id,
+    null,
+    `Client deleted with all related records: ${c.name}.`,
+    "security",
+    "internal",
+  );
+  return { ok: true };
+});
+
+// Requests (opportunities) ------------------------------------------------
+del("/api/opportunities/:id", ["admin", "admissions"], (req) => {
+  const o = found("opportunities", req.params.id, "Request");
+  run(
+    "UPDATE enrollments SET opportunity_id=NULL WHERE opportunity_id=?",
+    o.id,
+  );
+  run("UPDATE waitlists SET opportunity_id=NULL WHERE opportunity_id=?", o.id);
+  run(
+    "UPDATE incoming_inquiries SET opportunity_id=NULL WHERE opportunity_id=?",
+    o.id,
+  );
+  run("DELETE FROM opportunities WHERE id=?", o.id);
+  audit(req.user.id, o.contact_id, "Request deleted.", "admissions");
+  return { ok: true };
+});
+
+// Programs & groups -----------------------------------------------------------
+del("/api/programs/:id", ["admin", "academic"], (req) => {
+  const p = program(req.params.id);
+  must(
+    !one(
+      "SELECT e.id FROM enrollments e JOIN cohorts c ON c.id=e.cohort_id WHERE c.program_id=?",
+      p.id,
+    ),
+    "Students are enrolled in this program. Remove or move them first.",
+    409,
+  );
+  run(
+    "DELETE FROM attendance WHERE session_id IN (SELECT s.id FROM sessions s JOIN cohorts c ON c.id=s.cohort_id WHERE c.program_id=?)",
+    p.id,
+  );
+  run(
+    "DELETE FROM sessions WHERE cohort_id IN (SELECT id FROM cohorts WHERE program_id=?)",
+    p.id,
+  );
+  run(
+    "DELETE FROM waitlists WHERE cohort_id IN (SELECT id FROM cohorts WHERE program_id=?)",
+    p.id,
+  );
+  run("DELETE FROM cohorts WHERE program_id=?", p.id);
+  run(
+    "UPDATE opportunities SET program_id=NULL, interest=CASE WHEN interest='' THEN ? ELSE interest END WHERE program_id=?",
+    p.name,
+    p.id,
+  );
+  run("DELETE FROM programs WHERE id=?", p.id);
+  audit(req.user.id, null, `Program deleted: ${p.name}.`, "program");
+  return { ok: true };
+});
+write(
+  "/api/cohorts/:id",
+  ["admin", "academic"],
+  (req) => {
+    const c = found("cohorts", req.params.id, "Group");
+    const b = req.body;
+    const fields = cohortFields(b, c);
+    const used = one(
+      "SELECT COUNT(*) n FROM enrollments WHERE cohort_id=? AND status='Active'",
+      c.id,
+    ).n;
+    must(
+      fields.capacity >= used,
+      `This group already has ${used} students. Capacity cannot be lower.`,
+    );
+    const p = b.program_id ? program(b.program_id) : program(c.program_id);
+    must(
+      p.id === c.program_id || !used,
+      "Students are enrolled. The program of this group cannot change.",
+    );
+    run(
+      "UPDATE cohorts SET name=?,capacity=?,start_date=?,end_date=?,room=?,program_id=?,instructor_id=?,status=? WHERE id=?",
+      fields.name,
+      fields.capacity,
+      fields.start_date,
+      fields.end_date,
+      fields.room,
+      p.id,
+      "instructor_id" in b || "instructor_name" in b
+        ? teacher(b)
+        : c.instructor_id,
+      ["Active", "Completed", "Planned"].includes(b.status)
+        ? b.status
+        : c.status,
+      c.id,
+    );
+    audit(req.user.id, null, `Group updated: ${fields.name}.`, "cohort");
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/cohorts/:id", ["admin", "academic"], (req) => {
+  const c = found("cohorts", req.params.id, "Group");
+  must(
+    !one("SELECT id FROM enrollments WHERE cohort_id=?", c.id),
+    "Students are enrolled in this group. Move or complete them first.",
+    409,
+  );
+  run(
+    "DELETE FROM attendance WHERE session_id IN (SELECT id FROM sessions WHERE cohort_id=?)",
+    c.id,
+  );
+  run("DELETE FROM sessions WHERE cohort_id=?", c.id);
+  run("DELETE FROM waitlists WHERE cohort_id=?", c.id);
+  run("DELETE FROM cohorts WHERE id=?", c.id);
+  audit(req.user.id, null, `Group deleted: ${c.name}.`, "cohort");
+  return { ok: true };
+});
+del("/api/waitlists/:id", ["admin", "admissions", "academic"], (req) => {
+  const w = found("waitlists", req.params.id, "Waitlist entry");
+  run("DELETE FROM waitlists WHERE id=?", w.id);
+  audit(req.user.id, w.contact_id, "Removed from the waitlist.", "enrollment");
+  return { ok: true };
+});
+
+// Class sessions ---------------------------------------------------------------
+write(
+  "/api/sessions/:id",
+  ["admin", "academic"],
+  (req) => {
+    const s = found("sessions", req.params.id, "Session");
+    const b = req.body;
+    const start = instant(b.starts_at ?? s.starts_at, "Start time"),
+      end = instant(b.ends_at ?? s.ends_at, "End time");
+    must(end > start, "Session must end after it starts.");
+    run(
+      "UPDATE sessions SET title=?,starts_at=?,ends_at=?,room=? WHERE id=?",
+      text(b.title ?? s.title, "Session title", 120),
+      start,
+      end,
+      text(b.room ?? s.room ?? "", "Room", 300, false),
+      s.id,
+    );
+    audit(
+      req.user.id,
+      null,
+      `Session updated: ${b.title ?? s.title}.`,
+      "session",
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/sessions/:id", ["admin", "academic"], (req) => {
+  const s = found("sessions", req.params.id, "Session");
+  run("DELETE FROM attendance WHERE session_id=?", s.id);
+  run("DELETE FROM sessions WHERE id=?", s.id);
+  audit(req.user.id, null, `Session deleted: ${s.title}.`, "session");
+  return { ok: true };
+});
+
+// Calendar appointments (consultations, meetings, anything not tied to a group)
+function appointmentFields(b, existing = {}) {
+  const start = instant(b.starts_at ?? existing.starts_at, "Start time"),
+    end = instant(b.ends_at ?? existing.ends_at, "End time");
+  must(end > start, "The appointment must end after it starts.");
+  const contactId = b.contact_id ?? existing.contact_id;
+  const staffId = b.staff_id ?? existing.staff_id;
+  return {
+    kind: text(b.kind ?? existing.kind ?? "Consultation", "Type", 60),
+    title: text(b.title ?? existing.title, "Title", 150),
+    contact_id: contactId ? found("contacts", contactId, "Client").id : null,
+    staff_id: staffId ? found("users", staffId, "Staff member").id : null,
+    starts_at: start,
+    ends_at: end,
+    location: text(b.location ?? existing.location ?? "", "Place", 300, false),
+    notes: text(b.notes ?? existing.notes ?? "", "Notes", 4000, false),
+    status: ["Scheduled", "Done", "Cancelled"].includes(b.status)
+      ? b.status
+      : existing.status || "Scheduled",
+  };
+}
+const calendarRoles = ["admin", "admissions", "academic", "instructor"];
+write("/api/appointments", calendarRoles, (req) => {
+  const values = appointmentFields(req.body);
+  const id = insert("appointments", { ...values, created_at: now() });
+  audit(
+    req.user.id,
+    values.contact_id,
+    `${values.kind} scheduled: ${values.title}.`,
+    "appointment",
+  );
+  return { id };
+});
+write(
+  "/api/appointments/:id",
+  calendarRoles,
+  (req) => {
+    const a = found("appointments", req.params.id, "Appointment");
+    const values = appointmentFields(req.body, a);
+    run(
+      "UPDATE appointments SET kind=?,title=?,contact_id=?,staff_id=?,starts_at=?,ends_at=?,location=?,notes=?,status=? WHERE id=?",
+      ...Object.values(values),
+      a.id,
+    );
+    audit(
+      req.user.id,
+      values.contact_id,
+      `${values.kind} updated: ${values.title}.`,
+      "appointment",
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/appointments/:id", calendarRoles, (req) => {
+  const a = found("appointments", req.params.id, "Appointment");
+  run("DELETE FROM appointments WHERE id=?", a.id);
+  audit(
+    req.user.id,
+    a.contact_id,
+    `${a.kind} deleted: ${a.title}.`,
+    "appointment",
+  );
+  return { ok: true };
+});
+
+// Tasks -------------------------------------------------------------------------
+const taskRoles = ["admin", "admissions", "academic", "instructor", "finance"];
+function ownTask(req) {
+  const t = found("tasks", req.params.id, "Task");
+  must(
+    req.user.role === "admin" || t.owner_id === req.user.id,
+    "Only the owner can change this task.",
+    403,
+  );
+  return t;
+}
+write(
+  "/api/tasks/:id/details",
+  taskRoles,
+  (req) => {
+    const t = ownTask(req);
+    const b = req.body;
+    if (b.contact_id) contactAccess(req.user, b.contact_id);
+    run(
+      "UPDATE tasks SET title=?,due_at=?,priority=?,contact_id=?,owner_id=?,version=version+1 WHERE id=?",
+      text(b.title ?? t.title, "Task", 200),
+      b.due_at ? instant(b.due_at, "Due time") : t.due_at,
+      b.priority === "High" ? "High" : "Normal",
+      b.contact_id ? Number(b.contact_id) : null,
+      req.user.role === "admin" && b.owner_id ? owner(b.owner_id) : t.owner_id,
+      t.id,
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/tasks/:id", taskRoles, (req) => {
+  const t = ownTask(req);
+  run("UPDATE incoming_inquiries SET task_id=NULL WHERE task_id=?", t.id);
+  run("DELETE FROM tasks WHERE id=?", t.id);
+  return { ok: true };
+});
+
+// Money -------------------------------------------------------------------------
+write(
+  "/api/charges/:id",
+  ["admin", "finance"],
+  (req) => {
+    const ch = chargeRows().find((x) => x.id === Number(req.params.id));
+    must(ch, "Charge not found.", 404);
+    const b = req.body;
+    const amount = b.amount != null ? integer(b.amount, "Amount") : ch.amount;
+    must(
+      amount - ch.discount >= ch.paid,
+      "The new amount is lower than what was already paid.",
+    );
+    must(ch.discount < amount, "The discount is larger than the amount.");
+    run(
+      "UPDATE charges SET label=?,due_date=?,amount=? WHERE id=?",
+      text(b.label ?? ch.label, "Charge description", 200),
+      date(b.due_date ?? ch.due_date, "Due date"),
+      amount,
+      ch.id,
+    );
+    audit(
+      req.user.id,
+      ch.contact_id,
+      `Charge updated: ${b.label ?? ch.label}.`,
+      "finance",
+      "finance",
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+del("/api/charges/:id", ["admin", "finance"], (req) => {
+  const ch = found("charges", req.params.id, "Charge");
+  must(
+    !one("SELECT id FROM payments WHERE charge_id=?", ch.id),
+    "Payments are recorded on this charge. Delete the payments first.",
+    409,
+  );
+  run("DELETE FROM charges WHERE id=?", ch.id);
+  audit(
+    req.user.id,
+    ch.contact_id,
+    `Charge deleted: ${ch.label}.`,
+    "finance",
+    "finance",
+  );
+  return { ok: true };
+});
+del("/api/payments/:id", ["admin", "finance"], (req) => {
+  const p = found("payments", req.params.id, "Payment");
+  must(
+    !one("SELECT id FROM refunds WHERE payment_id=?", p.id),
+    "A refund is recorded on this payment and cannot be removed.",
+    409,
+  );
+  const ch = one("SELECT * FROM charges WHERE id=?", p.charge_id);
+  run("DELETE FROM payments WHERE id=?", p.id);
+  audit(
+    req.user.id,
+    ch.contact_id,
+    `Payment entry removed: ${(p.amount / 100).toFixed(2)} ${ch.currency}.`,
+    "finance",
+    "finance",
+  );
+  return { ok: true };
+});
+
+// Notes, files, drafts, saved views -----------------------------------------
+del("/api/activities/:id", taskRoles, (req) => {
+  const a = found("activities", req.params.id, "Note");
+  must(
+    ["note", "consultation"].includes(a.kind),
+    "Only notes can be deleted. History entries stay for traceability.",
+    409,
+  );
+  must(
+    req.user.role === "admin" || a.user_id === req.user.id,
+    "Only the author can delete this note.",
+    403,
+  );
+  run("DELETE FROM activities WHERE id=?", a.id);
+  return { ok: true };
+});
+del("/api/documents/:id", ["admin", "admissions", "academic"], (req) => {
+  const d = found("documents", req.params.id, "Document");
+  contactAccess(req.user, d.contact_id);
+  run("DELETE FROM documents WHERE id=?", d.id);
+  audit(req.user.id, d.contact_id, `Document deleted: ${d.name}.`, "document");
+  return { ok: true };
+});
+del("/api/drafts/:id", ["admin", "admissions"], (req) => {
+  const d = found("drafts", req.params.id, "Draft");
+  run("DELETE FROM drafts WHERE id=?", d.id);
+  return { ok: true };
+});
+del("/api/saved-views/:id", ["admin", "admissions", "manager"], (req) => {
+  const v = found("saved_views", req.params.id, "Saved view");
+  must(v.user_id === req.user.id, "This view belongs to someone else.", 403);
+  run("DELETE FROM saved_views WHERE id=?", v.id);
+  return { ok: true };
+});
+
+// Staff -------------------------------------------------------------------------
+const roles = [
+  "admin",
+  "admissions",
+  "academic",
+  "instructor",
+  "finance",
+  "manager",
+];
+function staffEmail(value, exceptId = 0) {
+  const email = text(value || "", "Email", 254, false).toLowerCase();
+  must(
+    !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    "Enter a valid email address.",
+  );
+  must(
+    !email ||
+      !one("SELECT id FROM users WHERE email=? AND id<>?", email, exceptId),
+    "Another staff member already uses this email.",
+    409,
+  );
+  return email;
+}
+function strongPassword(value) {
+  must(
+    typeof value === "string" && value.length >= 10 && value.length <= 200,
+    "The password needs at least 10 characters.",
+  );
+  return hashPassword(value);
+}
+write("/api/users", ["admin"], (req) => {
+  const b = req.body;
+  must(roles.includes(b.role), "Choose a valid staff role.");
+  const email =
+    staffEmail(b.email) ||
+    `staff-${randomBytes(6).toString("hex")}@no-login.local`;
+  const id = insert("users", {
+    name: text(b.name, "Name", 100),
+    email,
+    role: b.role,
+    phone: text(b.phone || "", "Phone", 40, false),
+    password_hash: b.password
+      ? strongPassword(b.password)
+      : hashPassword(randomBytes(32).toString("base64url")),
+  });
+  audit(
+    req.user.id,
+    null,
+    `Staff member added: ${b.name}.`,
+    "security",
+    "internal",
+  );
+  return { id };
+});
+write(
+  "/api/users/:id",
+  ["admin"],
+  (req) => {
+    const u = found("users", req.params.id, "Staff member");
+    const b = req.body;
+    const email =
+      b.email != null ? staffEmail(b.email, u.id) || u.email : u.email;
+    run(
+      "UPDATE users SET name=?,email=?,phone=? WHERE id=?",
+      text(b.name ?? u.name, "Name", 100),
+      email,
+      text(b.phone ?? u.phone ?? "", "Phone", 40, false),
+      u.id,
+    );
+    if (b.active != null) {
+      const active = b.active ? 1 : 0;
+      if (!active) {
+        must(u.id !== req.user.id, "You cannot deactivate your own account.");
+        must(
+          u.role !== "admin" ||
+            one("SELECT COUNT(*) n FROM users WHERE role='admin' AND active=1")
+              .n > 1,
+          "At least one active administrator must remain.",
+        );
+        run("DELETE FROM auth_sessions WHERE user_id=?", u.id);
+      }
+      run("UPDATE users SET active=? WHERE id=?", active, u.id);
+    }
+    audit(
+      req.user.id,
+      null,
+      `Staff details updated: ${u.name}.`,
+      "security",
+      "internal",
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+write("/api/users/:id/password", ["admin"], (req) => {
+  const u = found("users", req.params.id, "Staff member");
+  must(
+    !u.email.endsWith("@no-login.local"),
+    "Add a real email for this person first so they can sign in.",
+  );
+  run(
+    "UPDATE users SET password_hash=? WHERE id=?",
+    strongPassword(req.body.password),
+    u.id,
+  );
+  run("DELETE FROM auth_sessions WHERE user_id=?", u.id);
+  audit(
+    req.user.id,
+    null,
+    `Password set for ${u.name}.`,
+    "security",
+    "internal",
+  );
+  return { ok: true };
+});
+del("/api/users/:id", ["admin"], (req) => {
+  const u = found("users", req.params.id, "Staff member");
+  must(u.id !== req.user.id, "You cannot delete your own account.");
+  must(
+    u.role !== "admin" ||
+      one(
+        "SELECT COUNT(*) n FROM users WHERE role='admin' AND active=1 AND id<>?",
+        u.id,
+      ).n > 0,
+    "At least one active administrator must remain.",
+  );
+  run("DELETE FROM auth_sessions WHERE user_id=?", u.id);
+  run("DELETE FROM saved_views WHERE user_id=?", u.id);
+  run("DELETE FROM idempotency WHERE user_id=?", u.id);
+  run("UPDATE cohorts SET instructor_id=NULL WHERE instructor_id=?", u.id);
+  run("UPDATE appointments SET staff_id=NULL WHERE staff_id=?", u.id);
+  try {
+    run("SAVEPOINT remove_user");
+    run("DELETE FROM users WHERE id=?", u.id);
+    run("RELEASE remove_user");
+  } catch {
+    // The person has history (payments, notes, requests…): keep it, block sign-in.
+    run("ROLLBACK TO remove_user");
+    run("RELEASE remove_user");
+    run("UPDATE users SET active=0 WHERE id=?", u.id);
+    audit(
+      req.user.id,
+      null,
+      `Staff member deactivated (history kept): ${u.name}.`,
+      "security",
+      "internal",
+    );
+    return { ok: true, deactivated: true };
+  }
+  audit(
+    req.user.id,
+    null,
+    `Staff member deleted: ${u.name}.`,
+    "security",
+    "internal",
+  );
+  return { ok: true, deleted: true };
+});
+
+// My account --------------------------------------------------------------------
+write(
+  "/api/account",
+  ["admin", "admissions", "academic", "instructor", "finance", "manager"],
+  (req) => {
+    const u = one("SELECT * FROM users WHERE id=?", req.user.id);
+    const b = req.body;
+    must(
+      typeof b.current_password === "string" &&
+        verifyPassword(b.current_password, u.password_hash),
+      "Your current password is incorrect.",
+      403,
+    );
+    const email = b.email ? staffEmail(b.email, u.id) : u.email;
+    run(
+      "UPDATE users SET name=?,email=?,password_hash=? WHERE id=?",
+      text(b.name ?? u.name, "Name", 100),
+      email,
+      b.new_password ? strongPassword(b.new_password) : u.password_hash,
+      u.id,
+    );
+    audit(u.id, null, "Account details updated.", "security", "internal");
+    return { ok: true };
+  },
+  "patch",
+);
+
+// Clean start: remove every sample record, keep leads that came from Google/n8n.
+write("/api/admin/clean-start", ["admin"], (req) => {
+  must(
+    req.body.confirm === "DELETE",
+    "Type DELETE to confirm that all sample data should be removed.",
+  );
+  const me = req.user.id;
+  for (const table of [
+    "refunds",
+    "payments",
+    "charges",
+    "attendance",
+    "sessions",
+    "waitlists",
+    "enrollments",
+    "appointments",
+    "flag_resolutions",
+    "drafts",
+    "documents",
+    "activities",
+    "saved_views",
+    "automation_runs",
+  ])
+    run(`DELETE FROM ${table}`);
+  // Real leads go back to the inbox so they can be imported again cleanly.
+  run(
+    "DELETE FROM incoming_inquiries WHERE external_id LIKE 'n8n-connection-check%' OR name LIKE '%Connection Sample%'",
+  );
+  run(
+    "UPDATE incoming_inquiries SET opportunity_id=NULL, task_id=NULL, owner_id=?, status=CASE WHEN status='Converted' THEN 'Pending' ELSE status END, review_fingerprint='', version=version+1",
+    me,
+  );
+  run("DELETE FROM tasks");
+  run("DELETE FROM opportunities");
+  run("DELETE FROM contacts");
+  run("DELETE FROM cohorts");
+  run("DELETE FROM programs");
+  run("DELETE FROM auth_sessions WHERE user_id<>?", me);
+  run("DELETE FROM idempotency WHERE user_id<>?", me);
+  run("DELETE FROM users WHERE id<>?", me);
+  run("UPDATE users SET role='admin', active=1 WHERE id=?", me);
+  const leads = one(
+    "SELECT COUNT(*) n FROM incoming_inquiries WHERE status='Pending'",
+  ).n;
+  audit(
+    me,
+    null,
+    `Sample data removed. ${leads} lead(s) from the website/Google kept for import.`,
+    "system",
+  );
+  return { ok: true, leads };
 });
 
 app.use("/api", (req, res) =>

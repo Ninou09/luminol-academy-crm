@@ -92,6 +92,15 @@ export function audit(
   });
 }
 
+/** Sample records are only for automated tests and local demonstrations. */
+const seedSampleData = process.env.SEED_SAMPLE_DATA === "1";
+export function adminPassword() {
+  return (
+    process.env.ADMIN_PASSWORD ||
+    process.env.DEMO_PASSWORD ||
+    (isHosted ? "" : "LuminolAdmin!2026")
+  );
+}
 export function initializeDatabase() {
   db.exec(
     "CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)",
@@ -99,11 +108,27 @@ export function initializeDatabase() {
   for (const file of readdirSync(resolve(root, "server/migrations"))
     .filter((f) => f.endsWith(".sql"))
     .sort()) {
-    if (!one("SELECT name FROM schema_migrations WHERE name=?", file))
+    if (one("SELECT name FROM schema_migrations WHERE name=?", file)) continue;
+    const sql = readFileSync(resolve(root, "server/migrations", file), "utf8");
+    // Table rebuilds follow SQLite's documented procedure: foreign keys are
+    // switched off outside the transaction and verified before committing.
+    const rebuild = sql.startsWith("-- luminol:rebuild");
+    if (rebuild) db.exec("PRAGMA foreign_keys=OFF");
+    try {
       transaction(() => {
-        db.exec(readFileSync(resolve(root, "server/migrations", file), "utf8"));
+        db.exec(sql);
+        if (rebuild) {
+          const broken = all("PRAGMA foreign_key_check");
+          if (broken.length)
+            throw new Error(
+              `Migration ${file} left ${broken.length} broken reference(s).`,
+            );
+        }
         run("INSERT INTO schema_migrations VALUES (?,?)", file, now());
       });
+    } finally {
+      if (rebuild) db.exec("PRAGMA foreign_keys=ON");
+    }
   }
 
   if (!one("SELECT id FROM settings WHERE id=1"))
@@ -115,9 +140,21 @@ export function initializeDatabase() {
         timezone: "Africa/Algiers",
         language: "en",
       });
-      const password = hashPassword(
-        process.env.DEMO_PASSWORD || "LuminolDemo!2026",
-      );
+      const password = hashPassword(adminPassword());
+      if (!seedSampleData) {
+        // A real workspace starts empty: one administrator, no fictional records.
+        insert("users", {
+          id: 1,
+          name: "Academy Admin",
+          email: (process.env.ADMIN_EMAIL || "admin@luminol.demo")
+            .trim()
+            .toLowerCase(),
+          role: "admin",
+          password_hash: password,
+        });
+        audit(1, null, "Workspace created.", "system");
+        return;
+      }
       const staff = [
         ["Academy Admin", "admin", "admin"],
         ["Amel Benali", "amel", "admissions"],

@@ -4402,3 +4402,699 @@ td {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   Real-workspace layer: readable sizes for everyday staff, a sidebar that
+   never hides its items, and a drawer menu on tablets and phones.
+   This block comes last on purpose and overrides the earlier demo styles.
+   ========================================================================== */
+:root {
+  --danger: #b4483a;
+  --sidebar: 248px;
+}
+body {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Sidebar ---------------------------------------------------------------- */
+.sidebar,
+.sidebar {
+  width: var(--sidebar);
+  padding: 22px 14px 0;
+  overflow: hidden;
+}
+.sidebar .brand {
+  flex-shrink: 0;
+}
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 18px -6px 0;
+  padding: 0 6px 12px;
+}
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 18px;
+  inset-inline-end: 12px;
+}
+.sidebar .nav-label {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar .nav-item {
+  height: auto;
+  min-height: 44px;
+  font-size: 14.5px;
+  gap: 12px;
+  padding: 0 12px;
+  color: #56635c;
+}
+.sidebar .nav-item.active {
+  color: #1f6a47;
+}
+.nav-count {
+  min-width: 24px;
+  height: 22px;
+  font-size: 12px;
+  padding: 0 6px;
+  border-radius: 11px;
+}
+.nav-divider {
+  margin: 10px 8px;
+}
+.sidebar-bottom {
+  margin-top: 0;
+  padding-top: 0;
+  flex-shrink: 0;
+}
+.user-block {
+  margin-top: 0;
+  padding: 12px 2px;
+  gap: 6px;
+}
+.user-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: start;
+  padding: 6px;
+  border-radius: 8px;
+}
+.user-link:hover {
+  background: #f4f7f3;
+}
+.user-link > div {
+  min-width: 0;
+}
+.user-block strong {
+  font-size: 13.5px;
+}
+.user-block small {
+  font-size: 12px;
+}
+.user-block > .icon-button {
+  width: 38px;
+  height: 38px;
+}
+.main-shell,
+.main-shell {
+  margin-inline-start: var(--sidebar);
+}
+
+/* Top bar ------------------------------------------------------------------ */
+.breadcrumbs {
+  font-size: 13px;
+}
+.search-trigger {
+  font-size: 13px;
+}
+.language-button {
+  font-size: 13px;
+}
+main {
+  padding-top: 26px;
+}
+
+/* Typography ------------------------------------------------------------- */
+.page-heading h1 {
+  font-size: 30px;
+}
+.page-heading p {
+  font-size: 14.5px;
+}
+.page-heading .eyebrow {
+  display: none;
+}
+.panel-heading h2 {
+  font-size: 18px;
+}
+.panel-heading p {
+  font-size: 13.5px;
+}
+.button {
+  font-size: 14px;
+  min-height: 42px;
+}
+.button.small {
+  font-size: 13px;
+  min-height: 34px;
+}
+.button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.button.danger:hover:not(:disabled) {
+  background: #9b3a2e;
+}
+.icon-button {
+  width: 36px;
+  height: 36px;
+}
+.icon-button.danger {
+  color: var(--danger);
+}
+.icon-button.danger:hover {
+  background: #fbeeeb;
+}
+.badge {
+  font-size: 12px;
+}
+th,
+th button {
+  font-size: 12px;
+}
+td {
+  font-size: 14px;
+}
+td small,
+.person-cell small {
+  font-size: 12.5px;
+}
+.table-footer {
+  font-size: 12.5px;
+}
+.tabs button {
+  font-size: 14px;
+}
+.toolbar select,
+.toolbar > select,
+.toolbar-secondary select {
+  font-size: 13.5px;
+  min-height: 40px;
+}
+.search-field input {
+  font-size: 14px;
+}
+.toolbar-secondary {
+  font-size: 13px;
+}
+.task-content strong {
+  font-size: 14.5px;
+}
+.task-content > div {
+  font-size: 12.5px;
+}
+.metric-top,
+.metric-bottom {
+  font-size: 12.5px;
+}
+.empty strong {
+  font-size: 15px;
+}
+.empty p {
+  font-size: 13.5px;
+  max-width: 420px;
+  margin-inline: auto;
+}
+.app-footer {
+  font-size: 12px;
+}
+.activity-item p,
+.activity-item small {
+  font-size: 13px;
+}
+.settings-list dt,
+.settings-list dd {
+  font-size: 14px;
+}
+
+/* Forms -------------------------------------------------------------------- */
+.dialog {
+  width: 560px;
+}
+.dialog.wide {
+  width: 720px;
+}
+.dialog-heading h2 {
+  font-size: 20px;
+}
+.form-grid > label,
+.form-grid > label > span {
+  font-size: 13.5px;
+  color: #4a5a50;
+  font-weight: 550;
+}
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  font-size: 15px;
+  min-height: 44px;
+  font-weight: 400;
+  color: var(--ink);
+}
+.form-grid input:disabled {
+  background: #f4f6f2;
+  color: #7a857f;
+}
+.form-grid input::placeholder {
+  color: #a8b2ab;
+}
+.form-hint,
+.checkbox-label small {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #7f8f80;
+  font-weight: 400;
+}
+.form-person strong {
+  font-size: 15px;
+}
+.form-person small {
+  font-size: 13px;
+}
+.info-box {
+  font-size: 13.5px;
+  color: #56704a;
+}
+.info-box.danger {
+  background: #fdf0ed;
+  border-color: #f2d6cf;
+  color: #8f3d31;
+}
+.form-error {
+  font-size: 14px;
+}
+.dialog-footer .footer-delete {
+  margin-inline-end: auto;
+}
+.dialog-footer .footer-delete:hover:not(:disabled) {
+  background: #fbeeeb;
+}
+
+/* Client drawer ------------------------------------------------------------- */
+.drawer .dialog-heading h2 {
+  font-size: 14px;
+}
+.profile-contact {
+  font-size: 14px;
+  gap: 10px;
+}
+.profile-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: #3d6b54;
+  text-decoration: none;
+}
+.profile-contact a:hover {
+  background: #f1f6f1;
+}
+.profile-actions .button {
+  font-size: 13px;
+  min-height: 38px;
+}
+.drawer .tabs button {
+  font-size: 13.5px;
+}
+.profile-hero p {
+  font-size: 13px;
+}
+.profile-info dt {
+  font-size: 12.5px;
+}
+.profile-info dd {
+  font-size: 14px;
+}
+.profile-info .wide-info {
+  grid-column: 1 / -1;
+}
+.pre-line {
+  white-space: pre-line;
+}
+.opportunity-detail > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.opportunity-detail > div:first-child strong {
+  font-size: 15px;
+}
+.profile-list-row.clickable {
+  width: 100%;
+  text-align: start;
+  cursor: pointer;
+}
+.profile-timeline p {
+  font-size: 13.5px;
+}
+.timeline-delete {
+  float: inline-end;
+  width: 30px;
+  height: 30px;
+}
+.row-actions.wrap {
+  flex-wrap: wrap;
+}
+
+/* Requests board ------------------------------------------------------------ */
+.lead-name span {
+  font-size: 14px;
+}
+.lead-name small {
+  font-size: 12px;
+}
+.lead-request {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+.lead-request > span {
+  font-size: 13.5px;
+  font-weight: 550;
+  color: #2c4038;
+}
+.lead-followup {
+  font-size: 12px;
+}
+.lead-footer {
+  font-size: 12px;
+}
+.kanban-heading h2 {
+  font-size: 14px;
+}
+.request-cell .block {
+  margin-top: 4px;
+}
+.inbox-panel {
+  margin-bottom: 18px;
+}
+
+/* Overview setup guide --------------------------------------------------- */
+.setup-guide {
+  display: grid;
+  gap: 18px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  border-color: #cfe3d7;
+  background: linear-gradient(135deg, #f5fbf6, #fff);
+}
+.setup-guide h2 {
+  font-size: 20px;
+}
+.setup-guide p {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.setup-guide ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.setup-guide li button {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  text-align: start;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #dbe8df;
+  border-radius: 10px;
+  color: var(--teal);
+}
+.setup-guide li button:hover {
+  border-color: var(--teal);
+}
+.setup-guide strong {
+  display: block;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.setup-guide small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Settings: data tab ----------------------------------------------------- */
+.data-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 0 24px 22px;
+}
+.data-actions strong {
+  font-size: 30px;
+  display: block;
+}
+.data-actions span {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.settings-grid > .panel > .row-actions,
+.danger-panel > .button {
+  margin: 0 24px 22px;
+}
+.danger-panel {
+  border-color: #f0d7d1;
+}
+
+/* Calendar --------------------------------------------------------------- */
+.calendar-day-label {
+  position: relative;
+}
+.day-add {
+  position: absolute;
+  inset-inline-end: 4px;
+  top: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.calendar-day:hover .day-add,
+.day-add:focus-visible {
+  opacity: 1;
+  background: #eaf4ef;
+}
+@media (hover: none) {
+  .day-add {
+    opacity: 0.8;
+  }
+}
+.calendar-event.appointment {
+  background: #fbf3ff;
+  border-inline-start: 3px solid #8a5bb8;
+}
+.calendar-event.appointment.done {
+  opacity: 0.6;
+}
+.program-dot.appointment {
+  background: #8a5bb8;
+}
+.calendar-event strong {
+  font-size: 13px;
+}
+.calendar-event small,
+.calendar-event > span {
+  font-size: 11.5px;
+}
+.legend {
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+
+/* Laptops with short screens --------------------------------------------- */
+@media (max-height: 720px) and (min-width: 1025px) {
+  .sidebar {
+    padding-top: 14px;
+  }
+  .sidebar .nav-item {
+    min-height: 38px;
+  }
+}
+
+/* Tablets and phones: the menu becomes a drawer ----------------------------- */
+@media (max-width: 1024px) {
+  .sidebar,
+  .sidebar {
+    width: min(300px, 86vw);
+    padding-inline: 14px;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 0 0 40px #0b241f33;
+    z-index: 70;
+  }
+  [dir="rtl"] .sidebar {
+    transform: translateX(100%);
+  }
+  .sidebar.is-open,
+  [dir="rtl"] .sidebar.is-open {
+    transform: translateX(0);
+  }
+  .sidebar-close {
+    display: inline-flex;
+  }
+  .main-shell,
+  .main-shell {
+    margin-inline-start: 0;
+  }
+  .mobile-menu {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--line);
+  }
+  .mobile-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #16352366;
+    z-index: 65;
+  }
+  .topbar {
+    padding-inline: 16px;
+    gap: 10px;
+  }
+  main {
+    padding-inline: 18px;
+  }
+  .setup-guide ol {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  :root,
+  body {
+    font-size: 15px;
+  }
+  main {
+    padding: 16px 14px 90px;
+  }
+  .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .page-heading h1 {
+    font-size: 24px;
+  }
+  .heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .heading-actions > .button,
+  .heading-actions > .select-button {
+    flex: 1 1 auto;
+  }
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbar .search-field {
+    flex: 1 1 100%;
+  }
+  .toolbar > select {
+    flex: 1 1 140px;
+  }
+  .overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .dialog,
+  .dialog.wide {
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 16px 16px 0 0;
+  }
+  .form-body {
+    padding: 18px 16px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    font-size: 16px;
+  }
+  .dialog-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .dialog-footer .button {
+    flex: 1 1 auto;
+  }
+  .drawer {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .profile-hero,
+  .profile-contact,
+  .profile-actions,
+  .profile-content {
+    padding-inline: 16px;
+  }
+  .drawer .tabs {
+    padding-inline: 16px;
+    overflow-x: auto;
+  }
+  .quick-button span {
+    display: none;
+  }
+  .row-actions {
+    flex-wrap: wrap;
+  }
+  .data-actions,
+  .settings-grid > .panel > .row-actions,
+  .danger-panel > .button {
+    padding-inline: 16px;
+    margin-inline: 16px;
+  }
+}
+.inbox-empty {
+  padding: 0 24px 20px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.segmented button {
+  font-size: 13px;
+  min-height: 34px;
+  padding-inline: 12px;
+}
+.calendar-toolbar select {
+  font-size: 13.5px;
+  min-height: 40px;
+}
+.calendar-day-label span {
+  font-size: 12px;
+}

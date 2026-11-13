@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { withDatabase, initializeDatabase } from "./db.mjs";
+import { withDatabase, initializeDatabase, adminPassword } from "./db.mjs";
 
 /**
  * Execute each request against its own SQLite connection. Responses stay buffered
@@ -21,9 +21,9 @@ export function createHostedHandler(app, store) {
     const chunks = [];
     let ended = false;
     try {
-      if (!process.env.DEMO_PASSWORD || process.env.DEMO_PASSWORD.length < 16) {
+      if (adminPassword().length < 16) {
         throw new Error(
-          "Set a strong DEMO_PASSWORD before starting the hosted workspace.",
+          "Set a strong ADMIN_PASSWORD (or DEMO_PASSWORD) before starting the hosted workspace.",
         );
       }
       const snapshot = await store.read();

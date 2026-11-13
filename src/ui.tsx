@@ -14,6 +14,7 @@ import {
   Inbox,
   Check,
   ArrowUpRight,
+  Pencil,
 } from "lucide-react";
 import { useApp } from "./context";
 import { initials, type Row } from "./types";
@@ -337,7 +338,7 @@ export function DataTable({
                       ) : null}
                     </button>
                   ) : (
-                    <span aria-hidden="true">—</span>
+                    <span className="visually-hidden">{t("Actions")}</span>
                   )}
                 </th>
               ))}
@@ -413,7 +414,8 @@ export function TaskRows({
   tasks: Row[];
   limit?: number;
 }) {
-  const { data, t, person, profile, perform, toast, date, time, go } = useApp();
+  const { data, t, person, profile, perform, toast, date, time, go, open } =
+    useApp();
   async function done(task: Row) {
     try {
       if (task.status === "Done") {
@@ -482,15 +484,34 @@ export function TaskRows({
               </span>
             </div>
           </div>
+          {(data.user.role === "admin" || task.owner_id === data.user.id) &&
+            data.permissions.write && (
+              <button
+                className="icon-button"
+                title={t("Edit task")}
+                aria-label={`${t("Edit task")}: ${t(task.title)}`}
+                onClick={() => open({ type: "task", record: task })}
+              >
+                <Pencil size={15} />
+              </button>
+            )}
           <Badge
-            tone={task.due_at < new Date().toISOString() ? "amber" : "neutral"}
+            tone={
+              task.status === "Done"
+                ? "teal"
+                : task.due_at < new Date().toISOString()
+                  ? "amber"
+                  : "neutral"
+            }
           >
             {t(
-              task.due_at < new Date().toISOString()
-                ? "Overdue"
-                : task.priority === "High"
-                  ? "High"
-                  : "Upcoming",
+              task.status === "Done"
+                ? "Done"
+                : task.due_at < new Date().toISOString()
+                  ? "Overdue"
+                  : task.priority === "High"
+                    ? "High"
+                    : "Upcoming",
             )}
           </Badge>
         </div>

@@ -33,6 +33,14 @@ import {
   Shield,
   Save,
   RotateCcw,
+  Pencil,
+  Trash2,
+  HeartHandshake,
+  UserPlus,
+  KeyRound,
+  Database,
+  Upload,
+  Stethoscope,
 } from "lucide-react";
 import { useApp } from "./context";
 import {
@@ -50,6 +58,39 @@ import {
 import { type Row, localDate } from "./types";
 import { roleNames } from "./i18n";
 import { N8nInbox } from "./n8n";
+import { api } from "./types";
+
+/** What the client asked for: the linked program, or the free-text interest. */
+export function useRequestLabel() {
+  const { t, program } = useApp();
+  return (o: Row) =>
+    o.program_id
+      ? t(program(o.program_id).name)
+      : o.interest || t(o.service_type || "Other");
+}
+export function serviceTone(service: string) {
+  return /consult/i.test(service)
+    ? "purple"
+    : /lang/i.test(service)
+      ? "blue"
+      : /psych/i.test(service)
+        ? "teal"
+        : "amber";
+}
+/** Small delete helper for list rows that have no edit form. */
+export function useRemove() {
+  const { t, refresh, toast } = useApp();
+  return async (path: string, warning: string) => {
+    if (!window.confirm(t(warning))) return;
+    try {
+      await api(path, {}, "DELETE");
+      await refresh();
+      toast(t("Deleted"));
+    } catch (e: any) {
+      toast(e.message);
+    }
+  };
+}
 
 export function periodStart(period: string, today: string) {
   return period === "all"
@@ -170,10 +211,51 @@ export function Overview({
             icon={<Plus size={17} />}
             onClick={() => open({ type: "inquiry" })}
           >
-            {t("New inquiry")}
+            {t("New client request")}
           </Button>
         )}
       </PageHead>
+      {data.permissions.admin && !data.programs.length && (
+        <div className="setup-guide panel">
+          <div>
+            <h2>{t("Let's set up your academy")}</h2>
+            <p>{t("Three short steps. You can change everything later.")}</p>
+          </div>
+          <ol>
+            <li>
+              <button onClick={() => go("Settings", "Team & permissions")}>
+                <UserPlus size={18} />
+                <span>
+                  <strong>{t("1. Add your team and teachers")}</strong>
+                  <small>{t("Advisors, teachers, psychologists")}</small>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button onClick={() => open({ type: "program" })}>
+                <BookOpen size={18} />
+                <span>
+                  <strong>{t("2. Add your courses with real prices")}</strong>
+                  <small>{t("Languages, psychology, training")}</small>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button onClick={() => go("Admissions")}>
+                <Upload size={18} />
+                <span>
+                  <strong>
+                    {t("3. Import leads from the website / Google")}
+                  </strong>
+                  <small>
+                    {(data.incoming || []).length} {t("waiting in the inbox")}
+                  </small>
+                </span>
+              </button>
+            </li>
+          </ol>
+        </div>
+      )}
       <div className={`metrics ${!data.permissions.finance ? "compact" : ""}`}>
         {data.permissions.admissions && (
           <Metric
@@ -407,6 +489,9 @@ export function Overview({
           action={<Badge tone="neutral">{t("All time")}</Badge>}
         >
           <div className="activity-feed">
+            {!data.activities.length && (
+              <Empty title="No activity yet" text="" />
+            )}
             {data.activities.slice(0, 5).map((a) => (
               <div className="activity-item" key={a.id}>
                 <span
@@ -440,6 +525,12 @@ export function Overview({
         </Panel>
         <Panel title="Enrollment by program" subtitle="Active students">
           <div className="program-bars">
+            {!data.programs.length && (
+              <Empty
+                title="No programs yet"
+                text="Add your first program in Programs & Groups."
+              />
+            )}
             {data.programs.map((p) => {
               const n = data.enrollments.filter(
                 (e) =>
@@ -535,7 +626,11 @@ export function Admissions() {
     perform,
     toast,
   } = useApp();
-  const [view, setView] = useState("Board"),
+  const label = useRequestLabel();
+  const [view, setView] = useState(
+      window.matchMedia("(max-width:760px)").matches ? "Table" : "Board",
+    ),
+    [service, setService] = useState(""),
     [query, setQuery] = useState(""),
     [stage, setStage] = useState(
       data.stages.includes(pageFilter) ? pageFilter : "",
@@ -551,9 +646,10 @@ export function Admissions() {
   const rows = data.opportunities.filter(
     (o) =>
       (!query ||
-        `${person(o.contact_id).name} ${person(o.contact_id).email} ${program(o.program_id).name}`
+        `${person(o.contact_id).name} ${person(o.contact_id).email} ${person(o.contact_id).phone} ${label(o)} ${o.service_type}`
           .toLowerCase()
           .includes(query.toLowerCase())) &&
+      (!service || o.service_type === service) &&
       (!stage || o.stage === stage) &&
       (!owner || o.owner_id === Number(owner)) &&
       (!source || o.source === source) &&
@@ -565,6 +661,7 @@ export function Admissions() {
     setStage("");
     setOwner("");
     setSource("");
+    setService("");
   };
   const nextTask = (o: Row) =>
     data.tasks.find(
@@ -595,8 +692,8 @@ export function Admissions() {
   return (
     <>
       <PageHead
-        title="Turn interest into opportunity."
-        subtitle="A thoughtful path from inquiry to enrollment."
+        title="Client requests"
+        subtitle="Consultations, courses and languages: from first call to enrollment."
       >
         <Button
           icon={<Download size={16} />}
@@ -605,13 +702,31 @@ export function Admissions() {
           {t("Export CSV")}
         </Button>
         {data.permissions.editAdmissions && (
-          <Button
-            variant="primary"
-            icon={<Plus size={17} />}
-            onClick={() => open({ type: "inquiry" })}
-          >
-            {t("New inquiry")}
-          </Button>
+          <>
+            <Button
+              icon={<HeartHandshake size={17} />}
+              onClick={() =>
+                open({
+                  type: "inquiry",
+                  extra: { service_type: "Psychology consultation" },
+                })
+              }
+            >
+              {t("Consultation request")}
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Plus size={17} />}
+              onClick={() =>
+                open({
+                  type: "inquiry",
+                  extra: { service_type: "Language course" },
+                })
+              }
+            >
+              {t("Course / language request")}
+            </Button>
+          </>
         )}
       </PageHead>
       <N8nInbox />
@@ -639,6 +754,20 @@ export function Admissions() {
                   {t(data.stages[i])}
                 </option>
               ))}
+          </select>
+          <select
+            aria-label={t("Request type")}
+            value={service}
+            onChange={(e) => setService(e.target.value)}
+          >
+            <option value="">{t("All request types")}</option>
+            {Array.from(
+              new Set(data.opportunities.map((o) => o.service_type)),
+            ).map((s) => (
+              <option key={s} value={s}>
+                {t(s)}
+              </option>
+            ))}
           </select>
           <select
             aria-label={t("Advisor")}
@@ -690,7 +819,7 @@ export function Admissions() {
             {rows.length} {t("Opportunities").toLowerCase()}
           </span>
           <div>
-            {(query || stage || owner || source) && (
+            {(query || stage || owner || source || service) && (
               <button className="subtle-link" onClick={clear}>
                 {t("Clear filters")}
               </button>
@@ -812,9 +941,12 @@ export function Admissions() {
                           </span>
                           <ArrowUpRight size={14} />
                         </button>
-                        <Badge tone={program(o.program_id).color}>
-                          {t(program(o.program_id).name)}
-                        </Badge>
+                        <div className="lead-request">
+                          <Badge tone={serviceTone(o.service_type)}>
+                            {t(o.service_type)}
+                          </Badge>
+                          <span>{label(o)}</span>
+                        </div>
                         <div
                           className={`lead-followup ${task && task.due_at < new Date().toISOString() ? "overdue" : ""}`}
                         >
@@ -841,13 +973,28 @@ export function Admissions() {
                             d
                           </span>
                           {data.permissions.editAdmissions && (
-                            <button
-                              className="icon-button"
-                              aria-label={`${t("Update stage")}: ${contact.name}`}
-                              onClick={() => open({ type: "stage", record: o })}
-                            >
-                              <MoreHorizontal size={17} />
-                            </button>
+                            <>
+                              <button
+                                className="icon-button"
+                                title={t("Edit request")}
+                                aria-label={`${t("Edit request")}: ${contact.name}`}
+                                onClick={() =>
+                                  open({ type: "request", record: o })
+                                }
+                              >
+                                <Pencil size={15} />
+                              </button>
+                              <button
+                                className="icon-button"
+                                title={t("Update stage")}
+                                aria-label={`${t("Update stage")}: ${contact.name}`}
+                                onClick={() =>
+                                  open({ type: "stage", record: o })
+                                }
+                              >
+                                <MoreHorizontal size={17} />
+                              </button>
+                            </>
                           )}
                         </div>
                       </article>
@@ -899,18 +1046,25 @@ export function Admissions() {
                     <Avatar name={person(o.contact_id).name} />
                     <span>
                       <strong>{person(o.contact_id).name}</strong>
-                      <small>{person(o.contact_id).email}</small>
+                      <small>
+                        {person(o.contact_id).phone ||
+                          person(o.contact_id).email}
+                      </small>
                     </span>
                   </button>
                 ),
               },
               {
                 key: "program",
-                label: "Program",
+                label: "Request",
+                sort: (o) => label(o),
                 render: (o) => (
-                  <Badge tone={program(o.program_id).color}>
-                    {t(program(o.program_id).name)}
-                  </Badge>
+                  <span className="request-cell">
+                    <Badge tone={serviceTone(o.service_type)}>
+                      {t(o.service_type)}
+                    </Badge>
+                    <small className="block">{label(o)}</small>
+                  </span>
                 ),
               },
               {
@@ -943,6 +1097,31 @@ export function Admissions() {
                     <span className="muted">{t("No follow-up")}</span>
                   ),
               },
+              ...(data.permissions.editAdmissions
+                ? [
+                    {
+                      key: "edit",
+                      label: "",
+                      render: (o: Row) => (
+                        <div className="row-actions">
+                          <Button
+                            variant="small"
+                            icon={<Pencil size={14} />}
+                            onClick={() => open({ type: "request", record: o })}
+                          >
+                            {t("Edit")}
+                          </Button>
+                          <Button
+                            variant="small"
+                            onClick={() => open({ type: "stage", record: o })}
+                          >
+                            {t("Stage")}
+                          </Button>
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
         </div>
@@ -955,13 +1134,21 @@ function XIcon() {
 }
 
 export function Students() {
-  const { data, t, pageFilter, profile, program, cohort, money } = useApp();
+  const { data, t, pageFilter, profile, program, cohort, money, open } =
+    useApp();
+  const label = useRequestLabel();
   const [query, setQuery] = useState(""),
+    [tab, setTab] = useState(
+      pageFilter === "attention"
+        ? "Need attention"
+        : pageFilter.startsWith("program:") || pageFilter.startsWith("since:")
+          ? "Students"
+          : "All clients",
+    ),
     [filter, setFilter] = useState(
       pageFilter.startsWith("program:") ? pageFilter.slice(8) : "",
-    ),
-    [attention, setAttention] = useState(pageFilter === "attention");
-  const ids = new Set(
+    );
+  const enrolled = new Set(
     data.enrollments
       .filter(
         (e) =>
@@ -970,62 +1157,76 @@ export function Students() {
       )
       .map((e) => e.contact_id),
   );
-  let rows = data.contacts.filter(
-    (c) =>
-      ids.has(c.id) &&
-      (!query ||
-        `${c.name} ${c.email}`.toLowerCase().includes(query.toLowerCase())) &&
-      (!filter ||
-        data.enrollments.some(
-          (e) =>
-            e.contact_id === c.id &&
-            cohort(e.cohort_id).program_id === Number(filter),
-        )) &&
-      (!attention || data.flags.some((f) => f.contact_id === c.id)),
-  );
+  const rows = data.contacts
+    .filter(
+      (c) =>
+        (tab !== "Students" || enrolled.has(c.id)) &&
+        (tab !== "Need attention" ||
+          data.flags.some((f) => f.contact_id === c.id)) &&
+        (!query ||
+          `${c.name} ${c.email} ${c.phone}`
+            .toLowerCase()
+            .includes(query.toLowerCase())) &&
+        (!filter ||
+          data.enrollments.some(
+            (e) =>
+              e.contact_id === c.id &&
+              cohort(e.cohort_id).program_id === Number(filter),
+          )),
+    )
+    .sort((a, b) => b.id - a.id);
   return (
     <>
       <PageHead
-        title="Every student has a story."
-        subtitle="Keep the whole journey in view."
+        title="Clients & students"
+        subtitle="Everyone who contacted the academy, in one list."
       >
         <Button
           icon={<Download size={16} />}
-          onClick={() => window.open("/api/export/enrollments", "_self")}
+          onClick={() => window.open("/api/export/contacts", "_self")}
         >
           {t("Export CSV")}
         </Button>
+        {["admin", "admissions", "academic"].includes(data.user.role) && (
+          <Button
+            variant="primary"
+            icon={<UserPlus size={17} />}
+            onClick={() => open({ type: "client" })}
+          >
+            {t("Add client")}
+          </Button>
+        )}
       </PageHead>
       <div className="panel">
+        <Tabs
+          tabs={["All clients", "Students", "Need attention"]}
+          value={tab}
+          onChange={setTab}
+        />
         <div className="toolbar">
           <div className="search-field">
             <Search size={17} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("Search students…")}
-              aria-label={t("Search students…")}
+              placeholder={t("Search by name, phone or email…")}
+              aria-label={t("Search by name, phone or email…")}
             />
           </div>
-          <select
-            aria-label={t("Program")}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="">{t("All programs")}</option>
-            {data.programs.map((p) => (
-              <option key={p.id} value={p.id}>
-                {t(p.name)}
-              </option>
-            ))}
-          </select>
-          <Button
-            variant={attention ? "selected" : ""}
-            icon={<AlertCircle size={15} />}
-            onClick={() => setAttention(!attention)}
-          >
-            {t("Student attention")}
-          </Button>
+          {tab === "Students" && (
+            <select
+              aria-label={t("Program")}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="">{t("All programs")}</option>
+              {data.programs.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {t(p.name)}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <DataTable
           rows={rows}
@@ -1039,40 +1240,40 @@ export function Students() {
                   <Avatar name={c.name} />
                   <span>
                     <strong>{c.name}</strong>
-                    <small>{c.email}</small>
+                    <small>{c.phone || c.email || "—"}</small>
                   </span>
                 </span>
               ),
             },
             {
               key: "program",
-              label: "Program",
-              render: (c) => (
-                <div className="stacked-badges">
-                  {Array.from(
-                    new Set(
-                      data.enrollments
-                        .filter(
-                          (e) => e.contact_id === c.id && e.status === "Active",
-                        )
-                        .map((e) => cohort(e.cohort_id).program_id),
-                    ),
-                  ).map((id) => (
-                    <Badge key={id} tone={program(Number(id)).color}>
-                      {t(program(Number(id)).name)}
-                    </Badge>
-                  ))}
-                </div>
-              ),
-            },
-            {
-              key: "cohort",
-              label: "Cohort",
-              render: (c) =>
-                data.enrollments
-                  .filter((e) => e.contact_id === c.id && e.status === "Active")
-                  .map((e) => cohort(e.cohort_id).name)
-                  .join(", ") || "—",
+              label: "Request / program",
+              render: (c) => {
+                const active = data.enrollments.filter(
+                  (e) => e.contact_id === c.id && e.status === "Active",
+                );
+                const requests = data.opportunities.filter(
+                  (o) => o.contact_id === c.id && o.stage !== "Enrolled",
+                );
+                return (
+                  <div className="stacked-badges">
+                    {active.map((e) => (
+                      <Badge
+                        key={"e" + e.id}
+                        tone={program(cohort(e.cohort_id).program_id).color}
+                      >
+                        {cohort(e.cohort_id).name}
+                      </Badge>
+                    ))}
+                    {requests.map((o) => (
+                      <Badge key={"o" + o.id} tone="neutral">
+                        {label(o)}
+                      </Badge>
+                    ))}
+                    {!active.length && !requests.length && "—"}
+                  </div>
+                );
+              },
             },
             {
               key: "attendance",
@@ -1106,8 +1307,10 @@ export function Students() {
               render: (c) =>
                 data.flags.some((f) => f.contact_id === c.id) ? (
                   <Badge tone="amber">{t("Student attention")}</Badge>
+                ) : enrolled.has(c.id) ? (
+                  <Badge tone="teal">{t("Student")}</Badge>
                 ) : (
-                  <Badge tone="teal">{t("Active")}</Badge>
+                  <Badge tone="neutral">{t("Client")}</Badge>
                 ),
             },
             ...(data.permissions.finance
@@ -1155,16 +1358,20 @@ export function Programs() {
   return (
     <>
       <PageHead
-        title="Manage the learning experience."
-        subtitle="Programs, people, and room to grow."
+        title="Programs & groups"
+        subtitle="Your courses with their prices, and the groups that study them."
       >
         {data.permissions.editAcademic && (
           <>
             <Button
               icon={<Plus size={17} />}
+              disabled={!data.programs.length}
+              title={
+                !data.programs.length ? t("Add a program first") : undefined
+              }
               onClick={() => open({ type: "cohort" })}
             >
-              {t("New cohort")}
+              {t("New group")}
             </Button>
             <Button
               variant="primary"
@@ -1182,8 +1389,26 @@ export function Programs() {
           value={tab}
           onChange={setTab}
         />
-        <span className="muted">{t("Fictional data")}</span>
       </div>
+      {tab === "Programs" && !data.programs.length && (
+        <div className="panel">
+          <Empty
+            title="No programs yet"
+            text="Add each course you sell (for example English A1, Applied Psychology) with its real price."
+            action={
+              data.permissions.editAcademic ? (
+                <Button
+                  variant="primary"
+                  icon={<Plus size={17} />}
+                  onClick={() => open({ type: "program" })}
+                >
+                  {t("New program")}
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
+      )}
       {tab === "Programs" ? (
         <div className="program-grid">
           {data.programs.map((p) => (
@@ -1216,11 +1441,22 @@ export function Programs() {
                 </div>
                 <div className="row-actions">
                   {data.permissions.editAcademic && (
-                    <Button
-                      onClick={() => open({ type: "program", record: p })}
-                    >
-                      {t("Edit details")}
-                    </Button>
+                    <>
+                      <Button
+                        icon={<Pencil size={15} />}
+                        onClick={() => open({ type: "program", record: p })}
+                      >
+                        {t("Edit")}
+                      </Button>
+                      <Button
+                        icon={<Plus size={15} />}
+                        onClick={() =>
+                          open({ type: "cohort", extra: { program_id: p.id } })
+                        }
+                      >
+                        {t("New group")}
+                      </Button>
+                    </>
                   )}
                   <Button
                     onClick={() => {
@@ -1228,7 +1464,7 @@ export function Programs() {
                     }}
                     icon={<ArrowUpRight size={16} />}
                   >
-                    {t("View all")}
+                    {t("Groups")}
                   </Button>
                 </div>
               </div>
@@ -1256,12 +1492,15 @@ export function Programs() {
               {
                 key: "instructor",
                 label: "Instructor",
-                render: (c) => (
-                  <span className="person-cell">
-                    <Avatar name={user(c.instructor_id).name} size="small" />
-                    {user(c.instructor_id).name}
-                  </span>
-                ),
+                render: (c) =>
+                  c.instructor_id ? (
+                    <span className="person-cell">
+                      <Avatar name={user(c.instructor_id).name} size="small" />
+                      {user(c.instructor_id).name}
+                    </span>
+                  ) : (
+                    <span className="muted">{t("No teacher yet")}</span>
+                  ),
               },
               {
                 key: "capacity",
@@ -1298,8 +1537,29 @@ export function Programs() {
               {
                 key: "status",
                 label: "Status",
-                render: (c) => <Badge tone="teal">{t(c.status)}</Badge>,
+                render: (c) => (
+                  <Badge tone={c.status === "Active" ? "teal" : "neutral"}>
+                    {t(c.status)}
+                  </Badge>
+                ),
               },
+              ...(data.permissions.editAcademic
+                ? [
+                    {
+                      key: "edit",
+                      label: "",
+                      render: (c: Row) => (
+                        <Button
+                          variant="small"
+                          icon={<Pencil size={14} />}
+                          onClick={() => open({ type: "cohort", record: c })}
+                        >
+                          {t("Edit")}
+                        </Button>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
         </div>
@@ -1313,6 +1573,7 @@ export function Programs() {
 }
 function WaitlistTable() {
   const { data, person, cohort, open, date, t } = useApp();
+  const remove = useRemove();
   return (
     <DataTable
       rows={data.waitlists}
@@ -1333,19 +1594,33 @@ function WaitlistTable() {
           label: "Next action",
           render: (w) =>
             data.permissions.editAdmissions ? (
-              <Button
-                onClick={() =>
-                  open({
-                    type: "enroll",
-                    record: data.opportunities.find(
-                      (o) => o.id === w.opportunity_id,
-                    ),
-                    contact: person(w.contact_id),
-                  })
-                }
-              >
-                {t("Enroll in cohort")}
-              </Button>
+              <div className="row-actions">
+                {w.opportunity_id && (
+                  <Button
+                    variant="small"
+                    onClick={() =>
+                      open({
+                        type: "enroll",
+                        record: data.opportunities.find(
+                          (o) => o.id === w.opportunity_id,
+                        ),
+                        contact: person(w.contact_id),
+                      })
+                    }
+                  >
+                    {t("Enroll in cohort")}
+                  </Button>
+                )}
+                <button
+                  className="icon-button danger"
+                  aria-label={t("Delete")}
+                  onClick={() =>
+                    remove(`/waitlists/${w.id}`, "Remove from the waitlist?")
+                  }
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             ) : (
               t("Waitlisted")
             ),
@@ -1356,7 +1631,10 @@ function WaitlistTable() {
 }
 
 export function Calendar() {
-  const { data, t, open, cohort, program, date, time } = useApp();
+  const { data, t, open, cohort, program, date, time, person, user } = useApp();
+  const canBook = ["admin", "admissions", "academic", "instructor"].includes(
+    data.user.role,
+  );
   const [view, setView] = useState("Week"),
     [anchor, setAnchor] = useState(data.today),
     [filter, setFilter] = useState("");
@@ -1380,21 +1658,38 @@ export function Calendar() {
   );
   const sessions = data.sessions.filter(
     (s) =>
-      s.status === "Scheduled" && (!filter || String(s.cohort_id) === filter),
+      s.status === "Scheduled" &&
+      filter !== "appointments" &&
+      (!filter || String(s.cohort_id) === filter),
   );
+  const appointments = (data.appointments || []).filter(
+    (a) => a.status !== "Cancelled" && (!filter || filter === "appointments"),
+  );
+  const onDay = (iso: string, day: string) =>
+    localDate(new Date(iso), data.settings.timezone) === day;
   return (
     <>
       <PageHead
-        title="Make room for what’s next."
-        subtitle="Your academy’s schedule, all together."
+        title="Calendar"
+        subtitle="Consultations, meetings and group classes, all together."
       >
         {data.permissions.editAcademic && (
           <Button
-            variant="primary"
             icon={<Plus size={17} />}
+            disabled={!data.cohorts.length}
+            title={!data.cohorts.length ? t("Create a group first") : undefined}
             onClick={() => open({ type: "session" })}
           >
-            {t("New session")}
+            {t("Group class")}
+          </Button>
+        )}
+        {canBook && (
+          <Button
+            variant="primary"
+            icon={<Plus size={17} />}
+            onClick={() => open({ type: "appointment" })}
+          >
+            {t("Add to calendar")}
           </Button>
         )}
       </PageHead>
@@ -1424,7 +1719,10 @@ export function Calendar() {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
-              <option value="">{t("Cohorts")}</option>
+              <option value="">{t("Everything")}</option>
+              <option value="appointments">
+                {t("Consultations & meetings")}
+              </option>
               {data.cohorts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -1453,8 +1751,43 @@ export function Calendar() {
               <div className="calendar-day-label">
                 <span>{date(day, { weekday: "short" })}</span>
                 <strong>{date(day, { day: "numeric" })}</strong>
+                {canBook && (
+                  <button
+                    className="day-add"
+                    aria-label={`${t("Add to calendar")} ${day}`}
+                    title={t("Add to calendar")}
+                    onClick={() =>
+                      open({ type: "appointment", extra: { day } })
+                    }
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
               </div>
               <div className="calendar-events">
+                {appointments
+                  .filter((a) => onDay(a.starts_at, day))
+                  .map((a) => (
+                    <button
+                      key={"a" + a.id}
+                      className={`calendar-event appointment ${a.status === "Done" ? "done" : ""}`}
+                      onClick={() => open({ type: "appointment", record: a })}
+                    >
+                      <small>
+                        {time(a.starts_at)} – {time(a.ends_at)}
+                      </small>
+                      <strong>{a.title}</strong>
+                      <span>
+                        {t(a.kind)}
+                        {a.contact_id ? ` · ${person(a.contact_id).name}` : ""}
+                      </span>
+                      <small>
+                        {[a.location, a.staff_id ? user(a.staff_id).name : ""]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </small>
+                    </button>
+                  ))}
                 {sessions
                   .filter(
                     (s) =>
@@ -1478,13 +1811,8 @@ export function Calendar() {
                     </button>
                   ))}
                 {view === "Day" &&
-                  !sessions.some(
-                    (s) =>
-                      localDate(
-                        new Date(s.starts_at),
-                        data.settings.timezone,
-                      ) === day,
-                  ) && (
+                  !sessions.some((s) => onDay(s.starts_at, day)) &&
+                  !appointments.some((a) => onDay(a.starts_at, day)) && (
                     <Empty
                       title="No sessions"
                       text="Explore the calendar to plan the next session."
@@ -1499,10 +1827,14 @@ export function Calendar() {
             <Globe size={13} /> {data.settings.timezone}
           </span>
           <div className="legend">
-            {["Psychology", "Languages", "Training"].map((c, i) => (
-              <span key={c}>
-                <i className={`program-dot ${["teal", "blue", "amber"][i]}`} />
-                {t(c)}
+            <span>
+              <i className="program-dot appointment" />
+              {t("Consultations & meetings")}
+            </span>
+            {data.programs.slice(0, 6).map((p) => (
+              <span key={p.id}>
+                <i className={`program-dot ${p.color}`} />
+                {t(p.name)}
               </span>
             ))}
           </div>
@@ -1514,6 +1846,7 @@ export function Calendar() {
 
 export function Payments() {
   const { data, t, open, money, date, person, profile, pageFilter } = useApp();
+  const remove = useRemove();
   const [tab, setTab] = useState(
       pageFilter.startsWith("received:") ? "Payment history" : "All charges",
     ),
@@ -1718,14 +2051,24 @@ export function Payments() {
                 key: "actions",
                 label: "Next action",
                 render: (c) =>
-                  data.permissions.editFinance && c.balance > 0 ? (
+                  data.permissions.editFinance ? (
                     <div className="row-actions">
-                      <Button
-                        variant="small"
-                        onClick={() => open({ type: "payment", record: c })}
+                      <button
+                        className="icon-button"
+                        aria-label={t("Edit charge")}
+                        title={t("Edit charge")}
+                        onClick={() => open({ type: "charge", record: c })}
                       >
-                        {t("Record payment")}
-                      </Button>
+                        <Pencil size={15} />
+                      </button>
+                      {c.balance > 0 && (
+                        <Button
+                          variant="small"
+                          onClick={() => open({ type: "payment", record: c })}
+                        >
+                          {t("Record payment")}
+                        </Button>
+                      )}
                       {c.paid === 0 && c.discount === 0 && (
                         <button
                           className="icon-button"
@@ -1799,12 +2142,27 @@ export function Payments() {
                       )}
                     </small>
                     {data.permissions.editFinance && (
-                      <Button
-                        variant="small ghost"
-                        onClick={() => open({ type: "refund", record: p })}
-                      >
-                        {t("Record refund")}
-                      </Button>
+                      <div className="row-actions">
+                        <Button
+                          variant="small ghost"
+                          onClick={() => open({ type: "refund", record: p })}
+                        >
+                          {t("Record refund")}
+                        </Button>
+                        <button
+                          className="icon-button danger"
+                          aria-label={t("Delete payment entry")}
+                          title={t("Delete payment entry")}
+                          onClick={() =>
+                            remove(
+                              `/payments/${p.id}`,
+                              "Delete this payment entry? Use this only to fix a mistake.",
+                            )
+                          }
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ),
@@ -1980,8 +2338,22 @@ export function Reports({
 }
 
 export function SettingsPage() {
-  const { data, t, open, perform, toast, date, time } = useApp();
-  const [tab, setTab] = useState("Workspace settings");
+  const { data, t, open, perform, toast, date, time, pageFilter, go } =
+    useApp();
+  const tabs = [
+    "Workspace settings",
+    "Team & permissions",
+    "My account",
+    ...(data.permissions.admin ? ["Data & import"] : []),
+    "Integrations",
+    "Automation history",
+  ];
+  const [tab, setTab] = useState(
+    tabs.includes(pageFilter) ? pageFilter : "Workspace settings",
+  );
+  useEffect(() => {
+    if (tabs.includes(pageFilter)) setTab(pageFilter);
+  }, [pageFilter]);
   const [busy, setBusy] = useState(false);
   async function runRules() {
     setBusy(true);
@@ -1994,23 +2366,23 @@ export function SettingsPage() {
       setBusy(false);
     }
   }
+  async function reactivate(u: Row) {
+    try {
+      await perform(`/users/${u.id}`, { active: true }, "PATCH");
+      toast(t("Changes saved"));
+    } catch (e: any) {
+      toast(e.message);
+    }
+  }
+  const noLogin = (u: Row) => u.email.endsWith("@no-login.local");
   return (
     <>
       <PageHead
-        title="Make this workspace yours."
-        subtitle="Preferences, people, and connections."
+        title="Settings"
+        subtitle="Your academy, your team, your account and your data."
       />
       <div className="page-tabs">
-        <Tabs
-          tabs={[
-            "Workspace settings",
-            "Team & permissions",
-            "Integrations",
-            "Automation history",
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
+        <Tabs tabs={tabs} value={tab} onChange={setTab} />
       </div>
       {tab === "Workspace settings" ? (
         <div className="settings-grid">
@@ -2035,12 +2407,12 @@ export function SettingsPage() {
               <div className="panel-bottom">
                 <Button
                   variant="primary"
-                  icon={<SlidersHorizontal size={16} />}
+                  icon={<Pencil size={16} />}
                   onClick={() =>
                     open({ type: "settings", record: data.settings })
                   }
                 >
-                  {t("Edit details")}
+                  {t("Edit")}
                 </Button>
               </div>
             )}
@@ -2049,9 +2421,14 @@ export function SettingsPage() {
             <span className="large-program-icon teal">
               <Shield size={25} />
             </span>
-            <h2>{t("Demo workspace")}</h2>
-            <p>{t("Local demo · Fictional records · Persistent database")}</p>
-            <p>{t("All changes are saved locally.")}</p>
+            <h2>{t(data.hosted ? "Hosted workspace" : "Local workspace")}</h2>
+            <p>
+              {t(
+                data.hosted
+                  ? "Changes are saved securely in the cloud."
+                  : "All changes are saved locally.",
+              )}
+            </p>
             <p>
               {t(
                 "Balances include all open charges. Currencies are never combined.",
@@ -2061,6 +2438,25 @@ export function SettingsPage() {
         </div>
       ) : tab === "Team & permissions" ? (
         <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>{t("Team & permissions")}</h2>
+              <p>
+                {t(
+                  "Add advisors, teachers and psychologists. Teachers do not need a login.",
+                )}
+              </p>
+            </div>
+            {data.permissions.admin && (
+              <Button
+                variant="primary"
+                icon={<UserPlus size={16} />}
+                onClick={() => open({ type: "staff" })}
+              >
+                {t("Add staff member")}
+              </Button>
+            )}
+          </div>
           <DataTable
             rows={data.users}
             columns={[
@@ -2072,14 +2468,17 @@ export function SettingsPage() {
                     <Avatar name={u.name} />
                     <span>
                       <strong>{u.name}</strong>
-                      <small>{u.email}</small>
+                      <small>
+                        {noLogin(u) ? t("No login") : u.email}
+                        {u.phone ? ` · ${u.phone}` : ""}
+                      </small>
                     </span>
                   </span>
                 ),
               },
               {
                 key: "role",
-                label: "Staff",
+                label: "Role",
                 render: (u) => (
                   <Badge tone={u.role === "admin" ? "teal" : "neutral"}>
                     {t(roleNames[u.role])}
@@ -2087,40 +2486,132 @@ export function SettingsPage() {
                 ),
               },
               {
-                key: "edit",
-                label: "Edit details",
+                key: "active",
+                label: "Status",
                 render: (u) =>
-                  data.permissions.admin ? (
-                    <Button
-                      variant="small"
-                      onClick={() => open({ type: "role", record: u })}
-                    >
-                      {t("Edit details")}
-                    </Button>
+                  u.active === 0 ? (
+                    <Badge tone="amber">{t("Deactivated")}</Badge>
+                  ) : noLogin(u) ? (
+                    <Badge tone="neutral">{t("No login")}</Badge>
                   ) : (
-                    "—"
+                    <Badge tone="teal">{t("Can sign in")}</Badge>
                   ),
               },
               {
-                key: "permissions",
-                label: "Visibility",
+                key: "edit",
+                label: "",
                 render: (u) =>
-                  t(
-                    u.role === "instructor"
-                      ? "Attendance"
-                      : u.role === "finance"
-                        ? "Finance"
-                        : u.role === "admissions"
-                          ? "Admissions"
-                          : u.role === "academic"
-                            ? "Programs & Cohorts"
-                            : u.role === "manager"
-                              ? "Read-only manager"
-                              : "Administration",
-                  ),
+                  data.permissions.admin ? (
+                    <div className="row-actions">
+                      <Button
+                        variant="small"
+                        icon={<Pencil size={14} />}
+                        onClick={() => open({ type: "staff", record: u })}
+                      >
+                        {t("Edit")}
+                      </Button>
+                      {u.id !== data.user.id && !noLogin(u) && (
+                        <Button
+                          variant="small"
+                          icon={<KeyRound size={14} />}
+                          onClick={() => open({ type: "password", record: u })}
+                        >
+                          {t("Set password")}
+                        </Button>
+                      )}
+                      {u.active === 0 && (
+                        <Button variant="small" onClick={() => reactivate(u)}>
+                          {t("Reactivate")}
+                        </Button>
+                      )}
+                    </div>
+                  ) : null,
               },
             ]}
           />
+        </div>
+      ) : tab === "My account" ? (
+        <div className="settings-grid">
+          <Panel title="My account">
+            <dl className="settings-list">
+              <div>
+                <dt>{t("Full name")}</dt>
+                <dd>{data.user.name}</dd>
+              </div>
+              <div>
+                <dt>{t("Email (sign-in)")}</dt>
+                <dd>{data.user.email}</dd>
+              </div>
+              <div>
+                <dt>{t("Role")}</dt>
+                <dd>{t(roleNames[data.user.role])}</dd>
+              </div>
+            </dl>
+            <div className="panel-bottom">
+              <Button
+                variant="primary"
+                icon={<KeyRound size={16} />}
+                onClick={() => open({ type: "account" })}
+              >
+                {t("Change name, email or password")}
+              </Button>
+            </div>
+          </Panel>
+        </div>
+      ) : tab === "Data & import" ? (
+        <div className="settings-grid">
+          <Panel
+            title="Leads from the website / Google"
+            subtitle="New requests from your form arrive automatically through n8n."
+          >
+            <div className="data-actions">
+              <div>
+                <strong>{(data.incoming || []).length}</strong>
+                <span>{t("waiting in the inbox")}</span>
+              </div>
+              <Button
+                variant="primary"
+                icon={<Upload size={16} />}
+                onClick={() => go("Admissions")}
+              >
+                {t("Open the inbox")}
+              </Button>
+            </div>
+          </Panel>
+          <Panel
+            title="Export"
+            subtitle="Download your data as spreadsheets (CSV, opens in Excel)."
+          >
+            <div className="row-actions wrap">
+              {[
+                ["contacts", "Clients"],
+                ["opportunities", "Requests"],
+                ["enrollments", "Enrollments"],
+                ["charges", "Payments"],
+              ].map(([kind, label]) => (
+                <Button
+                  key={kind}
+                  icon={<Download size={15} />}
+                  onClick={() => window.open(`/api/export/${kind}`, "_self")}
+                >
+                  {t(label)}
+                </Button>
+              ))}
+            </div>
+          </Panel>
+          <Panel
+            title="Start fresh"
+            subtitle="Remove all example records (fake students, teachers, prices) and keep only your account and real leads."
+            className="danger-panel"
+          >
+            <Button
+              variant="danger"
+              icon={<Trash2 size={16} />}
+              onClick={() => open({ type: "cleanStart" })}
+            >
+              {t("Remove all sample data")}
+            </Button>
+          </Panel>
         </div>
       ) : tab === "Integrations" ? (
         <>

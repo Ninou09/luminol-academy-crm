@@ -47,11 +47,17 @@ const nav = [
   ["Overview", LayoutDashboard],
   ["Admissions", Kanban],
   ["Students", Users],
-  ["Programs & Cohorts", GraduationCap],
   ["Calendar", CalendarDays],
+  ["Programs & Cohorts", GraduationCap],
   ["Payments", Wallet],
   ["Reports", ChartNoAxesCombined],
 ] as const;
+/** Plain names shown in the menu; page keys stay stable. */
+const navLabels: Record<string, string> = {
+  Admissions: "Requests",
+  Students: "Clients & students",
+  "Programs & Cohorts": "Programs & groups",
+};
 export default function App() {
   const [data, setData] = useState<State | null>(null),
     [loading, setLoading] = useState(true),
@@ -156,10 +162,10 @@ export default function App() {
     date(s, { hour: "2-digit", minute: "2-digit", hour12: false });
   const [period, setPeriod] = useState("month");
   const [isMobile, setIsMobile] = useState(
-    window.matchMedia("(max-width:760px)").matches,
+    window.matchMedia("(max-width:1024px)").matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width:760px)");
+    const mq = window.matchMedia("(max-width:1024px)");
     const update = () => setIsMobile(mq.matches);
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
@@ -236,7 +242,7 @@ export default function App() {
       !(name === "Admissions" && !data.permissions.admissions) &&
       !(name === "Payments" && !data.permissions.finance),
   );
-  const title = page === "Programs & Cohorts" ? "Programs & Cohorts" : page;
+  const title = navLabels[page] || page;
   const views: Record<string, ReactNode> = {
     Overview: <Overview period={period} setPeriod={setPeriod} />,
     Admissions: <Admissions />,
@@ -271,79 +277,73 @@ export default function App() {
               luminol<span>ACADEMY</span>
             </span>
           </button>
-          <button className="workspace-switch" onClick={() => go("Settings")}>
-            <span className="workspace-icon">LA</span>
-            <span>
-              {t("Academy workspace")}
-              <small>
-                {t("Psychology")} · {t("Languages")}
-              </small>
-            </span>
-            <ChevronDown size={14} />
-          </button>
-          <div className="nav-label">{t("Workspace")}</div>
-          <nav aria-label={t("Workspace")}>
-            {visibleNav.map(([name, Icon]) => (
-              <button
-                key={name}
-                className={`nav-item ${page === name ? "active" : ""}`}
-                aria-current={page === name ? "page" : undefined}
-                onClick={() => go(name)}
-              >
-                <Icon size={19} />
-                <span>{t(name)}</span>
-                {name === "Admissions" &&
-                  data.opportunities.filter((o) => o.stage === "New inquiry")
-                    .length > 0 && (
-                    <span className="nav-count">
-                      {
-                        data.opportunities.filter(
-                          (o) => o.stage === "New inquiry",
-                        ).length
-                      }
-                    </span>
-                  )}
-              </button>
-            ))}
-          </nav>
-          <div className="nav-divider" />
           <button
-            className={`nav-item ${page === "My tasks" ? "active" : ""}`}
-            onClick={() => go("My tasks")}
+            className="icon-button sidebar-close"
+            aria-label={t("Close")}
+            onClick={() => setMobile(false)}
           >
-            <ListTodo size={19} />
-            <span>{t("My tasks")}</span>
-            <span className="nav-count neutral">{taskCount}</span>
+            <X size={20} />
           </button>
-          <div className="sidebar-bottom">
-            <div className="demo-card">
-              <span className="small-spark">✳</span>
-              <strong>{t("A little clarity. A lot of possibility.")}</strong>
-              <p>
-                {t("Demo workspace")}
-                <br />
-                {t("Fictional data")}
-              </p>
-              <button onClick={() => go("Settings")}>
-                {t("Workspace settings")}
-                <ArrowUpRight size={14} />
-              </button>
-            </div>
+          <div className="sidebar-scroll">
+            <div className="nav-label">{data.settings.academy}</div>
+            <nav aria-label={t("Workspace")}>
+              {visibleNav.map(([name, Icon]) => (
+                <button
+                  key={name}
+                  className={`nav-item ${page === name ? "active" : ""}`}
+                  aria-current={page === name ? "page" : undefined}
+                  onClick={() => go(name)}
+                >
+                  <Icon size={20} />
+                  <span>{t(navLabels[name] || name)}</span>
+                  {name === "Admissions" &&
+                    data.opportunities.filter((o) => o.stage === "New inquiry")
+                      .length +
+                      (data.incoming || []).length >
+                      0 && (
+                      <span className="nav-count">
+                        {data.opportunities.filter(
+                          (o) => o.stage === "New inquiry",
+                        ).length + (data.incoming || []).length}
+                      </span>
+                    )}
+                </button>
+              ))}
+            </nav>
+            <div className="nav-divider" />
+            <button
+              className={`nav-item ${page === "My tasks" ? "active" : ""}`}
+              onClick={() => go("My tasks")}
+            >
+              <ListTodo size={20} />
+              <span>{t("My tasks")}</span>
+              <span className="nav-count neutral">{taskCount}</span>
+            </button>
             <button
               className={`nav-item ${page === "Settings" ? "active" : ""}`}
+              aria-current={page === "Settings" ? "page" : undefined}
               onClick={() => go("Settings")}
             >
-              <Settings size={19} />
+              <Settings size={20} />
               <span>{t("Settings")}</span>
             </button>
+          </div>
+          <div className="sidebar-bottom">
             <div className="user-block">
-              <Avatar name={data.user.name} />
-              <div>
-                <strong>{data.user.name}</strong>
-                <small>{t(roleNames[data.user.role])}</small>
-              </div>
+              <button
+                className="user-link"
+                onClick={() => go("Settings", "My account")}
+                title={t("My account")}
+              >
+                <Avatar name={data.user.name} />
+                <div>
+                  <strong>{data.user.name}</strong>
+                  <small>{t(roleNames[data.user.role])}</small>
+                </div>
+              </button>
               <button
                 className="icon-button"
+                title={t("Sign out")}
                 aria-label={t("Sign out")}
                 onClick={async () => {
                   await api("/logout", {});
@@ -456,16 +456,6 @@ export default function App() {
             </div>
           </header>
           <main id="main-content" tabIndex={-1}>
-            <div className="workspace-status">
-              <span>
-                <i />
-                {t(data.hosted ? "Hosted workspace" : "Local workspace")}
-              </span>
-              <span>
-                {t("Demo workspace")}{" "}
-                <span className="muted">· {t("Fictional data")}</span>
-              </span>
-            </div>
             {views[page] || views.Overview}
             <footer className="app-footer">
               <span>
@@ -501,7 +491,21 @@ export default function App() {
               {data.permissions.editAdmissions && (
                 <button onClick={() => open({ type: "inquiry" })}>
                   <Kanban size={17} />
-                  {t("New inquiry")}
+                  {t("New client request")}
+                </button>
+              )}
+              {["admin", "admissions", "academic"].includes(data.user.role) && (
+                <button onClick={() => open({ type: "client" })}>
+                  <Users size={17} />
+                  {t("Add client")}
+                </button>
+              )}
+              {["admin", "admissions", "academic", "instructor"].includes(
+                data.user.role,
+              ) && (
+                <button onClick={() => open({ type: "appointment" })}>
+                  <CalendarDays size={17} />
+                  {t("Add to calendar")}
                 </button>
               )}
               {data.permissions.write && (
@@ -514,12 +518,6 @@ export default function App() {
                 <button onClick={() => open({ type: "payment" })}>
                   <Wallet size={17} />
                   {t("Record payment")}
-                </button>
-              )}
-              {data.permissions.editAcademic && (
-                <button onClick={() => open({ type: "session" })}>
-                  <CalendarDays size={17} />
-                  {t("New session")}
                 </button>
               )}
             </div>
@@ -629,11 +627,10 @@ function Login({
   onLogin: () => Promise<void>;
   error: string;
 }) {
-  const localDemo = ["localhost", "127.0.0.1", "[::1]"].includes(
-    window.location.hostname,
-  );
-  const [email, setEmail] = useState("admin@luminol.demo"),
-    [password, setPassword] = useState(localDemo ? "LuminolDemo!2026" : ""),
+  const [email, setEmail] = useState(
+      localStorage.getItem("luminol-email") || "",
+    ),
+    [password, setPassword] = useState(""),
     [show, setShow] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(outerError);
@@ -642,6 +639,9 @@ function Login({
     setError("");
     try {
       await api("/login", { email, password });
+      try {
+        localStorage.setItem("luminol-email", email.trim());
+      } catch {}
       await onLogin();
     } catch (e: any) {
       setError(e.message);
@@ -692,28 +692,8 @@ function Login({
             login();
           }}
         >
-          <Badge tone="teal">{t("Demo workspace")}</Badge>
           <h2>{t("Welcome to Luminol.")}</h2>
           <p>{t("Sign in to workspace")}</p>
-          {localDemo && (
-            <label>
-              {t("Use a demo role")}
-              <select value={email} onChange={(e) => setEmail(e.target.value)}>
-                {[
-                  ["admin", "admin"],
-                  ["amel", "admissions"],
-                  ["yacine", "academic"],
-                  ["sarah", "instructor"],
-                  ["karim", "finance"],
-                  ["nadia", "manager"],
-                ].map(([name, role]) => (
-                  <option key={name} value={`${name}@luminol.demo`}>
-                    {t(roleNames[role])}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <label>
             {t("Email")}
             <input
@@ -757,14 +737,12 @@ function Login({
               busy ? <LoaderCircle className="spin" size={18} /> : undefined
             }
           >
-            {t(localDemo ? "Enter demo workspace" : "Sign in")}
+            {t("Sign in")}
             <ArrowRight size={17} />
           </Button>
           <div className="login-note">
             {t(
-              localDemo
-                ? "Local demo · Fictional records · Persistent database"
-                : "Hosted workspace · Password required · Persistent database",
+              "Forgot your password? Ask your administrator to set a new one.",
             )}
           </div>
         </form>
