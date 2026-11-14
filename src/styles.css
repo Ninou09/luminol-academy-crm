@@ -6903,3 +6903,37 @@ html[data-theme="dark"] .welcome-banner img {
     min-width: 0;
   }
 }
+
+/* Real Luminol Academy logo */
+.brand img,
+.booking-header .brand img {
+  object-fit: contain;
+  border-radius: 0;
+  width: 44px;
+  height: 44px;
+}
+.sidebar .brand img,
+.login-art .brand img {
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px;
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 4px 14px #0004;
+}
+.loading-screen img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+.login-logo {
+  display: block;
+  width: 150px;
+  height: auto;
+  margin: 0 0 18px;
+}
+@media (max-width: 760px) {
+  .login-logo {
+    display: none;
+  }
+}

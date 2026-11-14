@@ -36,14 +36,19 @@ export function printDocument(
     alert("Allow pop-ups for this site to print.");
     return;
   }
+  body = body.replace(
+    '<div class="brand"><h1>',
+    '<div class="brand"><h1><img class="logo" src="/logo-mark.png" alt="">',
+  );
   w.document
-    .write(`<!doctype html><html dir="${rtl ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+    .write(`<!doctype html><html dir="${rtl ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><base href="${window.location.origin}/">
 <style>
   @page { size: A4; margin: 18mm; }
   body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2f2a; margin: 0; }
   .sheet { max-width: 760px; margin: 0 auto; padding: 24px; }
   .brand { display:flex; justify-content:space-between; align-items:center; border-bottom: 3px solid #167e70; padding-bottom: 14px; }
-  .brand h1 { margin:0; font-size: 26px; color:#167e70; letter-spacing: -0.5px; }
+  .brand h1 { margin:0; font-size: 26px; color:#167e70; letter-spacing: -0.5px; display:flex; align-items:center; gap:12px; }
+  .brand h1 .logo { width: 58px; height: 58px; object-fit: contain; }
   .muted { color:#6b7a72; font-size: 13px; }
   table { width:100%; border-collapse: collapse; margin-top: 22px; font-size: 15px; }
   td { padding: 10px 6px; border-bottom: 1px solid #e3e8e4; }

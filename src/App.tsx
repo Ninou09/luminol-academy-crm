@@ -265,7 +265,7 @@ export default function App() {
   if (loading)
     return (
       <div className="loading-screen">
-        <img src="/favicon.svg" width="48" />
+        <img src="/logo-mark.png" width="48" />
         <LoaderCircle className="spin" />
         <p>{t("Loading workspace…")}</p>
       </div>
@@ -341,7 +341,7 @@ export default function App() {
             onClick={() => go("Overview")}
             aria-label="Luminol Academy"
           >
-            <img src="/favicon.svg" alt="" />
+            <img src="/logo-mark.png" alt="" />
             <span>
               luminol<span>ACADEMY</span>
             </span>
@@ -749,7 +749,7 @@ function Login({
     <div className="login-page">
       <div className="login-art">
         <div className="brand">
-          <img src="/favicon.svg" alt="" />
+          <img src="/logo-mark.png" alt="" />
           <span>
             luminol<span>ACADEMY</span>
           </span>
@@ -784,6 +784,11 @@ function Login({
             login();
           }}
         >
+          <img
+            className="login-logo"
+            src="/logo-full.png"
+            alt="Luminol Academy"
+          />
           <h2>{t("Welcome to Luminol.")}</h2>
           <p>{t("Sign in to workspace")}</p>
           <label>

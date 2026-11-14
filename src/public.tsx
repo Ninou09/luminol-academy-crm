@@ -48,7 +48,7 @@ function Shell({
     <div className="booking-page">
       <header className="booking-header">
         <a className="brand" href="/">
-          <img src="/favicon.svg" alt="" />
+          <img src="/logo-mark.png" alt="" />
           <span>Luminol Academy</span>
         </a>
         <div

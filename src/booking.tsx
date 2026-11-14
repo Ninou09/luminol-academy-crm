@@ -159,7 +159,7 @@ export default function BookingPage() {
     <div className="booking-page">
       <header className="booking-header">
         <div className="brand">
-          <img src="/favicon.svg" alt="" />
+          <img src="/logo-mark.png" alt="" />
           <span>{info?.academy || "Luminol Academy"}</span>
         </div>
         {picker}
