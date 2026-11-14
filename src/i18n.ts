@@ -876,3 +876,12 @@ Object.assign(arabic, {
   "Payment received, thank you!": "تم استلام الدفع، شكرا!",
   "The payment did not go through": "لم تتم عملية الدفع",
 });
+Object.assign(arabic, {
+  "Good morning": "صباح الخير",
+  "Good afternoon": "مساء الخير",
+  "Good evening": "مساء الخير",
+  "booked today": "مواعيد اليوم",
+  "new requests": "طلبات جديدة",
+  "to confirm": "بانتظار التأكيد",
+  "open tasks": "مهام مفتوحة",
+});

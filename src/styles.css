@@ -6483,3 +6483,423 @@ html[data-theme="dark"] video {
   margin-top: 20px;
   font-size: 14px;
 }
+
+/* ==========================================================================
+   Luminol design 2.0 — deeper brand green, warm gold accent, soft depth.
+   One block at the end so every screen picks it up.
+   ========================================================================== */
+:root {
+  --brand-900: #0b3b34;
+  --brand-800: #0f4b42;
+  --brand-700: #13605a;
+  --brand-600: #167e70;
+  --brand-500: #1f9a85;
+  --brand-100: #e3f2ec;
+  --brand-50: #f1f8f4;
+  --gold: #e0a93b;
+  --gold-soft: #fbf1db;
+  --bg: #f4f2ec;
+  --line: #e6e4dc;
+  --ink: #17302b;
+  --muted: #6f7c75;
+  --teal: var(--brand-600);
+  --radius: 16px;
+  --shadow-sm: 0 1px 2px #0b3b340d, 0 2px 8px #0b3b340a;
+  --shadow-md: 0 4px 10px #0b3b340f, 0 14px 30px #0b3b3412;
+  background: var(--bg);
+}
+body {
+  background:
+    radial-gradient(1200px 500px at 100% -10%, #e6f2ea 0%, transparent 60%),
+    var(--bg);
+}
+
+/* Sidebar ---------------------------------------------------------------- */
+.sidebar {
+  background:
+    radial-gradient(420px 300px at 0% 0%, #1a6b5e55, transparent 70%),
+    linear-gradient(180deg, var(--brand-800) 0%, var(--brand-900) 100%);
+  border-inline-end: 0;
+  color: #d9ebe3;
+  box-shadow: 6px 0 30px #0b3b3420;
+}
+.sidebar .brand,
+.sidebar .brand > span {
+  color: #fff;
+}
+.sidebar .brand > span > span {
+  color: #a8cfc1;
+}
+.sidebar .brand img {
+  box-shadow: 0 0 0 2px #ffffff22;
+}
+.sidebar .nav-label {
+  color: #8fb8aa;
+}
+.sidebar .nav-item {
+  color: #cfe3da;
+  border-radius: 10px;
+  position: relative;
+}
+.sidebar .nav-item svg {
+  color: #8fc7b4;
+}
+.sidebar .nav-item:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+.sidebar .nav-item.active {
+  background: linear-gradient(90deg, #ffffff24, #ffffff0d);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #ffffff1a;
+}
+.sidebar .nav-item.active svg {
+  color: var(--gold);
+}
+.sidebar .nav-item.active::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -14px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--gold);
+}
+[dir="rtl"] .sidebar .nav-item.active::before {
+  border-radius: 4px 0 0 4px;
+}
+.sidebar .nav-count {
+  background: var(--gold);
+  color: #3b2a05;
+  font-weight: 700;
+}
+.sidebar .nav-count.neutral {
+  background: #ffffff1f;
+  color: #e3efe9;
+}
+.sidebar .nav-divider {
+  border-color: #ffffff1a;
+}
+.sidebar .user-block {
+  border-top-color: #ffffff1a;
+}
+.sidebar .user-block strong {
+  color: #fff;
+}
+.sidebar .user-block small {
+  color: #9fc4b7;
+}
+.sidebar .user-link:hover {
+  background: #ffffff12;
+}
+.sidebar .icon-button {
+  color: #b9d8cc;
+}
+.sidebar .icon-button:hover {
+  background: #ffffff14;
+  color: #fff;
+}
+.sidebar .avatar {
+  box-shadow: 0 0 0 2px #ffffff30;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #ffffff26;
+  border-radius: 6px;
+}
+
+/* Top bar ------------------------------------------------------------------ */
+.topbar {
+  background: #fffffff0;
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom-color: #e6e4dc;
+}
+.search-trigger {
+  background: #f6f5f0;
+  border-color: #e6e4dc;
+  border-radius: 10px;
+}
+
+/* Headings ------------------------------------------------------------------ */
+.page-heading h1 {
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+}
+.page-heading p {
+  color: var(--muted);
+}
+
+/* Welcome banner (Overview) ------------------------------------------------- */
+.welcome-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 26px 28px;
+  margin-bottom: 22px;
+  color: #fff;
+  background:
+    radial-gradient(500px 220px at 90% 0%, #e0a93b40, transparent 70%),
+    radial-gradient(420px 260px at 0% 100%, #1f9a8566, transparent 70%),
+    linear-gradient(120deg, var(--brand-800), var(--brand-600));
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.welcome-banner::after {
+  content: "✳";
+  position: absolute;
+  inset-inline-end: 22px;
+  bottom: -40px;
+  font-size: 170px;
+  color: #ffffff10;
+  line-height: 1;
+  pointer-events: none;
+}
+.welcome-banner small {
+  display: block;
+  color: #bfe3d6;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  text-transform: capitalize;
+}
+.welcome-banner h2 {
+  font-size: 26px;
+  font-weight: 650;
+  margin: 4px 0 6px;
+  letter-spacing: -0.5px;
+}
+.welcome-banner p {
+  color: #d6ece4;
+  font-size: 14.5px;
+}
+.welcome-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+.welcome-stats button {
+  background: #ffffff1c;
+  border: 1px solid #ffffff2b;
+  border-radius: 14px;
+  padding: 10px 16px;
+  color: #fff;
+  text-align: start;
+  min-width: 118px;
+  backdrop-filter: blur(4px);
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.welcome-stats button:hover {
+  background: #ffffff2e;
+  transform: translateY(-2px);
+}
+.welcome-stats strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+}
+.welcome-stats span {
+  font-size: 12.5px;
+  color: #d6ece4;
+}
+
+/* Surfaces ------------------------------------------------------------------ */
+.panel,
+.metric,
+.settings-note,
+.program-card {
+  border-color: #e9e7df;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.panel-heading h2 {
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+.metric {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fff 0%, #fdfcf9 100%);
+}
+.metric::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--tone, var(--brand-600));
+  opacity: 0.85;
+}
+.metric:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.metric-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+.metric > strong {
+  letter-spacing: -1px;
+  font-weight: 700;
+}
+
+/* Buttons ------------------------------------------------------------------- */
+.button {
+  border-radius: 11px;
+  border-color: #e2e0d6;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+.button:hover:not(:disabled) {
+  border-color: #cddbd3;
+  box-shadow: var(--shadow-sm);
+}
+.button.primary {
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+  border-color: transparent;
+  box-shadow: 0 4px 14px #13605a40;
+}
+.button.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #22a890, var(--brand-800));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px #13605a4d;
+}
+.button:disabled {
+  opacity: 0.55;
+}
+.quick-button {
+  background: linear-gradient(135deg, var(--gold), #c98a1b);
+  color: #2c1f03;
+  font-weight: 700;
+  box-shadow: 0 8px 24px #c98a1b55;
+}
+.quick-button:hover {
+  filter: brightness(1.05);
+}
+
+/* Tabs, badges, tables -------------------------------------------------------- */
+.tabs button.active {
+  color: var(--brand-700);
+  border-bottom-color: var(--gold);
+  border-bottom-width: 3px;
+}
+.badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 600;
+}
+th {
+  background: #f8f7f2;
+  color: #5d6d63;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+tbody tr {
+  transition: background 0.12s;
+}
+tbody tr:hover {
+  background: #f6faf7;
+}
+
+/* Board ------------------------------------------------------------------------ */
+.kanban-column {
+  background: #ecebe3;
+  border-radius: 16px;
+}
+.lead-card {
+  border-radius: 12px;
+  border-color: #e7e5dc;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.lead-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Forms & dialogs --------------------------------------------------------------- */
+.dialog,
+.drawer {
+  border-radius: 20px;
+  box-shadow: 0 30px 80px #0b3b3440;
+}
+.drawer {
+  border-radius: 0;
+}
+.dialog-heading {
+  background: linear-gradient(180deg, #fff, #fbfaf6);
+}
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  border-radius: 10px;
+  border-color: #dedcd2;
+  background: #fff;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 4px #1f9a8520;
+  outline: none;
+}
+.toast {
+  background: linear-gradient(135deg, var(--brand-800), var(--brand-700));
+  border-radius: 14px;
+}
+.profile-hero {
+  background: linear-gradient(180deg, var(--brand-50), #fff);
+}
+
+/* Login ------------------------------------------------------------------------- */
+.login-art {
+  background:
+    radial-gradient(600px 400px at 100% 0%, #e0a93b2e, transparent 70%),
+    radial-gradient(500px 400px at 0% 100%, #1f9a8555, transparent 70%),
+    linear-gradient(140deg, var(--brand-900), var(--brand-700));
+}
+.login-side {
+  background: #fbfaf6;
+}
+
+/* Dark theme: the sidebar is already dark, so keep its real colours. */
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .welcome-banner,
+html[data-theme="dark"] .quick-button {
+  filter: invert(1) hue-rotate(180deg);
+}
+html[data-theme="dark"] .sidebar img,
+html[data-theme="dark"] .welcome-banner img {
+  filter: none;
+}
+@media (max-width: 760px) {
+  .welcome-banner {
+    padding: 20px;
+  }
+  .welcome-banner h2 {
+    font-size: 21px;
+  }
+  .welcome-stats button {
+    flex: 1 1 40%;
+    min-width: 0;
+  }
+}

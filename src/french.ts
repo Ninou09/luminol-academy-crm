@@ -1301,3 +1301,12 @@ Object.assign(french, {
   "Send one by one with the WhatsApp buttons, or all at once when WhatsApp is connected.":
     "Envoyez un par un avec les boutons WhatsApp, ou tous d’un coup quand WhatsApp est connecté.",
 });
+Object.assign(french, {
+  "Good morning": "Bonjour",
+  "Good afternoon": "Bon après-midi",
+  "Good evening": "Bonsoir",
+  "booked today": "rendez-vous aujourd’hui",
+  "new requests": "nouvelles demandes",
+  "to confirm": "à confirmer",
+  "open tasks": "tâches ouvertes",
+});

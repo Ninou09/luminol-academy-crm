@@ -189,6 +189,71 @@ function useStats(period: string) {
       : 0,
   };
 }
+/** Friendly header with the four numbers people check first thing. */
+function WelcomeBanner() {
+  const { data, t, date, go } = useApp();
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: data.settings.timezone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date()),
+  );
+  const greeting = t(
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening",
+  );
+  const todayCount =
+    (data.appointments || []).filter(
+      (a) =>
+        a.status !== "Cancelled" &&
+        localDate(new Date(a.starts_at), data.settings.timezone) === data.today,
+    ).length +
+    data.sessions.filter(
+      (s) =>
+        s.status === "Scheduled" &&
+        localDate(new Date(s.starts_at), data.settings.timezone) === data.today,
+    ).length;
+  const stats: [number, string, () => void][] = [
+    [todayCount, "booked today", () => go("Calendar")],
+    [
+      data.opportunities.filter((o) => o.stage === "New inquiry").length +
+        (data.incoming || []).length,
+      "new requests",
+      () => go("Admissions"),
+    ],
+    [
+      (data.appointments || []).filter((a) => a.status === "Pending").length,
+      "to confirm",
+      () => go("Calendar"),
+    ],
+    [
+      data.tasks.filter((x) => x.status === "Open").length,
+      "open tasks",
+      () => go("My tasks"),
+    ],
+  ];
+  return (
+    <section className="welcome-banner">
+      <div>
+        <small>
+          {date(data.today, { weekday: "long", day: "numeric", month: "long" })}
+        </small>
+        <h2>
+          {greeting}, {data.user.name.split(" ")[0]}
+        </h2>
+        <p>{data.settings.academy}</p>
+      </div>
+      <div className="welcome-stats">
+        {stats.map(([n, label, onClick]) => (
+          <button key={label} onClick={onClick}>
+            <strong>{n}</strong>
+            <span>{t(label)}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 export function Overview({
   period,
   setPeriod,
@@ -270,6 +335,7 @@ export function Overview({
           </Button>
         )}
       </PageHead>
+      <WelcomeBanner />
       {data.permissions.admin && !data.programs.length && (
         <div className="setup-guide panel">
           <div>
