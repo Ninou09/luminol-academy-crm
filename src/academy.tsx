@@ -615,14 +615,43 @@ export function PayrollReport() {
                 {
                   key: "edit",
                   label: "",
-                  render: (u: Row) => (
-                    <Button
-                      variant="small"
-                      onClick={() => open({ type: "pay", record: u })}
-                    >
-                      {t("Set rate")}
-                    </Button>
-                  ),
+                  render: (u: Row) => {
+                    const paid = (data.expenses || []).some(
+                      (x) =>
+                        x.direction !== "in" &&
+                        x.party === u.name &&
+                        x.label === `${t("Salary")} ${month}`,
+                    );
+                    return (
+                      <div className="row-actions">
+                        <Button
+                          variant="small"
+                          onClick={() => open({ type: "pay", record: u })}
+                        >
+                          {t("Set rate")}
+                        </Button>
+                        <Button
+                          variant="small"
+                          disabled={paid}
+                          onClick={() =>
+                            open({
+                              type: "expense",
+                              record: {
+                                id: 0,
+                                direction: "out",
+                                category: "Salaries",
+                                party: u.name,
+                                label: `${t("Salary")} ${month}`,
+                                amount: u.total,
+                              },
+                            })
+                          }
+                        >
+                          {paid ? t("Salary recorded") : t("Record the salary")}
+                        </Button>
+                      </div>
+                    );
+                  },
                 },
               ]
             : []),

@@ -1356,3 +1356,118 @@ Object.assign(french, {
     "Supprime d’abord toutes les données actuelles (à utiliser une seule fois, pour retirer les données d’exemple).",
   "Import finished. Added to the CRM:": "Import terminé. Ajouté à la CRM :",
 });
+
+// Finance analytics, flexible payments, integrations guide
+Object.assign(french, {
+  Deactivate: "Désactiver",
+  "Deactivate this account? The person can no longer sign in; their history is kept and you can reactivate them at any time.":
+    "Désactiver ce compte ? La personne ne pourra plus se connecter ; son historique est conservé et vous pouvez la réactiver à tout moment.",
+  "Account deactivated": "Compte désactivé",
+  "Other payment (type it freely)": "Autre paiement (saisie libre)",
+  "Paid by (client)": "Payé par (client)",
+  "Type a name; a new client is created if needed.":
+    "Tapez un nom ; un nouveau client est créé si besoin.",
+  "What it is for": "Pour quoi",
+  "Example: Consultation, book, registration fee…":
+    "Exemple : consultation, livre, frais d’inscription…",
+  CCP: "CCP",
+  BaridiMob: "BaridiMob",
+  Cheque: "Chèque",
+  "Record money received": "Enregistrer une entrée d’argent",
+  "Money out (expense)": "Sortie d’argent (dépense)",
+  "Money in (other income)": "Entrée d’argent (autre revenu)",
+  "Other income": "Autre revenu",
+  "Sale of materials": "Vente de matériel",
+  "Subsidy or sponsorship": "Subvention ou sponsor",
+  "Partner contribution": "Apport d’un associé",
+  "Materials and supplies": "Matériel et fournitures",
+  "Software and subscriptions": "Logiciels et abonnements",
+  Transport: "Transport",
+  "Received from": "Reçu de",
+  "Paid to": "Payé à",
+  "Financial analytics": "Analyse financière",
+  "Client payments": "Paiements des clients",
+  Refunds: "Remboursements",
+  "Money in": "Entrées d’argent",
+  "Money out": "Sorties d’argent",
+  Period: "Période",
+  Year: "Année",
+  "Client payments and other income": "Paiements des clients et autres revenus",
+  "Salaries, rent, materials, refunds…":
+    "Salaires, loyer, matériel, remboursements…",
+  Loss: "Perte",
+  Profit: "Bénéfice",
+  Margin: "Marge",
+  "No money in yet": "Aucune entrée pour l’instant",
+  "vs last month": "vs mois dernier",
+  "vs last year": "vs année dernière",
+  "Still to collect": "Reste à encaisser",
+  "Unpaid balances of clients (all periods)":
+    "Soldes impayés des clients (toutes périodes)",
+  "Money in and out, month by month": "Entrées et sorties, mois par mois",
+  "The last 12 months. Hover a month to see the figures.":
+    "Les 12 derniers mois. Survolez un mois pour voir les chiffres.",
+  "Every month of the year. Hover a month to see the figures.":
+    "Chaque mois de l’année. Survolez un mois pour voir les chiffres.",
+  "Where the money comes from": "D’où vient l’argent",
+  "Where the money goes": "Où va l’argent",
+  "No money in for this period.": "Aucune entrée sur cette période.",
+  "No expenses for this period.": "Aucune dépense sur cette période.",
+  "All money movements": "Tous les mouvements d’argent",
+  movements: "mouvements",
+  "Export (Excel)": "Exporter (Excel)",
+  "Delete this movement?": "Supprimer ce mouvement ?",
+  "Expenses and other income": "Dépenses et autres entrées",
+  "Salaries, rent, materials, advertising… and money received outside client payments.":
+    "Salaires, loyer, matériel, publicité… et l’argent reçu en dehors des paiements des clients.",
+  "Total expenses": "Total des dépenses",
+  Salary: "Salaire",
+  "Salary recorded": "Salaire enregistré",
+  "Record the salary": "Enregistrer le salaire",
+  "Website, Google Forms and Tally → CRM inbox":
+    "Site, Google Forms et Tally → boîte de réception de la CRM",
+  "Every form answer arrives in Requests → “New contacts from the website / Google”. You check it and add it to the requests with one click (or import them all).":
+    "Chaque réponse de formulaire arrive dans Demandes → « Nouveaux contacts du site / Google ». Vous la vérifiez et l’ajoutez aux demandes en un clic (ou importez tout).",
+  "In Vercel → Settings → Environment Variables, add N8N_INTAKE_TOKEN: a long secret password (at least 32 characters). Redeploy.":
+    "Dans Vercel → Settings → Environment Variables, ajoutez N8N_INTAKE_TOKEN : un long mot de passe secret (au moins 32 caractères). Redéployez.",
+  "Google Forms: open the form → ⋮ → Script editor (Apps Script), paste the script below and put the same token in TOKEN.":
+    "Google Forms : ouvrez le formulaire → ⋮ → Éditeur de script (Apps Script), collez le script ci-dessous et mettez le même jeton dans TOKEN.",
+  "In Apps Script → Triggers → Add trigger: function onFormSubmit, event source “From form”, event type “On form submit”. Accept the Google permissions.":
+    "Dans Apps Script → Déclencheurs → Ajouter : fonction onFormSubmit, source « À partir du formulaire », type « Lors de l’envoi du formulaire ». Acceptez les autorisations Google.",
+  "Name your questions with simple words (Nom, Téléphone, E-mail, Formation, Consultation, J'accepte…) so the script recognises them.":
+    "Nommez vos questions avec des mots simples (Nom, Téléphone, E-mail, Formation, Consultation, J’accepte…) pour que le script les reconnaisse.",
+  "Tally or your website: use n8n (already prepared) or a Tally webhook to the same address with the same token.":
+    "Tally ou votre site : utilisez n8n (déjà prêt) ou un webhook Tally vers la même adresse avec le même jeton.",
+  "Already works without any setup: every WhatsApp button opens WhatsApp on your phone or computer with the message written; you only press Send.":
+    "Fonctionne déjà sans réglage : chaque bouton WhatsApp ouvre WhatsApp sur votre téléphone ou ordinateur avec le message écrit ; il suffit d’appuyer sur Envoyer.",
+  "For fully automatic messages (reminders sent alone every evening), create a Meta WhatsApp Business account (business.facebook.com) and add your academy number.":
+    "Pour des messages 100 % automatiques (rappels envoyés seuls chaque soir), créez un compte Meta WhatsApp Business (business.facebook.com) et ajoutez le numéro de l’académie.",
+  "Create a message template and wait for Meta's approval.":
+    "Créez un modèle de message et attendez l’accord de Meta.",
+  "Add WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE in Vercel, plus CRON_SECRET for the daily reminders. Redeploy.":
+    "Ajoutez WHATSAPP_TOKEN, WHATSAPP_PHONE_ID et WHATSAPP_TEMPLATE dans Vercel, plus CRON_SECRET pour les rappels quotidiens. Redéployez.",
+  "Meta charges a small fee per conversation.":
+    "Meta facture un petit montant par conversation.",
+  "E-mails (forgotten password)": "E-mails (mot de passe oublié)",
+  "Without it, the administrator sets a new password for staff in Settings → Team.":
+    "Sans cela, l’administrateur définit un nouveau mot de passe dans Paramètres → Équipe.",
+  "Create a free account on resend.com and verify your domain (or use their test address).":
+    "Créez un compte gratuit sur resend.com et vérifiez votre domaine (ou utilisez leur adresse de test).",
+  "Add RESEND_API_KEY and MAIL_FROM (for example: Luminol Academy <noreply@your-domain>) in Vercel. Redeploy.":
+    "Ajoutez RESEND_API_KEY et MAIL_FROM (par exemple : Luminol Academy <noreply@votre-domaine>) dans Vercel. Redéployez.",
+  "Online card payment (CIB / Edahabia)":
+    "Paiement en ligne par carte (CIB / Edahabia)",
+  "Without it, payments (cash, CCP, BaridiMob…) are recorded by hand in Payments.":
+    "Sans cela, les paiements (espèces, CCP, BaridiMob…) sont saisis à la main dans Paiements.",
+  "Create an account on chargily.com and get your secret key (start in test mode).":
+    "Créez un compte sur chargily.com et récupérez votre clé secrète (commencez en mode test).",
+  "Add CHARGILY_SECRET_KEY in Vercel; after testing add CHARGILY_MODE=live. Redeploy.":
+    "Ajoutez CHARGILY_SECRET_KEY dans Vercel ; après les tests, ajoutez CHARGILY_MODE=live. Redéployez.",
+  "Then each amount due gets a “Payment link” button to send to the client.":
+    "Chaque montant dû aura alors un bouton « Lien de paiement » à envoyer au client.",
+  "How to connect it": "Comment le connecter",
+  "Show the Google Forms script": "Afficher le script Google Forms",
+  "Copy the script": "Copier le script",
+  Copied: "Copié",
+  "Select the text and copy it.": "Sélectionnez le texte et copiez-le.",
+});

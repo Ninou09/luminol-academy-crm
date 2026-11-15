@@ -43,8 +43,11 @@ import {
   Stethoscope,
   CreditCard,
   FileSpreadsheet,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { useApp } from "./context";
+import { FinanceDashboard } from "./finance";
 import {
   Button,
   Badge,
@@ -66,6 +69,7 @@ import {
   ExpensesPanel,
   FeedbackPanel,
   IntegrationStatus,
+  IntegrationGuide,
   ProfitPanel,
   useInvoice,
 } from "./growth";
@@ -1852,6 +1856,7 @@ export function Payments() {
       <div className="page-tabs">
         <Tabs
           tabs={[
+            "Financial analytics",
             "All charges",
             "Payment history",
             "Cash book",
@@ -1863,7 +1868,9 @@ export function Payments() {
           onChange={setTab}
         />
       </div>
-      {tab === "Cash book" ? (
+      {tab === "Financial analytics" ? (
+        <FinanceDashboard />
+      ) : tab === "Cash book" ? (
         <CashReport />
       ) : tab === "Who owes what" ? (
         <DebtsReport />
@@ -2331,6 +2338,20 @@ export function SettingsPage() {
       toast(e.message);
     }
   }
+  async function deactivate(u: Row) {
+    if (
+      !window.confirm(
+        `${u.name} — ${t("Deactivate this account? The person can no longer sign in; their history is kept and you can reactivate them at any time.")}`,
+      )
+    )
+      return;
+    try {
+      await perform(`/users/${u.id}`, { active: false }, "PATCH");
+      toast(t("Account deactivated"));
+    } catch (e: any) {
+      toast(e.message);
+    }
+  }
   const noLogin = (u: Row) => u.email.endsWith("@no-login.local");
   return (
     <>
@@ -2522,10 +2543,24 @@ export function SettingsPage() {
                           {t("Reset 2-step")}
                         </Button>
                       )}
-                      {u.active === 0 && (
-                        <Button variant="small" onClick={() => reactivate(u)}>
+                      {u.active === 0 ? (
+                        <Button
+                          variant="small"
+                          icon={<UserCheck size={14} />}
+                          onClick={() => reactivate(u)}
+                        >
                           {t("Reactivate")}
                         </Button>
+                      ) : (
+                        u.id !== data.user.id && (
+                          <Button
+                            variant="small"
+                            icon={<UserX size={14} />}
+                            onClick={() => deactivate(u)}
+                          >
+                            {t("Deactivate")}
+                          </Button>
+                        )
                       )}
                     </div>
                   ) : null,
@@ -2683,51 +2718,7 @@ export function SettingsPage() {
       ) : tab === "Integrations" ? (
         <>
           <IntegrationStatus />
-          <div className="integration-grid">
-            {[
-              ["Email", Mail],
-              ["WhatsApp", MessageCircle],
-              ["Forms", FileText],
-              ["Calendar", CalendarDays],
-              ["Payments", Wallet],
-              ["n8n", Workflow],
-            ].map(([name, Icon]: any) => (
-              <div key={name} className="panel integration-card">
-                <div>
-                  <span className="integration-icon">
-                    <Icon size={23} />
-                  </span>
-                  <Badge
-                    tone={
-                      name === "n8n" && data.n8n?.configured
-                        ? "teal"
-                        : "neutral"
-                    }
-                  >
-                    {t(
-                      name === "n8n" && data.n8n?.configured
-                        ? "Ready to receive"
-                        : "Not configured",
-                    )}
-                  </Badge>
-                </div>
-                <h2>{t(name)}</h2>
-                <p>
-                  {t(
-                    "Provider adapters and credentials are required to enable delivery.",
-                  )}
-                </p>
-                {data.permissions.admin ? (
-                  <Button
-                    onClick={() => open({ type: "integration", extra: name })}
-                  >
-                    {t("Connection details")}
-                    <ArrowUpRight size={15} />
-                  </Button>
-                ) : null}
-              </div>
-            ))}
-          </div>
+          <IntegrationGuide />
           {data.permissions.admissions && (
             <Panel
               title="Message drafts"
