@@ -52,7 +52,7 @@ before(async () => {
   admin = (
     await request(
       "/login",
-      { email: "admin@luminol.demo", password: "RealAdminPassword!2026" },
+      { email: "admin@luminol.com", password: "RealAdminPassword!2026" },
       "POST",
       "",
     )

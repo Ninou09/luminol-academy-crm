@@ -59,7 +59,14 @@ async function start(env) {
   });
   const r = await request(
     "/login",
-    { email: "admin@luminol.demo", password: "RealAdminPassword!2026" },
+    {
+      // The sample workspace keeps its demo address; a real one uses .com.
+      email:
+        env?.SEED_SAMPLE_DATA === "1"
+          ? "admin@luminol.demo"
+          : "admin@luminol.com",
+      password: "RealAdminPassword!2026",
+    },
     "POST",
     "",
   );

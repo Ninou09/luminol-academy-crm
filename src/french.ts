@@ -1310,3 +1310,49 @@ Object.assign(french, {
   "to confirm": "à confirmer",
   "open tasks": "tâches ouvertes",
 });
+
+// Academy workbook import
+Object.assign(french, {
+  "Import the academy workbook": "Importer le classeur de l’académie",
+  "Replace all current data with your full Excel workbook (clients, courses, registrations, team, tasks).":
+    "Remplace toutes les données actuelles par votre classeur Excel complet (clients, formations, inscriptions, équipe, tâches).",
+  "Company, Team, Courses, Contacts, Enrollments…":
+    "Académie, équipe, formations, contacts, inscriptions…",
+  "Import the workbook": "Importer le classeur",
+  "Use an Excel (.xlsx) file.": "Utilisez un fichier Excel (.xlsx).",
+  "This file has no Contacts sheet.":
+    "Ce fichier n’a pas de feuille « Contacts ».",
+  "Academy data imported": "Données de l’académie importées",
+  "Programmes and services": "Formations et services",
+  "Groups and events": "Groupes et événements",
+  Registrations: "Inscriptions",
+  "Open requests": "Demandes en cours",
+  "Amounts due": "Montants dus",
+  "Verified payments": "Paiements vérifiés",
+  "Team members": "Membres de l’équipe",
+  Tasks: "Tâches",
+  "History entries": "Entrées d’historique",
+  "Import finished. Your CRM now contains:":
+    "Import terminé. Votre CRM contient maintenant :",
+  "Choose the workbook (.xlsx)": "Choisir le classeur (.xlsx)",
+  "One sheet per type: Company, Team, Services, Courses, Contacts, Enrollments, Activities, Tasks…":
+    "Une feuille par type : Company, Team, Services, Courses, Contacts, Enrollments, Activities, Tasks…",
+  "Everything currently in the CRM (clients, requests, groups, payments, calendar, staff accounts except yours) is replaced by this file. Download a backup first if you need it.":
+    "Tout ce qui est actuellement dans la CRM (clients, demandes, groupes, paiements, agenda, comptes de l’équipe sauf le vôtre) sera remplacé par ce fichier. Téléchargez d’abord une sauvegarde si besoin.",
+  "Type IMPORT to confirm": "Tapez IMPORT pour confirmer",
+  "Importing…": "Import en cours…",
+  "Replace and import": "Remplacer et importer",
+  "Courses and events": "Formations et événements",
+  Services: "Services",
+  Team: "Équipe",
+});
+
+Object.assign(french, {
+  "Add what is new": "Ajouter les nouveautés",
+  "Keeps everything already in the CRM. Only new clients, courses, registrations and tasks are added; people already known (same phone) are not duplicated.":
+    "Garde tout ce qui est déjà dans la CRM. Seuls les nouveaux clients, formations, inscriptions et tâches sont ajoutés ; les personnes déjà connues (même téléphone) ne sont pas dupliquées.",
+  "Replace everything": "Tout remplacer",
+  "Deletes all current data first (use it once, to remove the sample data).":
+    "Supprime d’abord toutes les données actuelles (à utiliser une seule fois, pour retirer les données d’exemple).",
+  "Import finished. Added to the CRM:": "Import terminé. Ajouté à la CRM :",
+});

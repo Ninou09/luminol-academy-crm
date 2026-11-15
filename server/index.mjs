@@ -52,6 +52,7 @@ import {
   chargeRows,
   isHosted,
 } from "./db.mjs";
+import { importWorkbook } from "./workbook-import.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const app = express();
@@ -2691,7 +2692,43 @@ write("/api/admin/clean-start", ["admin"], (req) => {
     req.body.confirm === "DELETE",
     "Type DELETE to confirm that all sample data should be removed.",
   );
-  const me = req.user.id;
+  const leads = cleanStart(req.user.id);
+  return { ok: true, leads };
+});
+
+// Replace everything with the academy's own workbook (all sheets at once).
+write("/api/admin/import-workbook", ["admin"], (req) => {
+  // "merge" (default) only adds what is new; "replace" wipes everything first.
+  const replace = req.body.mode === "replace";
+  must(
+    !replace || req.body.confirm === "IMPORT",
+    "Type IMPORT to confirm that the current data should be replaced.",
+  );
+  const sheets = req.body.sheets;
+  must(
+    sheets && typeof sheets === "object" && Array.isArray(sheets.Contacts),
+    "This file has no Contacts sheet.",
+  );
+  if (replace) {
+    cleanStart(req.user.id);
+    // The demo sign-in address becomes the academy's own.
+    if (
+      req.user.email === "admin@luminol.demo" &&
+      !one("SELECT id FROM users WHERE email='admin@luminol.com'")
+    )
+      run("UPDATE users SET email='admin@luminol.com' WHERE id=?", req.user.id);
+  }
+  const counts = importWorkbook(sheets, req.user.id);
+  audit(
+    req.user.id,
+    null,
+    `Academy workbook ${replace ? "imported (replace)" : "merged"}: ${counts.contacts || 0} contacts, ${counts.programs || 0} programmes, ${counts.enrollments || 0} registrations.`,
+    "system",
+  );
+  return { ok: true, counts };
+});
+
+function cleanStart(me) {
   for (const table of [
     "trash",
     "password_resets",
@@ -2754,8 +2791,8 @@ write("/api/admin/clean-start", ["admin"], (req) => {
     `Sample data removed. ${leads} lead(s) from the website/Google kept for import.`,
     "system",
   );
-  return { ok: true, leads };
-});
+  return leads;
+}
 
 // ---------------------------------------------------------------------------
 // Consultation packages, message templates, trash, backups and import.

@@ -42,6 +42,7 @@ import {
   Upload,
   Stethoscope,
   CreditCard,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useApp } from "./context";
 import {
@@ -2589,6 +2590,21 @@ export function SettingsPage() {
                 onClick={() => go("Admissions")}
               >
                 {t("Open the inbox")}
+              </Button>
+            </div>
+          </Panel>
+          <Panel
+            title="Import the academy workbook"
+            subtitle="Replace all current data with your full Excel workbook (clients, courses, registrations, team, tasks)."
+          >
+            <div className="data-actions">
+              <span>{t("Company, Team, Courses, Contacts, Enrollments…")}</span>
+              <Button
+                variant="primary"
+                icon={<FileSpreadsheet size={16} />}
+                onClick={() => open({ type: "workbook" })}
+              >
+                {t("Import the workbook")}
               </Button>
             </div>
           </Panel>

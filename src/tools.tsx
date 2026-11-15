@@ -620,13 +620,15 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
     try {
       let rows: string[][];
       if (/\.xlsx$/i.test(file.name)) {
-        const { default: readXlsxFile } = await import("read-excel-file");
-        rows = (await readXlsxFile(file)).map((r) =>
-          r.map((c) =>
-            c instanceof Date
-              ? c.toISOString().slice(0, 10)
-              : c == null
-                ? ""
+        const { readGrids } = await import("./xlsx");
+        const first =
+          Object.values(await readGrids(await file.arrayBuffer()))[0] || [];
+        rows = first.map((r) =>
+          Array.from(r, (c) =>
+            c == null
+              ? ""
+              : /^\d{4}-\d{2}-\d{2}T00:00:00/.test(String(c))
+                ? String(c).slice(0, 10)
                 : String(c),
           ),
         );
@@ -833,5 +835,189 @@ export function PrintButton({
     <Button variant="small" icon={<Printer size={14} />} onClick={onClick}>
       {t(label)}
     </Button>
+  );
+}
+
+// Full academy workbook (Company, Team, Courses, Contacts, Enrollments…) --------
+const workbookSheets = [
+  ["Contacts", "Clients"],
+  ["Enrollments", "Registrations"],
+  ["Courses", "Courses and events"],
+  ["Services", "Services"],
+  ["Team", "Team"],
+  ["Tasks", "Tasks"],
+] as const;
+export function WorkbookImportDialog({ onClose }: { onClose: () => void }) {
+  const { t, refresh, toast } = useApp();
+  const [sheets, setSheets] = useState<Record<string, any[]> | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [mode, setMode] = useState<"merge" | "replace">("merge");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<Record<string, number> | null>(null);
+  async function load(file: File) {
+    setError("");
+    setSheets(null);
+    try {
+      if (!/\.xlsx$/i.test(file.name))
+        throw new Error(t("Use an Excel (.xlsx) file."));
+      const { readWorkbook } = await import("./xlsx");
+      const book = await readWorkbook(await file.arrayBuffer());
+      if (!book.Contacts?.length)
+        throw new Error(t("This file has no Contacts sheet."));
+      setSheets(book);
+      setFileName(file.name);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+  async function submit() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api("/admin/import-workbook", {
+        mode,
+        confirm: confirm.trim().toUpperCase(),
+        sheets,
+      });
+      setResult(res.counts);
+      await refresh();
+      toast(t("Academy data imported"));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const labels: [string, string][] = [
+    ["contacts", "Clients"],
+    ["programs", "Programmes and services"],
+    ["groups", "Groups and events"],
+    ["enrollments", "Registrations"],
+    ["requests", "Open requests"],
+    ["charges", "Amounts due"],
+    ["payments", "Verified payments"],
+    ["staff", "Team members"],
+    ["tasks", "Tasks"],
+    ["history", "History entries"],
+  ];
+  return (
+    <Dialog
+      title={t("Import the academy workbook")}
+      onClose={() => !busy && onClose()}
+      wide
+    >
+      <div className="form-body">
+        {result ? (
+          <div className="import-result">
+            <p>{t("Import finished. Added to the CRM:")}</p>
+            <ul className="import-counts">
+              {labels.map(([k, label]) => (
+                <li key={k}>
+                  <strong>{result[k] || 0}</strong> {t(label)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <>
+            <label className="upload-box">
+              <FileSpreadsheet size={28} />
+              <strong>{fileName || t("Choose the workbook (.xlsx)")}</strong>
+              <span>
+                {t(
+                  "One sheet per type: Company, Team, Services, Courses, Contacts, Enrollments, Activities, Tasks…",
+                )}
+              </span>
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => e.target.files?.[0] && load(e.target.files[0])}
+              />
+            </label>
+            {sheets && (
+              <>
+                <ul className="import-counts">
+                  {workbookSheets.map(([k, label]) => (
+                    <li key={k}>
+                      <strong>{sheets[k]?.length || 0}</strong> {t(label)}
+                    </li>
+                  ))}
+                </ul>
+                <div className="import-modes" role="radiogroup">
+                  <label className={mode === "merge" ? "is-active" : ""}>
+                    <input
+                      type="radio"
+                      name="import-mode"
+                      checked={mode === "merge"}
+                      onChange={() => setMode("merge")}
+                    />
+                    <span>
+                      <strong>{t("Add what is new")}</strong>
+                      {t(
+                        "Keeps everything already in the CRM. Only new clients, courses, registrations and tasks are added; people already known (same phone) are not duplicated.",
+                      )}
+                    </span>
+                  </label>
+                  <label className={mode === "replace" ? "is-active" : ""}>
+                    <input
+                      type="radio"
+                      name="import-mode"
+                      checked={mode === "replace"}
+                      onChange={() => setMode("replace")}
+                    />
+                    <span>
+                      <strong>{t("Replace everything")}</strong>
+                      {t(
+                        "Deletes all current data first (use it once, to remove the sample data).",
+                      )}
+                    </span>
+                  </label>
+                </div>
+                {mode === "replace" && (
+                  <>
+                    <p className="form-warning">
+                      {t(
+                        "Everything currently in the CRM (clients, requests, groups, payments, calendar, staff accounts except yours) is replaced by this file. Download a backup first if you need it.",
+                      )}
+                    </p>
+                    <label className="field">
+                      <span>{t("Type IMPORT to confirm")}</span>
+                      <input
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </label>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+        {error && <p className="form-error">{error}</p>}
+      </div>
+      <div className="dialog-footer">
+        <Button onClick={onClose} disabled={busy}>
+          {t(result ? "Close" : "Cancel")}
+        </Button>
+        {!result && (
+          <Button
+            variant="primary"
+            disabled={
+              !sheets ||
+              busy ||
+              (mode === "replace" && confirm.trim().toUpperCase() !== "IMPORT")
+            }
+            onClick={submit}
+          >
+            {busy
+              ? t("Importing…")
+              : t(mode === "replace" ? "Replace and import" : "Import")}
+          </Button>
+        )}
+      </div>
+    </Dialog>
   );
 }

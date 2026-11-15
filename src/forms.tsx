@@ -16,7 +16,7 @@ import { useApp, type ModalData } from "./context";
 import { api, ApiError, toInstant, type Row } from "./types";
 import { roleNames } from "./i18n";
 import { Dialog, Button, Badge, Avatar, Empty, DataTable } from "./ui";
-import { WhatsAppDialog, ImportDialog } from "./tools";
+import { WhatsAppDialog, ImportDialog, WorkbookImportDialog } from "./tools";
 import { HoursDialog } from "./schedule";
 import { PayLinkDialog, PortalLinkDialog } from "./growth";
 import {
@@ -2264,6 +2264,8 @@ export default function Forms({
       />
     );
   if (modal.type === "import") return <ImportDialog onClose={onClose} />;
+  if (modal.type === "workbook")
+    return <WorkbookImportDialog onClose={onClose} />;
   if (modal.type === "intake")
     return <IntakeDialog contact={modal.contact!} onClose={onClose} />;
   if (modal.type === "intakeQuestions")

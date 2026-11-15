@@ -8,7 +8,7 @@ Source: [Ninou09/luminol-academy-crm](https://github.com/Ninou09/luminol-academy
 
 Hosted URL: [luminol-academy-crm.vercel.app](https://luminol-academy-crm.vercel.app/). See **DEPLOYMENT.md** for the verified deployment status and any remaining setup.
 
-Administrator sign-in and cloud saving have been verified. Sign in with `admin@luminol.demo` and the password saved by the owner in Vercel. A fictional **Cloud Verification Sample** inquiry remains in the hosted workspace as evidence of the save-and-reload check.
+Administrator sign-in and cloud saving have been verified. Sign in with `admin@luminol.com` and the password saved by the owner in Vercel. A fictional **Cloud Verification Sample** inquiry remains in the hosted workspace as evidence of the save-and-reload check.
 
 The hosted version uses a **private Vercel Blob store** for durable SQLite snapshots. Each request opens its own temporary SQLite connection, reads the latest snapshot without CDN caching, and conditionally saves changed data using the previous ETag. A conflicting write returns HTTP 409 and does not claim success. Responses and login cookies are held until persistence succeeds. Preview branches use separate snapshots from production. Temporary function files are never treated as durable storage.
 
@@ -17,7 +17,7 @@ Required hosted environment variables:
 - `BLOB_STORE_ID`: automatically injected when the private Blob store is linked to the Vercel project. Authentication uses Vercel's short-lived OIDC credentials.
 - `DEMO_PASSWORD`: a unique password of at least 16 characters for the seeded hosted administrator. Configure this as a sensitive Vercel environment variable. Never commit it.
 
-The hosted administrator email is `admin@luminol.demo`. Its password is not prefilled or bundled in the browser. Other seeded staff accounts receive independent random passwords on cloud initialization; the shared local demo password does not open those accounts. The hosted data remains clearly labeled as sample data until academy records are imported. Staff invitation and password-recovery flows remain future work.
+The hosted administrator email is `admin@luminol.com` (an older `admin@luminol.demo` account is renamed automatically). Its password is not prefilled or bundled in the browser. Other seeded staff accounts receive independent random passwords on cloud initialization; the shared local demo password does not open those accounts. The hosted data remains clearly labeled as sample data until academy records are imported. Staff invitation and password-recovery flows remain future work.
 
 The snapshot storage design is intended for this small academy release. It preserves relational transactions and rejects concurrent lost updates, but copies the database on requests and imposes a 64 MB snapshot limit. Move to managed SQL storage as volume or concurrent use grows. Hosted uploads are limited to 3 MB per file to remain within Vercel's request-body limit. Local uploads retain the 4 MB limit.
 
@@ -43,7 +43,7 @@ The server listens on **127.0.0.1 only**. The local URL works on this computer; 
 
 ## Sign in
 
-A new database starts **empty**: one administrator and no fictional records. Its email is `ADMIN_EMAIL` (default `admin@luminol.demo`) and its password is `ADMIN_PASSWORD` (or the older `DEMO_PASSWORD`). Locally, without either variable, the password is `LuminolAdmin!2026` — change it right away in **Settings → My account**.
+A new database starts **empty**: one administrator and no fictional records. Its email is `ADMIN_EMAIL` (default `admin@luminol.com`) and its password is `ADMIN_PASSWORD` (or the older `DEMO_PASSWORD`). Locally, without either variable, the password is `LuminolAdmin!2026` — change it right away in **Settings → My account**.
 
 The existing hosted workspace keeps its administrator and password. After the update, open **Settings → Data & import → Remove all sample data** to delete the old demo records (fake students, teachers, prices). Leads that came from the website / Google through n8n are kept and go back to **Requests → New leads**, where they can be accepted one by one or with **Import all**.
 

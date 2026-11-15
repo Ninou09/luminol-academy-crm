@@ -131,6 +131,21 @@ export function initializeDatabase() {
     }
   }
 
+  // The academy's sign-in address: the first administrator created as
+  // admin@luminol.demo becomes admin@luminol.com (once, if that is free).
+  const wanted = (process.env.ADMIN_EMAIL || "admin@luminol.com")
+    .trim()
+    .toLowerCase();
+  if (
+    !seedSampleData &&
+    wanted !== "admin@luminol.demo" &&
+    !one("SELECT id FROM users WHERE email=?", wanted)
+  )
+    run(
+      "UPDATE users SET email=? WHERE email='admin@luminol.demo' AND role='admin'",
+      wanted,
+    );
+
   if (!one("SELECT id FROM settings WHERE id=1"))
     transaction(() => {
       insert("settings", {
@@ -146,7 +161,7 @@ export function initializeDatabase() {
         insert("users", {
           id: 1,
           name: "Academy Admin",
-          email: (process.env.ADMIN_EMAIL || "admin@luminol.demo")
+          email: (process.env.ADMIN_EMAIL || "admin@luminol.com")
             .trim()
             .toLowerCase(),
           role: "admin",

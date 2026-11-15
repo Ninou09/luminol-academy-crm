@@ -885,3 +885,49 @@ Object.assign(arabic, {
   "to confirm": "بانتظار التأكيد",
   "open tasks": "مهام مفتوحة",
 });
+
+// Academy workbook import
+Object.assign(arabic, {
+  "Import the academy workbook": "استيراد ملف الأكاديمية الكامل",
+  "Replace all current data with your full Excel workbook (clients, courses, registrations, team, tasks).":
+    "استبدال كل البيانات الحالية بملف Excel الكامل (العملاء، الدورات، التسجيلات، الفريق، المهام).",
+  "Company, Team, Courses, Contacts, Enrollments…":
+    "الأكاديمية، الفريق، الدورات، جهات الاتصال، التسجيلات…",
+  "Import the workbook": "استيراد الملف",
+  "Use an Excel (.xlsx) file.": "استخدم ملف Excel ‏(.xlsx).",
+  "This file has no Contacts sheet.": "هذا الملف لا يحتوي على ورقة Contacts.",
+  "Academy data imported": "تم استيراد بيانات الأكاديمية",
+  "Programmes and services": "الدورات والخدمات",
+  "Groups and events": "المجموعات واللقاءات",
+  Registrations: "التسجيلات",
+  "Open requests": "طلبات قيد المتابعة",
+  "Amounts due": "مبالغ مستحقة",
+  "Verified payments": "مدفوعات مؤكدة",
+  "Team members": "أعضاء الفريق",
+  Tasks: "المهام",
+  "History entries": "سجل النشاط",
+  "Import finished. Your CRM now contains:":
+    "انتهى الاستيراد. يحتوي النظام الآن على:",
+  "Choose the workbook (.xlsx)": "اختر الملف (.xlsx)",
+  "One sheet per type: Company, Team, Services, Courses, Contacts, Enrollments, Activities, Tasks…":
+    "ورقة لكل نوع: Company، Team، Services، Courses، Contacts، Enrollments، Activities، Tasks…",
+  "Everything currently in the CRM (clients, requests, groups, payments, calendar, staff accounts except yours) is replaced by this file. Download a backup first if you need it.":
+    "سيتم استبدال كل ما في النظام حاليًا (العملاء، الطلبات، المجموعات، المدفوعات، المواعيد، حسابات الفريق ما عدا حسابك) بهذا الملف. حمّل نسخة احتياطية أولًا إذا لزم الأمر.",
+  "Type IMPORT to confirm": "اكتب IMPORT للتأكيد",
+  "Importing…": "جارٍ الاستيراد…",
+  "Replace and import": "استبدال واستيراد",
+  "Courses and events": "الدورات واللقاءات",
+  Services: "الخدمات",
+  Team: "الفريق",
+});
+
+Object.assign(arabic, {
+  "Add what is new": "إضافة الجديد فقط",
+  "Keeps everything already in the CRM. Only new clients, courses, registrations and tasks are added; people already known (same phone) are not duplicated.":
+    "يحتفظ بكل ما هو موجود في النظام. تُضاف فقط العملاء والدورات والتسجيلات والمهام الجديدة، ولا يتكرر الأشخاص المعروفون (نفس رقم الهاتف).",
+  "Replace everything": "استبدال الكل",
+  "Deletes all current data first (use it once, to remove the sample data).":
+    "يحذف كل البيانات الحالية أولًا (استخدمه مرة واحدة لإزالة البيانات التجريبية).",
+  "Import finished. Added to the CRM:":
+    "انتهى الاستيراد. تمت الإضافة إلى النظام:",
+});
