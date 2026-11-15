@@ -339,19 +339,19 @@ export function FeedbackPanel() {
 export function ExpensesPanel() {
   const { data, t, open, money, date, perform, toast } = useApp();
   const [month, setMonth] = useState(data.today.slice(0, 7));
-  const rows = (data.expenses || []).filter((x) =>
-    x.spent_on.startsWith(month),
-  );
+  const all = (data.expenses || []).filter((x) => x.spent_on.startsWith(month));
+  const rows = all;
+  const outgoing = all.filter((x) => x.direction !== "in");
   const currency = data.settings.currency;
-  const categories = Array.from(new Set(rows.map((x) => x.category)));
+  const categories = Array.from(new Set(outgoing.map((x) => x.category)));
   return (
     <div className="panel">
       <div className="panel-heading">
         <div>
-          <h2>{t("Expenses")}</h2>
+          <h2>{t("Expenses and other income")}</h2>
           <p>
             {t(
-              "Rent, salaries, advertising, supplies… to see the real profit.",
+              "Salaries, rent, materials, advertising… and money received outside client payments.",
             )}
           </p>
         </div>
@@ -363,6 +363,13 @@ export function ExpensesPanel() {
             onChange={(e) => setMonth(e.target.value)}
           />
           <Button
+            onClick={() =>
+              open({ type: "expense", record: { id: 0, direction: "in" } })
+            }
+          >
+            {t("Money in")}
+          </Button>
+          <Button
             variant="primary"
             icon={<Plus size={15} />}
             onClick={() => open({ type: "expense" })}
@@ -373,10 +380,10 @@ export function ExpensesPanel() {
       </div>
       <div className="cash-totals">
         <div>
-          <small>{t("Total")}</small>
+          <small>{t("Total expenses")}</small>
           <strong>
             {money(
-              rows
+              outgoing
                 .filter((x) => x.currency === currency)
                 .reduce((s, x) => s + x.amount, 0),
               currency,
@@ -388,7 +395,7 @@ export function ExpensesPanel() {
             <small>{t(c)}</small>
             <strong>
               {money(
-                rows
+                outgoing
                   .filter((x) => x.category === c && x.currency === currency)
                   .reduce((s, x) => s + x.amount, 0),
                 currency,
@@ -401,12 +408,33 @@ export function ExpensesPanel() {
         rows={rows}
         columns={[
           { key: "spent_on", label: "Date", render: (x) => date(x.spent_on) },
+          {
+            key: "direction",
+            label: "Type",
+            render: (x) =>
+              x.direction === "in" ? (
+                <Badge tone="teal">{t("Money in")}</Badge>
+              ) : (
+                <Badge tone="amber">{t("Money out")}</Badge>
+              ),
+          },
           { key: "category", label: "Category", render: (x) => t(x.category) },
+          { key: "party", label: "Who" },
           { key: "label", label: "Description" },
+          {
+            key: "method",
+            label: "Payment method",
+            render: (x) => (x.method ? t(x.method) : ""),
+          },
           {
             key: "amount",
             label: "Amount",
-            render: (x) => <strong>{money(x.amount, x.currency)}</strong>,
+            render: (x) => (
+              <strong className={x.direction === "in" ? "teal-text" : ""}>
+                {x.direction === "in" ? "+" : "−"}
+                {money(x.amount, x.currency)}
+              </strong>
+            ),
           },
           {
             key: "del",
@@ -456,9 +484,22 @@ export function ProfitPanel() {
             data.payments.find((p) => p.id === r.payment_id)?.currency ===
               currency,
         )
-        .reduce((s, r) => s + r.amount, 0);
+        .reduce((s, r) => s + r.amount, 0) +
+      (data.expenses || [])
+        .filter(
+          (x) =>
+            x.direction === "in" &&
+            x.currency === currency &&
+            x.spent_on.startsWith(m),
+        )
+        .reduce((s, x) => s + x.amount, 0);
     const spent = (data.expenses || [])
-      .filter((x) => x.currency === currency && x.spent_on.startsWith(m))
+      .filter(
+        (x) =>
+          x.direction !== "in" &&
+          x.currency === currency &&
+          x.spent_on.startsWith(m),
+      )
       .reduce((s, x) => s + x.amount, 0);
     return { id: i, month: m, income, spent, profit: income - spent };
   });
@@ -903,5 +944,140 @@ export function MeetingLink({ url }: { url: string }) {
     >
       <Video size={14} /> {t("Join video call")}
     </a>
+  );
+}
+
+// How each outside service connects, in plain steps -------------------------
+const googleFormsScript = (
+  url: string,
+) => `// Luminol CRM: send every Google Forms answer to the CRM inbox.
+const CRM_URL = "${url}/api/integrations/n8n/inquiries";
+const TOKEN = "PASTE_THE_N8N_INTAKE_TOKEN_HERE";
+
+function onFormSubmit(e) {
+  const answers = {};
+  e.response.getItemResponses().forEach(function (r) {
+    answers[r.getItem().getTitle().toLowerCase()] = String(r.getResponse());
+  });
+  function pick(words) {
+    for (const key in answers)
+      if (words.some(function (w) { return key.indexOf(w) >= 0; }))
+        return answers[key];
+    return "";
+  }
+  const payload = {
+    external_id: "gform-" + e.response.getId(),
+    name: pick(["nom", "name", "الاسم"]) || "Sans nom",
+    phone: pick(["téléphone", "telephone", "phone", "هاتف", "رقم"]),
+    email: e.response.getRespondentEmail() || pick(["mail", "البريد"]),
+    consent: /oui|yes|نعم|accept|أوافق/i.test(pick(["accord", "consent", "موافق"])),
+    service_type: pick(["service", "consultation", "خدمة"]),
+    course_interest: pick(["formation", "cours", "course", "دورة"]),
+    source: "Google Forms",
+    submitted_at: e.response.getTimestamp().toISOString(),
+  };
+  UrlFetchApp.fetch(CRM_URL, {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + TOKEN },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+  });
+}`;
+
+export function IntegrationGuide() {
+  const { data, t, toast } = useApp();
+  const origin = window.location.origin;
+  const script = googleFormsScript(origin);
+  const i: any = data.integrations || {};
+  const cards: {
+    title: string;
+    on: boolean;
+    now: string;
+    steps: string[];
+    code?: string;
+  }[] = [
+    {
+      title: "Website, Google Forms and Tally → CRM inbox",
+      on: !!data.n8n?.configured,
+      now: "Every form answer arrives in Requests → “New contacts from the website / Google”. You check it and add it to the requests with one click (or import them all).",
+      steps: [
+        "In Vercel → Settings → Environment Variables, add N8N_INTAKE_TOKEN: a long secret password (at least 32 characters). Redeploy.",
+        "Google Forms: open the form → ⋮ → Script editor (Apps Script), paste the script below and put the same token in TOKEN.",
+        "In Apps Script → Triggers → Add trigger: function onFormSubmit, event source “From form”, event type “On form submit”. Accept the Google permissions.",
+        "Name your questions with simple words (Nom, Téléphone, E-mail, Formation, Consultation, J'accepte…) so the script recognises them.",
+        "Tally or your website: use n8n (already prepared) or a Tally webhook to the same address with the same token.",
+      ],
+      code: script,
+    },
+    {
+      title: "WhatsApp",
+      on: !!i.whatsapp,
+      now: "Already works without any setup: every WhatsApp button opens WhatsApp on your phone or computer with the message written; you only press Send.",
+      steps: [
+        "For fully automatic messages (reminders sent alone every evening), create a Meta WhatsApp Business account (business.facebook.com) and add your academy number.",
+        "Create a message template and wait for Meta's approval.",
+        "Add WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE in Vercel, plus CRON_SECRET for the daily reminders. Redeploy.",
+        "Meta charges a small fee per conversation.",
+      ],
+    },
+    {
+      title: "E-mails (forgotten password)",
+      on: !!data.mailConfigured,
+      now: "Without it, the administrator sets a new password for staff in Settings → Team.",
+      steps: [
+        "Create a free account on resend.com and verify your domain (or use their test address).",
+        "Add RESEND_API_KEY and MAIL_FROM (for example: Luminol Academy <noreply@your-domain>) in Vercel. Redeploy.",
+      ],
+    },
+    {
+      title: "Online card payment (CIB / Edahabia)",
+      on: !!i.chargily,
+      now: "Without it, payments (cash, CCP, BaridiMob…) are recorded by hand in Payments.",
+      steps: [
+        "Create an account on chargily.com and get your secret key (start in test mode).",
+        "Add CHARGILY_SECRET_KEY in Vercel; after testing add CHARGILY_MODE=live. Redeploy.",
+        "Then each amount due gets a “Payment link” button to send to the client.",
+      ],
+    },
+  ];
+  return (
+    <div className="integration-guide">
+      {cards.map((c) => (
+        <div key={c.title} className="panel integration-how">
+          <div className="integration-how-head">
+            <h2>{t(c.title)}</h2>
+            <Badge tone={c.on ? "teal" : "neutral"}>
+              {t(c.on ? "Connected" : "Not connected")}
+            </Badge>
+          </div>
+          <p className="integration-now">{t(c.now)}</p>
+          <h3>{t("How to connect it")}</h3>
+          <ol>
+            {c.steps.map((s) => (
+              <li key={s}>{t(s)}</li>
+            ))}
+          </ol>
+          {c.code && (
+            <details className="integration-code">
+              <summary>{t("Show the Google Forms script")}</summary>
+              <pre>
+                <code>{c.code}</code>
+              </pre>
+              <Button
+                onClick={() =>
+                  navigator.clipboard
+                    .writeText(c.code!)
+                    .then(() => toast(t("Copied")))
+                    .catch(() => toast(t("Select the text and copy it.")))
+                }
+              >
+                {t("Copy the script")}
+              </Button>
+            </details>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }

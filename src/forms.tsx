@@ -40,6 +40,19 @@ type Field = {
   disabled?: boolean;
   suggestions?: string[];
 };
+/** Usual payment methods in Algeria plus every method already typed. */
+function paymentMethods(data: any): string[] {
+  return [
+    "Cash",
+    "CCP",
+    "BaridiMob",
+    "Bank transfer",
+    "Card (external)",
+    "Cheque",
+    ...(data.payments || []).map((p: any) => p.method),
+    ...(data.expenses || []).map((x: any) => x.method),
+  ].filter((x, i, a) => x && a.indexOf(x) === i);
+}
 /** Show a stored instant as a wall-clock value in the academy time zone. */
 export function toLocalInput(iso: string, zone: string) {
   return new Intl.DateTimeFormat("sv-SE", {
@@ -309,14 +322,17 @@ export default function Forms({
             };
       case "payment":
         return {
-          charge_id:
+          charge_id: String(
             r.id ||
-            data.charges.find(
-              (ch) => ch.balance > 0 && (!c || ch.contact_id === c.id),
-            )?.id ||
-            "",
+              data.charges.find(
+                (ch) => ch.balance > 0 && (!c || ch.contact_id === c.id),
+              )?.id ||
+              "new",
+          ),
+          payer: c?.name || "",
+          label: "",
           amount: r.balance ? (r.balance / 100).toFixed(2) : "",
-          method: "Bank transfer",
+          method: "Cash",
           reference: "",
         };
       case "charge":
@@ -390,11 +406,14 @@ export default function Forms({
         };
       case "expense":
         return {
+          direction: r.direction || "out",
           spent_on: data.today,
-          category: "",
-          label: "",
-          amount: "",
+          category: r.category || "",
+          party: r.party || "",
+          label: r.label || "",
+          amount: r.amount ? (r.amount / 100).toFixed(2) : "",
           currency: data.settings.currency,
+          method: "",
         };
       case "legal":
         return {
@@ -982,24 +1001,42 @@ export default function Forms({
         select(
           "charge_id",
           "Charge",
-          data.charges
-            .filter((ch) => ch.balance > 0 && (!c || ch.contact_id === c.id))
-            .map((ch) => [
-              ch.id,
-              `${person(ch.contact_id).name} · ${ch.label} · ${money(ch.balance, ch.currency)}`,
-            ]),
+          [
+            ["new", t("Other payment (type it freely)")] as [string, string],
+            ...data.charges
+              .filter((ch) => ch.balance > 0 && (!c || ch.contact_id === c.id))
+              .map(
+                (ch) =>
+                  [
+                    String(ch.id),
+                    `${person(ch.contact_id).name} · ${ch.label} · ${money(ch.balance, ch.currency)}`,
+                  ] as [string, string],
+              ),
+          ],
           { full: true },
         ),
+        ...(values.charge_id === "new"
+          ? [
+              combo(
+                "payer",
+                "Paid by (client)",
+                data.contacts.map((x) => x.name),
+                {
+                  hint: "Type a name; a new client is created if needed.",
+                },
+              ),
+              textField("label", "What it is for", {
+                full: true,
+                hint: "Example: Consultation, book, registration fee…",
+              }),
+            ]
+          : []),
         textField("amount", "Amount", {
           type: "number",
           min: "0.01",
           step: "0.01",
         }),
-        select(
-          "method",
-          "Payment method",
-          ["Bank transfer", "Cash", "Card (external)"].map((s) => [s, t(s)]),
-        ),
+        combo("method", "Payment method", paymentMethods(data)),
         textField("reference", "Reference", { required: false, full: true }),
       ];
       break;
@@ -1435,23 +1472,52 @@ export default function Forms({
         }),
       ];
       break;
-    case "expense":
-      title = "Add an expense";
+    case "expense": {
+      const incoming = values.direction === "in";
+      title = incoming ? "Record money received" : "Add an expense";
       fields = [
+        select("direction", "Type", [
+          ["out", t("Money out (expense)")],
+          ["in", t("Money in (other income)")],
+        ]),
         textField("spent_on", "Date", { type: "date" }),
         combo(
           "category",
           "Category",
-          [
-            "Rent",
-            "Salaries",
-            "Advertising",
-            "Supplies",
-            "Electricity, water, internet",
-            "Taxes",
-            "Other",
-            ...(data.expenses || []).map((x) => x.category),
-          ].filter((x, i, a) => a.indexOf(x) === i),
+          unique([
+            ...(incoming
+              ? [
+                  "Other income",
+                  "Sale of materials",
+                  "Subsidy or sponsorship",
+                  "Partner contribution",
+                ]
+              : [
+                  "Salaries",
+                  "Rent",
+                  "Materials and supplies",
+                  "Advertising",
+                  "Electricity, water, internet",
+                  "Software and subscriptions",
+                  "Transport",
+                  "Taxes",
+                  "Other",
+                ]),
+            ...(data.expenses || [])
+              .filter(
+                (x) => (x.direction || "out") === (incoming ? "in" : "out"),
+              )
+              .map((x) => x.category),
+          ]),
+        ),
+        combo(
+          "party",
+          incoming ? "Received from" : "Paid to",
+          unique([
+            ...data.users.filter((u) => u.active !== 0).map((u) => u.name),
+            ...(data.expenses || []).map((x) => x.party).filter(Boolean),
+          ]),
+          { required: false },
         ),
         textField("label", "Description", { required: false, full: true }),
         textField("amount", "Amount", {
@@ -1464,8 +1530,12 @@ export default function Forms({
           "Currency",
           ["DZD", "EUR", "USD", "GBP"].map((s) => [s, s]),
         ),
+        combo("method", "Payment method", paymentMethods(data), {
+          required: false,
+        }),
       ];
       break;
+    }
     case "legal":
       title = "Invoice details";
       fields = [
@@ -1737,7 +1807,12 @@ export default function Forms({
           break;
         case "payment":
           path = "/payments";
-          body = { ...values, amount: cents(values.amount) };
+          body = {
+            ...values,
+            charge_id:
+              values.charge_id === "new" ? "new" : Number(values.charge_id),
+            amount: cents(values.amount),
+          };
           break;
         case "charge":
           if (r.id) {

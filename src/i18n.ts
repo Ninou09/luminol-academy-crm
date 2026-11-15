@@ -931,3 +931,124 @@ Object.assign(arabic, {
   "Import finished. Added to the CRM:":
     "انتهى الاستيراد. تمت الإضافة إلى النظام:",
 });
+
+// Finance analytics, flexible payments, integrations guide
+Object.assign(arabic, {
+  Deactivate: "إيقاف",
+  "Deactivate this account? The person can no longer sign in; their history is kept and you can reactivate them at any time.":
+    "إيقاف هذا الحساب؟ لن يتمكن الشخص من الدخول، ويبقى سجله محفوظًا ويمكنك إعادة تفعيله في أي وقت.",
+  "Account deactivated": "تم إيقاف الحساب",
+  "Other payment (type it freely)": "دفعة أخرى (كتابة حرة)",
+  "Paid by (client)": "دفعها (العميل)",
+  "Type a name; a new client is created if needed.":
+    "اكتب اسمًا؛ يُنشأ عميل جديد عند الحاجة.",
+  "What it is for": "مقابل ماذا",
+  "Example: Consultation, book, registration fee…":
+    "مثال: استشارة، كتاب، رسوم التسجيل…",
+  CCP: "CCP",
+  BaridiMob: "بريدي موب",
+  Cheque: "صك",
+  "Record money received": "تسجيل مبلغ مستلم",
+  "Money out (expense)": "خروج مال (مصروف)",
+  "Money in (other income)": "دخول مال (دخل آخر)",
+  "Other income": "دخل آخر",
+  "Sale of materials": "بيع مواد",
+  "Subsidy or sponsorship": "منحة أو رعاية",
+  "Partner contribution": "مساهمة شريك",
+  Salaries: "الرواتب",
+  Rent: "الإيجار",
+  "Materials and supplies": "المواد واللوازم",
+  Advertising: "الإشهار",
+  "Electricity, water, internet": "الكهرباء والماء والإنترنت",
+  "Software and subscriptions": "البرامج والاشتراكات",
+  Transport: "النقل",
+  Taxes: "الضرائب",
+  "Received from": "مستلم من",
+  "Paid to": "مدفوع إلى",
+  "Financial analytics": "التحليل المالي",
+  "Client payments": "مدفوعات العملاء",
+  Refunds: "المبالغ المستردة",
+  "Money in": "المداخيل",
+  "Money out": "المصاريف",
+  Period: "الفترة",
+  Year: "السنة",
+  "Client payments and other income": "مدفوعات العملاء ومداخيل أخرى",
+  "Salaries, rent, materials, refunds…": "رواتب، إيجار، مواد، استرجاعات…",
+  Loss: "خسارة",
+  Profit: "ربح",
+  Margin: "الهامش",
+  "No money in yet": "لا مداخيل بعد",
+  "vs last month": "مقارنة بالشهر الماضي",
+  "vs last year": "مقارنة بالسنة الماضية",
+  "Still to collect": "المتبقي للتحصيل",
+  "Unpaid balances of clients (all periods)":
+    "المبالغ غير المدفوعة للعملاء (كل الفترات)",
+  "Money in and out, month by month": "المداخيل والمصاريف شهرًا بشهر",
+  "The last 12 months. Hover a month to see the figures.":
+    "آخر 12 شهرًا. مرّر على شهر لرؤية الأرقام.",
+  "Every month of the year. Hover a month to see the figures.":
+    "كل أشهر السنة. مرّر على شهر لرؤية الأرقام.",
+  "Where the money comes from": "من أين يأتي المال",
+  "Where the money goes": "أين يذهب المال",
+  "No money in for this period.": "لا مداخيل في هذه الفترة.",
+  "No expenses for this period.": "لا مصاريف في هذه الفترة.",
+  "All money movements": "كل حركات المال",
+  movements: "حركة",
+  All: "الكل",
+  "Search…": "بحث…",
+  "Export (Excel)": "تصدير (Excel)",
+  "Delete this movement?": "حذف هذه الحركة؟",
+  "Expenses and other income": "المصاريف والمداخيل الأخرى",
+  "Salaries, rent, materials, advertising… and money received outside client payments.":
+    "رواتب، إيجار، مواد، إشهار… والأموال المستلمة خارج مدفوعات العملاء.",
+  "Total expenses": "مجموع المصاريف",
+  Salary: "راتب",
+  "Salary recorded": "تم تسجيل الراتب",
+  "Record the salary": "تسجيل الراتب",
+  "Website, Google Forms and Tally → CRM inbox":
+    "الموقع ونماذج Google وTally ← صندوق الوارد في النظام",
+  "Every form answer arrives in Requests → “New contacts from the website / Google”. You check it and add it to the requests with one click (or import them all).":
+    "كل إجابة نموذج تصل إلى الطلبات ← «جهات اتصال جديدة من الموقع / Google». تراجعها وتضيفها إلى الطلبات بنقرة واحدة (أو تستورد الكل).",
+  "In Vercel → Settings → Environment Variables, add N8N_INTAKE_TOKEN: a long secret password (at least 32 characters). Redeploy.":
+    "في Vercel ← Settings ← Environment Variables أضف N8N_INTAKE_TOKEN: كلمة سر طويلة (32 حرفًا على الأقل). ثم أعد النشر.",
+  "Google Forms: open the form → ⋮ → Script editor (Apps Script), paste the script below and put the same token in TOKEN.":
+    "نماذج Google: افتح النموذج ← ⋮ ← محرر النصوص البرمجية (Apps Script)، الصق النص أدناه وضع نفس الرمز في TOKEN.",
+  "In Apps Script → Triggers → Add trigger: function onFormSubmit, event source “From form”, event type “On form submit”. Accept the Google permissions.":
+    "في Apps Script ← المشغلات ← إضافة: الدالة onFormSubmit، المصدر «من النموذج»، النوع «عند إرسال النموذج». وافق على أذونات Google.",
+  "Name your questions with simple words (Nom, Téléphone, E-mail, Formation, Consultation, J'accepte…) so the script recognises them.":
+    "سمِّ الأسئلة بكلمات بسيطة (الاسم، الهاتف، البريد، الدورة، استشارة، أوافق…) ليتعرف عليها النص.",
+  "Tally or your website: use n8n (already prepared) or a Tally webhook to the same address with the same token.":
+    "Tally أو موقعك: استخدم n8n (جاهز) أو Webhook من Tally إلى نفس العنوان بنفس الرمز.",
+  "Already works without any setup: every WhatsApp button opens WhatsApp on your phone or computer with the message written; you only press Send.":
+    "يعمل الآن دون إعداد: كل زر واتساب يفتح واتساب على هاتفك أو حاسوبك والرسالة مكتوبة؛ تضغط فقط على إرسال.",
+  "For fully automatic messages (reminders sent alone every evening), create a Meta WhatsApp Business account (business.facebook.com) and add your academy number.":
+    "للرسائل التلقائية بالكامل (تذكيرات تُرسل وحدها كل مساء) أنشئ حساب Meta WhatsApp Business ‏(business.facebook.com) وأضف رقم الأكاديمية.",
+  "Create a message template and wait for Meta's approval.":
+    "أنشئ قالب رسالة وانتظر موافقة Meta.",
+  "Add WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE in Vercel, plus CRON_SECRET for the daily reminders. Redeploy.":
+    "أضف WHATSAPP_TOKEN وWHATSAPP_PHONE_ID وWHATSAPP_TEMPLATE في Vercel، وCRON_SECRET للتذكيرات اليومية. ثم أعد النشر.",
+  "Meta charges a small fee per conversation.":
+    "تفرض Meta رسومًا بسيطة على كل محادثة.",
+  "E-mails (forgotten password)": "البريد الإلكتروني (نسيت كلمة السر)",
+  "Without it, the administrator sets a new password for staff in Settings → Team.":
+    "بدونه، يضع المسؤول كلمة سر جديدة في الإعدادات ← الفريق.",
+  "Create a free account on resend.com and verify your domain (or use their test address).":
+    "أنشئ حسابًا مجانيًا على resend.com وتحقق من نطاقك (أو استخدم عنوان الاختبار).",
+  "Add RESEND_API_KEY and MAIL_FROM (for example: Luminol Academy <noreply@your-domain>) in Vercel. Redeploy.":
+    "أضف RESEND_API_KEY وMAIL_FROM (مثلًا: Luminol Academy <noreply@your-domain>) في Vercel. ثم أعد النشر.",
+  "Online card payment (CIB / Edahabia)":
+    "الدفع الإلكتروني بالبطاقة (CIB / الذهبية)",
+  "Without it, payments (cash, CCP, BaridiMob…) are recorded by hand in Payments.":
+    "بدونه، تُسجَّل المدفوعات (نقدًا، CCP، بريدي موب…) يدويًا في المدفوعات.",
+  "Create an account on chargily.com and get your secret key (start in test mode).":
+    "أنشئ حسابًا على chargily.com واحصل على المفتاح السري (ابدأ بوضع الاختبار).",
+  "Add CHARGILY_SECRET_KEY in Vercel; after testing add CHARGILY_MODE=live. Redeploy.":
+    "أضف CHARGILY_SECRET_KEY في Vercel؛ بعد الاختبار أضف CHARGILY_MODE=live. ثم أعد النشر.",
+  "Then each amount due gets a “Payment link” button to send to the client.":
+    "بعدها يظهر لكل مبلغ مستحق زر «رابط الدفع» لإرساله للعميل.",
+  "How to connect it": "طريقة الربط",
+  "Show the Google Forms script": "عرض نص نماذج Google",
+  "Copy the script": "نسخ النص",
+  Copied: "تم النسخ",
+  "Select the text and copy it.": "حدد النص وانسخه.",
+});

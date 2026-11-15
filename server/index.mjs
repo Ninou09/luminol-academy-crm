@@ -1337,15 +1337,47 @@ write("/api/charges/:id/split", ["admin", "finance"], (req) => {
   return { ok: true };
 });
 write("/api/payments", ["admin", "finance"], (req) => {
-  const ch = chargeRows().find((x) => x.id === Number(req.body.charge_id));
-  must(ch, "Charge not found.", 404);
   const amount = integer(req.body.amount, "Payment");
+  // Any method can be typed (cash, CCP, BaridiMob, cheque…).
+  const method = text(req.body.method, "Payment method", 60);
+  let ch;
+  if (!req.body.charge_id || req.body.charge_id === "new") {
+    // A payment typed freely: who paid and for what, without a prior charge.
+    const payer = text(req.body.payer, "Client", 100);
+    const label = text(req.body.label, "What it is for", 200);
+    const contact =
+      one("SELECT id FROM contacts WHERE lower(name)=lower(?)", payer) ||
+      (() => {
+        const id = insert("contacts", {
+          name: payer,
+          email: "",
+          phone: "",
+          language: "العربية",
+          consent: 0,
+          guardian: "",
+          notes: "",
+          created_at: now(),
+        });
+        audit(req.user.id, id, "Client added with a payment.", "contact");
+        return { id };
+      })();
+    const chargeId = insert("charges", {
+      contact_id: contact.id,
+      enrollment_id: null,
+      label,
+      amount,
+      discount: 0,
+      discount_reason: "",
+      currency: one("SELECT currency FROM settings").currency,
+      due_date: now().slice(0, 10),
+      created_at: now(),
+    });
+    ch = chargeRows().find((x) => x.id === chargeId);
+  } else {
+    ch = chargeRows().find((x) => x.id === Number(req.body.charge_id));
+    must(ch, "Charge not found.", 404);
+  }
   must(amount <= ch.balance, "Payment exceeds the outstanding balance.", 409);
-  const method = text(req.body.method, "Payment method", 40);
-  must(
-    ["Bank transfer", "Cash", "Card (external)"].includes(method),
-    "Choose a payment method.",
-  );
   const year = now().slice(0, 4);
   const id = insert("payments", {
     receipt_no: one(
@@ -3788,19 +3820,28 @@ write("/api/expenses", financeRoles, (req) => {
     ["DZD", "EUR", "USD", "GBP"].includes(currency),
     "Unsupported currency.",
   );
+  const direction = b.direction === "in" ? "in" : "out";
   const id = insert("expenses", {
     spent_on: date(b.spent_on, "Date"),
     category: text(b.category, "Category", 80),
     label: text(b.label || "", "Description", 200, false),
     amount: integer(b.amount, "Amount"),
     currency,
+    direction,
+    method: text(b.method || "", "Payment method", 60, false),
+    party: text(
+      b.party || "",
+      direction === "in" ? "Received from" : "Paid to",
+      120,
+      false,
+    ),
     user_id: req.user.id,
     created_at: now(),
   });
   audit(
     req.user.id,
     null,
-    `Expense recorded: ${b.category} ${(b.amount / 100).toFixed(2)} ${currency}.`,
+    `${direction === "in" ? "Money in" : "Expense"} recorded: ${b.category} ${(b.amount / 100).toFixed(2)} ${currency}.`,
     "finance",
     "finance",
   );
