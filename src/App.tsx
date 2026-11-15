@@ -24,9 +24,55 @@ import {
   Eye,
   EyeOff,
   LoaderCircle,
+  ClipboardCheck,
+  Megaphone,
+  CircleHelp,
+  Moon,
+  Sun,
 } from "lucide-react";
-import { api, ApiError, type State, type Row } from "./types";
+import { api, ApiError, matchesPerson, type State, type Row } from "./types";
 import { arabic, roleNames } from "./i18n";
+import { french } from "./french";
+
+const locales: Record<string, string> = {
+  fr: "fr-DZ",
+  ar: "ar-DZ",
+  en: "en-GB",
+};
+/** Three interface languages: French, Arabic (right to left) and English. */
+function LanguagePicker({
+  lang,
+  setLang,
+}: {
+  lang: string;
+  setLang: (s: string) => void;
+}) {
+  return (
+    <div
+      className="language-picker"
+      role="group"
+      aria-label="Language / Langue / اللغة"
+    >
+      <Languages size={17} aria-hidden="true" />
+      {[
+        ["fr", "FR", "Français"],
+        ["ar", "ع", "العربية"],
+        ["en", "EN", "English"],
+      ].map(([code, short, name]) => (
+        <button
+          key={code}
+          className={lang === code ? "active" : ""}
+          aria-pressed={lang === code}
+          title={name}
+          lang={code}
+          onClick={() => setLang(code)}
+        >
+          {short}
+        </button>
+      ))}
+    </div>
+  );
+}
 import { AppContext, type ModalData } from "./context";
 import { Avatar, Button, Dialog, Badge, Empty, TaskRows } from "./ui";
 import {
@@ -41,25 +87,54 @@ import {
   Tasks,
 } from "./pages";
 import Forms from "./forms";
+import { AttendancePage } from "./academy";
+import { CampaignsPage } from "./growth";
 import Profile from "./profile";
 
 const nav = [
   ["Overview", LayoutDashboard],
   ["Admissions", Kanban],
   ["Students", Users],
-  ["Programs & Cohorts", GraduationCap],
   ["Calendar", CalendarDays],
+  ["Attendance", ClipboardCheck],
+  ["Programs & Cohorts", GraduationCap],
   ["Payments", Wallet],
+  ["Campaigns", Megaphone],
   ["Reports", ChartNoAxesCombined],
 ] as const;
+/** Plain names shown in the menu; page keys stay stable. */
+const navLabels: Record<string, string> = {
+  Attendance: "Attendance",
+  Admissions: "Requests",
+  Students: "Clients & students",
+  "Programs & Cohorts": "Programs & groups",
+};
 export default function App() {
   const [data, setData] = useState<State | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
-  const [lang, setLang] = useState(
-    localStorage.getItem("luminol-language") || "en",
-  );
-  const t = (s: string) => (lang === "ar" ? arabic[s] || s : s);
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem("luminol-language") || "fr";
+    } catch {
+      return "fr";
+    }
+  });
+  const t = (s: string) =>
+    lang === "ar" ? arabic[s] || s : lang === "fr" ? french[s] || s : s;
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("luminol-theme") || "light";
+    } catch {
+      return "light";
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("luminol-theme", theme);
+    } catch {}
+  }, [theme]);
   const [page, setPage] = useState("Overview"),
     [pageFilter, setPageFilter] = useState("");
   const [modal, setModal] = useState<ModalData | null>(null),
@@ -138,7 +213,7 @@ export default function App() {
     cohort = (id: number) => data?.cohorts.find((c) => c.id === id) || missing,
     user = (id: number) => data?.users.find((u) => u.id === id) || missing;
   const money = (n: number, currency?: string) =>
-    new Intl.NumberFormat(lang === "ar" ? "ar-DZ" : "en-DZ", {
+    new Intl.NumberFormat(locales[lang] || "en-DZ", {
       style: "currency",
       currency: currency || data?.settings.currency || "DZD",
       maximumFractionDigits: 2,
@@ -148,7 +223,7 @@ export default function App() {
     s: string,
     opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" },
   ) =>
-    new Intl.DateTimeFormat(lang === "ar" ? "ar-DZ" : "en-GB", {
+    new Intl.DateTimeFormat(locales[lang] || "en-GB", {
       timeZone: data?.settings.timezone || "Africa/Algiers",
       ...opts,
     }).format(new Date(s.length === 10 ? s + "T12:00:00Z" : s));
@@ -156,10 +231,10 @@ export default function App() {
     date(s, { hour: "2-digit", minute: "2-digit", hour12: false });
   const [period, setPeriod] = useState("month");
   const [isMobile, setIsMobile] = useState(
-    window.matchMedia("(max-width:760px)").matches,
+    window.matchMedia("(max-width:1024px)").matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width:760px)");
+    const mq = window.matchMedia("(max-width:1024px)");
     const update = () => setIsMobile(mq.matches);
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
@@ -169,11 +244,7 @@ export default function App() {
       data && search.trim()
         ? [
             ...data.contacts
-              .filter((c) =>
-                `${c.name} ${c.email} ${c.phone}`
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
+              .filter((c) => matchesPerson(c, search))
               .map((c) => ({ ...c, kind: "Contact" })),
             ...data.programs
               .filter(
@@ -194,7 +265,7 @@ export default function App() {
   if (loading)
     return (
       <div className="loading-screen">
-        <img src="/favicon.svg" width="48" />
+        <img src="/logo-mark.png" width="48" />
         <LoaderCircle className="spin" />
         <p>{t("Loading workspace…")}</p>
       </div>
@@ -234,9 +305,11 @@ export default function App() {
   const visibleNav = nav.filter(
     ([name]) =>
       !(name === "Admissions" && !data.permissions.admissions) &&
-      !(name === "Payments" && !data.permissions.finance),
+      !(name === "Payments" && !data.permissions.finance) &&
+      !(name === "Attendance" && !data.permissions.attendance) &&
+      !(name === "Campaigns" && !data.permissions.editAdmissions),
   );
-  const title = page === "Programs & Cohorts" ? "Programs & Cohorts" : page;
+  const title = navLabels[page] || page;
   const views: Record<string, ReactNode> = {
     Overview: <Overview period={period} setPeriod={setPeriod} />,
     Admissions: <Admissions />,
@@ -247,6 +320,8 @@ export default function App() {
     Reports: <Reports period={period} setPeriod={setPeriod} />,
     Settings: <SettingsPage />,
     "My tasks": <Tasks />,
+    Attendance: <AttendancePage />,
+    Campaigns: <CampaignsPage />,
   };
   return (
     <AppContext.Provider value={context}>
@@ -266,84 +341,78 @@ export default function App() {
             onClick={() => go("Overview")}
             aria-label="Luminol Academy"
           >
-            <img src="/favicon.svg" alt="" />
+            <img src="/logo-mark.png" alt="" />
             <span>
               luminol<span>ACADEMY</span>
             </span>
           </button>
-          <button className="workspace-switch" onClick={() => go("Settings")}>
-            <span className="workspace-icon">LA</span>
-            <span>
-              {t("Academy workspace")}
-              <small>
-                {t("Psychology")} · {t("Languages")}
-              </small>
-            </span>
-            <ChevronDown size={14} />
-          </button>
-          <div className="nav-label">{t("Workspace")}</div>
-          <nav aria-label={t("Workspace")}>
-            {visibleNav.map(([name, Icon]) => (
-              <button
-                key={name}
-                className={`nav-item ${page === name ? "active" : ""}`}
-                aria-current={page === name ? "page" : undefined}
-                onClick={() => go(name)}
-              >
-                <Icon size={19} />
-                <span>{t(name)}</span>
-                {name === "Admissions" &&
-                  data.opportunities.filter((o) => o.stage === "New inquiry")
-                    .length > 0 && (
-                    <span className="nav-count">
-                      {
-                        data.opportunities.filter(
-                          (o) => o.stage === "New inquiry",
-                        ).length
-                      }
-                    </span>
-                  )}
-              </button>
-            ))}
-          </nav>
-          <div className="nav-divider" />
           <button
-            className={`nav-item ${page === "My tasks" ? "active" : ""}`}
-            onClick={() => go("My tasks")}
+            className="icon-button sidebar-close"
+            aria-label={t("Close")}
+            onClick={() => setMobile(false)}
           >
-            <ListTodo size={19} />
-            <span>{t("My tasks")}</span>
-            <span className="nav-count neutral">{taskCount}</span>
+            <X size={20} />
           </button>
-          <div className="sidebar-bottom">
-            <div className="demo-card">
-              <span className="small-spark">✳</span>
-              <strong>{t("A little clarity. A lot of possibility.")}</strong>
-              <p>
-                {t("Demo workspace")}
-                <br />
-                {t("Fictional data")}
-              </p>
-              <button onClick={() => go("Settings")}>
-                {t("Workspace settings")}
-                <ArrowUpRight size={14} />
-              </button>
-            </div>
+          <div className="sidebar-scroll">
+            <div className="nav-label">{data.settings.academy}</div>
+            <nav aria-label={t("Workspace")}>
+              {visibleNav.map(([name, Icon]) => (
+                <button
+                  key={name}
+                  className={`nav-item ${page === name ? "active" : ""}`}
+                  aria-current={page === name ? "page" : undefined}
+                  onClick={() => go(name)}
+                >
+                  <Icon size={20} />
+                  <span>{t(navLabels[name] || name)}</span>
+                  {name === "Admissions" &&
+                    data.opportunities.filter((o) => o.stage === "New inquiry")
+                      .length +
+                      (data.incoming || []).length >
+                      0 && (
+                      <span className="nav-count">
+                        {data.opportunities.filter(
+                          (o) => o.stage === "New inquiry",
+                        ).length + (data.incoming || []).length}
+                      </span>
+                    )}
+                </button>
+              ))}
+            </nav>
+            <div className="nav-divider" />
+            <button
+              className={`nav-item ${page === "My tasks" ? "active" : ""}`}
+              onClick={() => go("My tasks")}
+            >
+              <ListTodo size={20} />
+              <span>{t("My tasks")}</span>
+              <span className="nav-count neutral">{taskCount}</span>
+            </button>
             <button
               className={`nav-item ${page === "Settings" ? "active" : ""}`}
+              aria-current={page === "Settings" ? "page" : undefined}
               onClick={() => go("Settings")}
             >
-              <Settings size={19} />
+              <Settings size={20} />
               <span>{t("Settings")}</span>
             </button>
+          </div>
+          <div className="sidebar-bottom">
             <div className="user-block">
-              <Avatar name={data.user.name} />
-              <div>
-                <strong>{data.user.name}</strong>
-                <small>{t(roleNames[data.user.role])}</small>
-              </div>
+              <button
+                className="user-link"
+                onClick={() => go("Settings", "My account")}
+                title={t("My account")}
+              >
+                <Avatar name={data.user.name} />
+                <div>
+                  <strong>{data.user.name}</strong>
+                  <small>{t(roleNames[data.user.role])}</small>
+                </div>
+              </button>
               <button
                 className="icon-button"
+                title={t("Sign out")}
                 aria-label={t("Sign out")}
                 onClick={async () => {
                   await api("/logout", {});
@@ -387,15 +456,22 @@ export default function App() {
                 </kbd>
               </button>
               <button
-                className="language-button"
-                onClick={() => setLang(lang === "en" ? "ar" : "en")}
-                aria-label={
-                  lang === "en" ? "Switch to Arabic" : "Switch to English"
-                }
+                className="icon-button"
+                aria-label={t("How this page works")}
+                title={t("How this page works")}
+                onClick={() => open({ type: "help", extra: page })}
               >
-                <Languages size={17} />
-                <span>{lang === "en" ? "العربية" : "English"}</span>
+                <CircleHelp size={20} />
               </button>
+              <button
+                className="icon-button"
+                aria-label={t(theme === "dark" ? "Light theme" : "Dark theme")}
+                title={t(theme === "dark" ? "Light theme" : "Dark theme")}
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+              </button>
+              <LanguagePicker lang={lang} setLang={setLang} />
               <div className="popover-anchor">
                 <button
                   className="icon-button notification-button"
@@ -456,16 +532,6 @@ export default function App() {
             </div>
           </header>
           <main id="main-content" tabIndex={-1}>
-            <div className="workspace-status">
-              <span>
-                <i />
-                {t(data.hosted ? "Hosted workspace" : "Local workspace")}
-              </span>
-              <span>
-                {t("Demo workspace")}{" "}
-                <span className="muted">· {t("Fictional data")}</span>
-              </span>
-            </div>
             {views[page] || views.Overview}
             <footer className="app-footer">
               <span>
@@ -501,7 +567,21 @@ export default function App() {
               {data.permissions.editAdmissions && (
                 <button onClick={() => open({ type: "inquiry" })}>
                   <Kanban size={17} />
-                  {t("New inquiry")}
+                  {t("New client request")}
+                </button>
+              )}
+              {["admin", "admissions", "academic"].includes(data.user.role) && (
+                <button onClick={() => open({ type: "client" })}>
+                  <Users size={17} />
+                  {t("Add client")}
+                </button>
+              )}
+              {["admin", "admissions", "academic", "instructor"].includes(
+                data.user.role,
+              ) && (
+                <button onClick={() => open({ type: "appointment" })}>
+                  <CalendarDays size={17} />
+                  {t("Add to calendar")}
                 </button>
               )}
               {data.permissions.write && (
@@ -514,12 +594,6 @@ export default function App() {
                 <button onClick={() => open({ type: "payment" })}>
                   <Wallet size={17} />
                   {t("Record payment")}
-                </button>
-              )}
-              {data.permissions.editAcademic && (
-                <button onClick={() => open({ type: "session" })}>
-                  <CalendarDays size={17} />
-                  {t("New session")}
                 </button>
               )}
             </div>
@@ -629,22 +703,44 @@ function Login({
   onLogin: () => Promise<void>;
   error: string;
 }) {
-  const localDemo = ["localhost", "127.0.0.1", "[::1]"].includes(
-    window.location.hostname,
-  );
-  const [email, setEmail] = useState("admin@luminol.demo"),
-    [password, setPassword] = useState(localDemo ? "LuminolDemo!2026" : ""),
+  const [email, setEmail] = useState(
+      localStorage.getItem("luminol-email") || "",
+    ),
+    [password, setPassword] = useState(""),
     [show, setShow] = useState(false),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(outerError);
-  async function login() {
+    [error, setError] = useState(outerError),
+    [code, setCode] = useState(""),
+    [needCode, setNeedCode] = useState(false),
+    [forgot, setForgot] = useState(false),
+    [notice, setNotice] = useState("");
+  async function sendReset() {
     setBusy(true);
     setError("");
     try {
-      await api("/login", { email, password });
+      const r = await api("/password/forgot", { email });
+      setNotice(t(r.message));
+    } catch (e: any) {
+      setError(t(e.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function login() {
+    if (forgot) return sendReset();
+    setBusy(true);
+    setError("");
+    try {
+      await api("/login", { email, password, ...(needCode ? { code } : {}) });
+      try {
+        localStorage.setItem("luminol-email", email.trim());
+      } catch {}
       await onLogin();
     } catch (e: any) {
-      setError(e.message);
+      if (e instanceof ApiError && e.details?.need_code) {
+        if (needCode) setError(t(e.message));
+        setNeedCode(true);
+      } else setError(t(e.message));
     } finally {
       setBusy(false);
     }
@@ -653,7 +749,7 @@ function Login({
     <div className="login-page">
       <div className="login-art">
         <div className="brand">
-          <img src="/favicon.svg" alt="" />
+          <img src="/logo-mark.png" alt="" />
           <span>
             luminol<span>ACADEMY</span>
           </span>
@@ -678,13 +774,9 @@ function Login({
         <div className="login-caption">A LUMINOL WORKSPACE</div>
       </div>
       <div className="login-side">
-        <button
-          className="language-button login-language"
-          onClick={() => setLang(lang === "en" ? "ar" : "en")}
-        >
-          <Languages size={18} />
-          {lang === "en" ? "العربية" : "English"}
-        </button>
+        <div className="login-language">
+          <LanguagePicker lang={lang} setLang={setLang} />
+        </div>
         <form
           className="login-form"
           onSubmit={(e) => {
@@ -692,28 +784,13 @@ function Login({
             login();
           }}
         >
-          <Badge tone="teal">{t("Demo workspace")}</Badge>
+          <img
+            className="login-logo"
+            src="/logo-full.png"
+            alt="Luminol Academy"
+          />
           <h2>{t("Welcome to Luminol.")}</h2>
           <p>{t("Sign in to workspace")}</p>
-          {localDemo && (
-            <label>
-              {t("Use a demo role")}
-              <select value={email} onChange={(e) => setEmail(e.target.value)}>
-                {[
-                  ["admin", "admin"],
-                  ["amel", "admissions"],
-                  ["yacine", "academic"],
-                  ["sarah", "instructor"],
-                  ["karim", "finance"],
-                  ["nadia", "manager"],
-                ].map(([name, role]) => (
-                  <option key={name} value={`${name}@luminol.demo`}>
-                    {t(roleNames[role])}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <label>
             {t("Email")}
             <input
@@ -724,26 +801,51 @@ function Login({
               autoComplete="username"
             />
           </label>
-          <label>
-            {t("Password")}
-            <span className="password-input">
+          {forgot && (
+            <p className="form-hint">
+              {t(
+                "Enter your e-mail. We will send you a link to choose a new password.",
+              )}
+            </p>
+          )}
+          {notice && <div className="info-box">{notice}</div>}
+          {!forgot && (
+            <label>
+              {t("Password")}
+              <span className="password-input">
+                <input
+                  type={show ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setShow(!show)}
+                  aria-label={t(show ? "Hide password" : "Show password")}
+                >
+                  {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </span>
+            </label>
+          )}
+          {needCode && !forgot && (
+            <label>
+              {t("6-digit code from your authenticator app")}
               <input
-                type={show ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                autoFocus
                 required
-                autoComplete="current-password"
               />
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => setShow(!show)}
-                aria-label={t(show ? "Hide password" : "Show password")}
-              >
-                {show ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </span>
-          </label>
+            </label>
+          )}
           {error && (
             <div role="alert" className="form-error">
               {error}
@@ -757,16 +859,20 @@ function Login({
               busy ? <LoaderCircle className="spin" size={18} /> : undefined
             }
           >
-            {t(localDemo ? "Enter demo workspace" : "Sign in")}
+            {t(forgot ? "Send the link" : "Sign in")}
             <ArrowRight size={17} />
           </Button>
-          <div className="login-note">
-            {t(
-              localDemo
-                ? "Local demo · Fictional records · Persistent database"
-                : "Hosted workspace · Password required · Persistent database",
-            )}
-          </div>
+          <button
+            type="button"
+            className="text-button login-forgot"
+            onClick={() => {
+              setForgot(!forgot);
+              setError("");
+              setNotice("");
+            }}
+          >
+            {t(forgot ? "Back to sign in" : "Forgot your password?")}
+          </button>
         </form>
       </div>
     </div>

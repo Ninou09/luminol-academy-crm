@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { all, one, run, insert, transaction, audit, now } from "./db.mjs";
+import { db, all, one, run, insert, transaction, audit, now } from "./db.mjs";
 
 function requireValue(ok, message, status = 400) {
   if (!ok) throw Object.assign(new Error(message), { status });
@@ -206,58 +206,281 @@ export function incomingInquiries(user) {
     : [];
 }
 
+/** Map free-form source wording onto the CRM's request types. */
+export function guessServiceType(text = "") {
+  const v = String(text).toLowerCase();
+  if (/consult|استشار|séance|therap|علاج/.test(v))
+    return "Psychology consultation";
+  if (/psych|نفس/.test(v)) return "Psychology course";
+  if (/lang|english|french|anglais|français|إنجليز|فرنس|لغ/.test(v))
+    return "Language course";
+  if (/train|formation|تدريب|تكوين/.test(v)) return "Training";
+  return v ? "Course" : "Other";
+}
+function matchProgram(text) {
+  const v = String(text || "")
+    .trim()
+    .toLowerCase();
+  if (!v) return null;
+  return (
+    all("SELECT * FROM programs").find((p) => p.name.toLowerCase() === v) ||
+    null
+  );
+}
+
+/**
+ * Turn one incoming lead into a contact + inquiry. A program is optional:
+ * consultations and courses that are not in the catalogue keep their
+ * free-text interest. Must run inside a transaction.
+ */
+export function convertIncoming(user, incoming, options = {}) {
+  const programId = Number(options.program_id) || null;
+  const program = programId
+    ? one("SELECT * FROM programs WHERE id=?", programId)
+    : matchProgram(incoming.course_interest);
+  requireValue(!programId || program, "Program not found.", 404);
+  const owner = one(
+    "SELECT * FROM users WHERE id=? AND role IN ('admin','admissions') AND active=1",
+    Number(options.owner_id || incoming.owner_id),
+  );
+  requireValue(owner, "Choose an admissions advisor.");
+  const email = field(
+    options.email ?? incoming.email,
+    "Email",
+    254,
+  ).toLowerCase();
+  requireValue(
+    !email || emailPattern.test(email),
+    "Enter a valid email address.",
+  );
+  const serviceType =
+    field(options.service_type, "Request type", 80) ||
+    guessServiceType(`${incoming.service_type} ${incoming.course_interest}`);
+  const interest =
+    field(options.interest, "Interest", 180) ||
+    incoming.course_interest ||
+    program?.name ||
+    "";
+  const emailMatch = email
+    ? one("SELECT * FROM contacts WHERE email=? COLLATE NOCASE", email)
+    : null;
+  const phoneMatches = incoming.phone
+    ? all("SELECT * FROM contacts WHERE phone<>''").filter((c) => {
+        try {
+          return normalizePhone(c.phone) === incoming.phone;
+        } catch {
+          return false;
+        }
+      })
+    : [];
+  requireValue(
+    phoneMatches.length <= 1,
+    "Several contacts match this phone. Resolve duplicates before importing.",
+    409,
+  );
+  const phoneMatch = phoneMatches[0];
+  requireValue(
+    !emailMatch || !phoneMatch || emailMatch.id === phoneMatch.id,
+    "Email and phone match different contacts. Review the duplicate records.",
+    409,
+  );
+  let contact = emailMatch || phoneMatch;
+  if (!contact) {
+    requireValue(
+      email || incoming.phone,
+      "An email or phone number is required.",
+    );
+    const id = insert("contacts", {
+      name: incoming.name,
+      email,
+      phone: incoming.phone,
+      language: incoming.language,
+      consent: incoming.consent,
+      guardian: "",
+      created_at: now(),
+    });
+    contact = one("SELECT * FROM contacts WHERE id=?", id);
+  }
+  let opportunity = one(
+    `SELECT * FROM opportunities WHERE contact_id=? AND stage NOT IN ('Lost','Nurture')
+     AND ${program ? "program_id=?" : "program_id IS NULL AND interest=?"} ORDER BY id DESC LIMIT 1`,
+    contact.id,
+    program ? program.id : interest,
+  );
+  if (!opportunity) {
+    const id = insert("opportunities", {
+      contact_id: contact.id,
+      program_id: program?.id ?? null,
+      owner_id: owner.id,
+      service_type: serviceType,
+      interest,
+      stage: "New inquiry",
+      source: incoming.source,
+      campaign: incoming.campaign,
+      tags: "n8n",
+      expected_date: "",
+      created_at: now(),
+      stage_at: now(),
+      version: 1,
+    });
+    opportunity = one("SELECT * FROM opportunities WHERE id=?", id);
+  }
+  const reviewFingerprint = createHash("sha256")
+    .update(
+      JSON.stringify({ program: program?.id ?? null, owner: owner.id, email }),
+    )
+    .digest("hex");
+  run(
+    "UPDATE incoming_inquiries SET opportunity_id=?,review_fingerprint=?,status='Converted',version=version+1 WHERE id=?",
+    opportunity.id,
+    reviewFingerprint,
+    incoming.id,
+  );
+  if (incoming.task_id)
+    run(
+      "UPDATE tasks SET status='Done',version=version+1 WHERE id=?",
+      incoming.task_id,
+    );
+  const existingTask = one(
+    "SELECT id FROM tasks WHERE contact_id=? AND status='Open' LIMIT 1",
+    contact.id,
+  );
+  if (!existingTask && opportunity.stage !== "Enrolled")
+    insert("tasks", {
+      contact_id: contact.id,
+      owner_id: opportunity.owner_id,
+      title: contact.consent
+        ? "Make first contact"
+        : "Review communication consent",
+      due_at: new Date(Date.now() + 86400000).toISOString(),
+      priority: "Normal",
+      status: "Open",
+      created_at: now(),
+      version: 1,
+    });
+  audit(
+    user.id,
+    contact.id,
+    `Incoming lead #${incoming.id} added to admissions (${program?.name || interest || serviceType}).`,
+    "admissions",
+  );
+  return { reviewFingerprint, opportunity, contact };
+}
+
 /** Called after normal session authentication. Intake tokens cannot approve leads. */
 export function installN8nReview(app) {
-  app.post("/api/integrations/n8n/inquiries/:id/convert", (req, res, next) => {
+  const guard = (req) => {
+    requireValue(
+      ["admin", "admissions"].includes(req.user.role),
+      "Admissions access is required.",
+      403,
+    );
+    requireValue(
+      req.body && typeof req.body === "object" && !Array.isArray(req.body),
+      "An assignment is required.",
+    );
+  };
+  app.post("/api/integrations/n8n/inquiries/import-all", (req, res, next) => {
     try {
-      requireValue(
-        ["admin", "admissions"].includes(req.user.role),
-        "Admissions access is required.",
-        403,
-      );
-      requireValue(
-        req.body && typeof req.body === "object" && !Array.isArray(req.body),
-        "An assignment is required.",
-      );
+      guard(req);
+      const result = transaction(() => {
+        let imported = 0;
+        const skipped = [];
+        for (const incoming of all(
+          "SELECT * FROM incoming_inquiries WHERE status='Pending' ORDER BY id",
+        )) {
+          // Each lead is isolated so one duplicate does not block the rest.
+          db.exec("SAVEPOINT lead");
+          try {
+            convertIncoming(req.user, incoming, {
+              owner_id: req.body.owner_id || req.user.id,
+            });
+            db.exec("RELEASE lead");
+            imported++;
+          } catch (error) {
+            db.exec("ROLLBACK TO lead");
+            db.exec("RELEASE lead");
+            skipped.push({
+              id: incoming.id,
+              name: incoming.name,
+              error: error.message,
+            });
+          }
+        }
+        return { ok: true, imported, skipped };
+      });
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post("/api/integrations/n8n/inquiries/:id/dismiss", (req, res, next) => {
+    try {
+      guard(req);
       const result = transaction(() => {
         const incoming = one(
           "SELECT * FROM incoming_inquiries WHERE id=?",
           Number(req.params.id),
         );
         requireValue(incoming, "Incoming inquiry not found.", 404);
-        const program = one(
-          "SELECT * FROM programs WHERE id=?",
-          Number(req.body.program_id),
-        );
-        const owner = one(
-          "SELECT * FROM users WHERE id=? AND role IN ('admin','admissions')",
-          Number(req.body.owner_id),
-        );
         requireValue(
-          program && owner,
-          "Choose a program and an admissions advisor.",
+          incoming.status === "Pending",
+          "Only waiting leads can be dismissed.",
+          409,
         );
-        const email = field(
-          req.body.email ?? incoming.email,
-          "Email",
-          254,
-        ).toLowerCase();
-        requireValue(
-          !email || emailPattern.test(email),
-          "Enter a valid email address.",
+        run(
+          "UPDATE incoming_inquiries SET status='Dismissed',version=version+1 WHERE id=?",
+          incoming.id,
         );
-        const reviewFingerprint = createHash("sha256")
-          .update(
-            JSON.stringify({ program: program.id, owner: owner.id, email }),
-          )
-          .digest("hex");
+        if (incoming.task_id)
+          run(
+            "UPDATE tasks SET status='Done',version=version+1 WHERE id=?",
+            incoming.task_id,
+          );
+        audit(
+          req.user.id,
+          null,
+          `Incoming lead #${incoming.id} dismissed.`,
+          "admissions",
+          "internal",
+        );
+        return { ok: true };
+      });
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post("/api/integrations/n8n/inquiries/:id/convert", (req, res, next) => {
+    try {
+      guard(req);
+      const result = transaction(() => {
+        const incoming = one(
+          "SELECT * FROM incoming_inquiries WHERE id=?",
+          Number(req.params.id),
+        );
+        requireValue(incoming, "Incoming inquiry not found.", 404);
         if (incoming.status === "Converted") {
           const previous = one(
             "SELECT * FROM opportunities WHERE id=?",
             incoming.opportunity_id,
           );
+          const email = field(
+            req.body.email ?? incoming.email,
+            "Email",
+            254,
+          ).toLowerCase();
+          const fingerprint = createHash("sha256")
+            .update(
+              JSON.stringify({
+                program: Number(req.body.program_id) || null,
+                owner: Number(req.body.owner_id),
+                email,
+              }),
+            )
+            .digest("hex");
           requireValue(
-            previous && incoming.review_fingerprint === reviewFingerprint,
+            previous && incoming.review_fingerprint === fingerprint,
             "This inquiry was already reviewed with a different assignment.",
             409,
           );
@@ -269,103 +492,19 @@ export function installN8nReview(app) {
           };
         }
         requireValue(
+          incoming.status === "Pending",
+          "This lead was dismissed.",
+          409,
+        );
+        requireValue(
           req.body.version === incoming.version,
           "This inquiry changed. Refresh before reviewing it.",
           409,
         );
-        const emailMatch = email
-          ? one("SELECT * FROM contacts WHERE email=? COLLATE NOCASE", email)
-          : null;
-        const phoneMatches = incoming.phone
-          ? all("SELECT * FROM contacts WHERE phone<>''").filter((c) => {
-              try {
-                return normalizePhone(c.phone) === incoming.phone;
-              } catch {
-                return false;
-              }
-            })
-          : [];
-        requireValue(
-          phoneMatches.length <= 1,
-          "Several contacts match this phone. Resolve duplicates before importing.",
-          409,
-        );
-        const phoneMatch = phoneMatches[0];
-        requireValue(
-          !emailMatch || !phoneMatch || emailMatch.id === phoneMatch.id,
-          "Email and phone match different contacts. Review the duplicate records.",
-          409,
-        );
-        let contact = emailMatch || phoneMatch;
-        if (!contact) {
-          requireValue(
-            emailPattern.test(email),
-            "Confirm an email address before creating the contact.",
-          );
-          const id = insert("contacts", {
-            name: incoming.name,
-            email,
-            phone: incoming.phone,
-            language: incoming.language,
-            consent: incoming.consent,
-            guardian: "",
-            created_at: now(),
-          });
-          contact = one("SELECT * FROM contacts WHERE id=?", id);
-        }
-        let opportunity = one(
-          "SELECT * FROM opportunities WHERE contact_id=? AND program_id=? AND stage NOT IN ('Lost','Nurture') ORDER BY id DESC LIMIT 1",
-          contact.id,
-          program.id,
-        );
-        if (!opportunity) {
-          const id = insert("opportunities", {
-            contact_id: contact.id,
-            program_id: program.id,
-            owner_id: owner.id,
-            stage: "New inquiry",
-            source: incoming.source,
-            campaign: incoming.campaign,
-            tags: "n8n",
-            expected_date: "",
-            created_at: now(),
-            stage_at: now(),
-            version: 1,
-          });
-          opportunity = one("SELECT * FROM opportunities WHERE id=?", id);
-        }
-        run(
-          "UPDATE incoming_inquiries SET opportunity_id=?,review_fingerprint=?,status='Converted',version=version+1 WHERE id=?",
-          opportunity.id,
-          reviewFingerprint,
-          incoming.id,
-        );
-        run(
-          "UPDATE tasks SET status='Done',version=version+1 WHERE id=?",
-          incoming.task_id,
-        );
-        const existingTask = one(
-          "SELECT id FROM tasks WHERE contact_id=? AND status='Open' LIMIT 1",
-          contact.id,
-        );
-        if (!existingTask && opportunity.stage !== "Enrolled")
-          insert("tasks", {
-            contact_id: contact.id,
-            owner_id: opportunity.owner_id,
-            title: contact.consent
-              ? "Make first contact"
-              : "Review communication consent",
-            due_at: new Date(Date.now() + 86400000).toISOString(),
-            priority: "Normal",
-            status: "Open",
-            created_at: now(),
-            version: 1,
-          });
-        audit(
-          req.user.id,
-          contact.id,
-          `Incoming n8n inquiry #${incoming.id} reviewed for ${program.name}.`,
-          "admissions",
+        const { opportunity, contact } = convertIncoming(
+          req.user,
+          incoming,
+          req.body,
         );
         return {
           ok: true,

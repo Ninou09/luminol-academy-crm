@@ -58,6 +58,7 @@ before(async () => {
       PORT: "0",
       CRM_DB: resolve(folder, "test.sqlite"),
       DEMO_PASSWORD: "LuminolDemo!2026",
+      SEED_SAMPLE_DATA: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,

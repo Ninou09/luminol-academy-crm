@@ -1,0 +1,1358 @@
+/** French interface (Algeria). Keys are the English source texts. */
+export const french: Record<string, string> = {
+  // Navigation & shell
+  Overview: "Accueil",
+  Admissions: "Demandes",
+  Requests: "Demandes",
+  Students: "Élèves",
+  "Clients & students": "Clients et élèves",
+  "Programs & Cohorts": "Formations et groupes",
+  "Programs & groups": "Formations et groupes",
+  Calendar: "Agenda",
+  Payments: "Paiements",
+  Reports: "Rapports",
+  Settings: "Paramètres",
+  "My tasks": "Mes tâches",
+  Workspace: "Espace de travail",
+  "Academy workspace": "Espace de l’académie",
+  "Demo workspace": "Espace de démonstration",
+  "Fictional data": "Données fictives",
+  "Hosted workspace": "Espace en ligne",
+  "Local workspace": "Espace local",
+  "All changes are saved locally.":
+    "Toutes les modifications sont enregistrées localement.",
+  "Changes are saved securely in the cloud.":
+    "Les modifications sont enregistrées en sécurité dans le cloud.",
+  "Sign out": "Se déconnecter",
+  "Search anything…": "Rechercher…",
+  Search: "Rechercher",
+  "Quick create": "Ajout rapide",
+  Notifications: "Notifications",
+  "No notifications": "Aucune notification",
+  Menu: "Menu",
+  Close: "Fermer",
+  "Loading workspace…": "Chargement…",
+  "Psychology. Languages. Training.": "Psychologie. Langues. Formation.",
+  "A little clarity. A lot of possibility.":
+    "Un peu de clarté, beaucoup de possibilités.",
+  "Switch to Arabic": "Passer en arabe",
+  "Switch to English": "Passer en anglais",
+  "Try a name, program, or cohort.":
+    "Essayez un nom, une formation ou un groupe.",
+  "No results": "Aucun résultat",
+  Contact: "Contact",
+  Program: "Formation",
+  Cohort: "Groupe",
+  Undo: "Annuler",
+
+  // Login
+  "A brighter way to run your academy.":
+    "Une façon plus claire de gérer votre académie.",
+  "Welcome to Luminol.": "Bienvenue sur Luminol.",
+  "Sign in to workspace": "Connectez-vous à votre espace",
+  "Sign in": "Se connecter",
+  Email: "E-mail",
+  Password: "Mot de passe",
+  "Show password": "Afficher le mot de passe",
+  "Hide password": "Masquer le mot de passe",
+  "Forgot your password? Ask your administrator to set a new one.":
+    "Mot de passe oublié ? Demandez à l’administrateur d’en définir un nouveau.",
+  "Enter demo workspace": "Entrer dans la démo",
+  "Use a demo role": "Rôle de démonstration",
+  "Local demo · Fictional records · Persistent database":
+    "Démo locale · Données fictives",
+  "Hosted workspace · Password required · Persistent database":
+    "Espace en ligne · Mot de passe requis",
+
+  // Common actions
+  Save: "Enregistrer",
+  Cancel: "Annuler",
+  Edit: "Modifier",
+  Delete: "Supprimer",
+  Deleted: "Supprimé",
+  Confirm: "Confirmer",
+  Back: "Retour",
+  Retry: "Réessayer",
+  Discard: "Ignorer",
+  "Discard changes": "Abandonner les modifications",
+  "Keep editing": "Continuer la modification",
+  "You have unsaved changes.": "Vous avez des modifications non enregistrées.",
+  "You have unsaved changes. Discard changes?":
+    "Modifications non enregistrées. Les abandonner ?",
+  "Save changes before leaving this form, or discard them.":
+    "Enregistrez avant de quitter ce formulaire, ou abandonnez les modifications.",
+  "Saving…": "Enregistrement…",
+  "Changes saved": "Modifications enregistrées",
+  "Record updated": "Fiche mise à jour",
+  Refresh: "Actualiser",
+  Download: "Télécharger",
+  "Export CSV": "Exporter (Excel)",
+  Export: "Exporter",
+  Import: "Importer",
+  "View all": "Tout voir",
+  "View pipeline": "Voir les demandes",
+  "View calendar": "Voir l’agenda",
+  "View students": "Voir les élèves",
+  "Clear filters": "Effacer les filtres",
+  Filters: "Filtres",
+  Actions: "Actions",
+  "Choose…": "Choisir…",
+  "Choose or type…": "Choisir ou écrire…",
+  "Choose or type your own": "Choisissez ou écrivez le vôtre",
+  "— None —": "— Aucun —",
+  Required: "Obligatoire",
+  "This action cannot be undone.": "Cette action est irréversible.",
+  Previous: "Précédent",
+  Next: "Suivant",
+  of: "sur",
+  Results: "Résultats",
+  selected: "sélectionné(s)",
+  more: "de plus",
+  Skipped: "Ignoré",
+  Success: "Réussi",
+  Error: "Erreur",
+  Open: "Ouvert",
+  Done: "Fait",
+  "Read only": "Lecture seule",
+  "Go to record": "Ouvrir la fiche",
+
+  // Overview
+  "Your academy, at a glance.": "Votre académie en un coup d’œil.",
+  "Here’s what needs your attention today.":
+    "Voici ce qui demande votre attention aujourd’hui.",
+  "Let's set up your academy": "Configurons votre académie",
+  "Three short steps. You can change everything later.":
+    "Trois étapes courtes. Tout reste modifiable ensuite.",
+  "1. Add your team and teachers": "1. Ajoutez votre équipe et les enseignants",
+  "2. Add your courses with real prices":
+    "2. Ajoutez vos formations avec les vrais tarifs",
+  "3. Import leads from the website / Google":
+    "3. Importez les contacts du site / Google",
+  "Advisors, teachers, psychologists": "Conseillers, enseignants, psychologues",
+  "Languages, psychology, training": "Langues, psychologie, formation",
+  "waiting in the inbox": "en attente",
+  "New leads": "Nouvelles demandes",
+  "Confirmed enrollments": "Inscriptions confirmées",
+  "Conversion rate": "Taux de conversion",
+  "Payments received": "Paiements reçus",
+  "Outstanding balance": "Reste à encaisser",
+  "Inquiry cohort conversion": "Demandes devenues inscriptions",
+  "Net of recorded refunds": "Remboursements déduits",
+  "All open charges": "Tous les montants dus",
+  "This month": "Ce mois-ci",
+  "Last 30 days": "30 derniers jours",
+  "All time": "Depuis le début",
+  "Needs your attention": "À traiter",
+  "Your next steps, in one place.": "Vos prochaines actions, au même endroit.",
+  "Follow-ups": "Relances",
+  "Student attention": "Élèves à suivre",
+  "All caught up": "Tout est à jour",
+  "No active attention flags": "Aucune alerte",
+  Today: "Aujourd’hui",
+  "Today’s sessions": "Séances du jour",
+  "Who is booked today, and when.":
+    "Qui a rendez-vous aujourd’hui, et à quelle heure.",
+  "Nothing booked today": "Rien de prévu aujourd’hui",
+  "Add a consultation or class from the calendar.":
+    "Ajoutez une consultation ou un cours depuis l’agenda.",
+  "Learning in motion.": "L’apprentissage en mouvement.",
+  "No sessions today": "Aucune séance aujourd’hui",
+  "Explore the calendar to plan the next session.":
+    "Ouvrez l’agenda pour planifier la prochaine séance.",
+  "Admissions snapshot": "Suivi des demandes",
+  "From first hello to first class.": "Du premier contact au premier cours.",
+  "Recent activity": "Activité récente",
+  "A shared history of your academy.": "L’historique partagé de l’académie.",
+  "No activity yet": "Pas encore d’activité",
+  "Enrollment by program": "Inscriptions par formation",
+  "Active students": "Élèves actifs",
+  "No programs yet": "Aucune formation",
+  "Add your first program in Programs & Groups.":
+    "Ajoutez votre première formation dans Formations et groupes.",
+
+  // Requests
+  "Client requests": "Demandes des clients",
+  "Consultations, courses and languages: from first call to enrollment.":
+    "Consultations, formations et langues : du premier appel à l’inscription.",
+  "Consultation request": "Demande de consultation",
+  "Course / language request": "Demande de cours / langue",
+  "New client request": "Nouvelle demande",
+  "New request": "Nouvelle demande",
+  "New inquiry": "Nouvelle demande",
+  "Create inquiry": "Créer la demande",
+  "Inquiry created": "Demande créée",
+  "Save request": "Enregistrer la demande",
+  "Request saved": "Demande enregistrée",
+  "Edit request": "Modifier la demande",
+  Request: "Demande",
+  "Request type": "Type de demande",
+  "All request types": "Tous les types",
+  "Request / program": "Demande / formation",
+  "What does the client want?": "Que souhaite le client ?",
+  "Course, language or topic": "Formation, langue ou sujet",
+  "Type any name, even if it is not in Programs":
+    "Écrivez n’importe quel nom, même s’il n’est pas dans Formations",
+  "Responsible person": "Responsable",
+  "Where did they find us?": "Comment nous a-t-il connu ?",
+  "Expected start": "Début souhaité",
+  "Expected enrollment": "Inscription prévue",
+  "Phone or email is enough": "Téléphone ou e-mail suffit",
+  "Linked program (optional)": "Formation liée (facultatif)",
+  "Program of interest": "Formation souhaitée",
+  "Assign advisor": "Attribuer un conseiller",
+  "Psychology consultation": "Consultation psychologique",
+  "Psychology course": "Formation en psychologie",
+  "Language course": "Cours de langue",
+  Training: "Formation professionnelle",
+  Course: "Formation",
+  Other: "Autre",
+  Psychology: "Psychologie",
+  Languages: "Langues",
+  "Search inquiries…": "Rechercher une demande…",
+  "All stages": "Toutes les étapes",
+  "All advisors": "Tous les conseillers",
+  "All sources": "Toutes les sources",
+  Stage: "Étape",
+  Advisor: "Conseiller",
+  Source: "Source",
+  Board: "Tableau",
+  Table: "Liste",
+  Opportunities: "Demandes",
+  "Active opportunities": "Demandes en cours",
+  "Saved views": "Vues enregistrées",
+  "Save view": "Enregistrer la vue",
+  "View name": "Nom de la vue",
+  "Add follow-up": "Ajouter une relance",
+  "Follow-up needed": "Relance à prévoir",
+  "No follow-up": "Pas de relance",
+  "Next action": "Prochaine action",
+  "Update stage": "Changer l’étape",
+  "Outcome reason": "Raison",
+  "No records yet": "Rien pour l’instant",
+  "Browse all inquiries": "Voir toutes les demandes",
+  "Turn interest into opportunity.": "Transformer l’intérêt en inscription.",
+  "A thoughtful path from inquiry to enrollment.":
+    "Un parcours clair de la demande à l’inscription.",
+  Campaign: "Campagne",
+  Tags: "Étiquettes",
+  "Existing contact found": "Contact existant trouvé",
+  "Reuse this contact": "Utiliser ce contact",
+  "No duplicate contact will be created.": "Aucun doublon ne sera créé.",
+  "Permission to prepare outbound messages":
+    "Accord pour recevoir des messages",
+  // stages
+  Contacted: "Contacté",
+  Qualified: "Qualifié",
+  "Consultation booked": "Consultation prévue",
+  "Application pending": "Dossier en cours",
+  "Awaiting payment": "En attente de paiement",
+  Enrolled: "Inscrit",
+  Lost: "Perdu",
+  Nurture: "À recontacter plus tard",
+  // sources
+  Website: "Site web",
+  "Google form": "Formulaire Google",
+  Instagram: "Instagram",
+  Facebook: "Facebook",
+  WhatsApp: "WhatsApp",
+  "Phone call": "Appel téléphonique",
+  Referral: "Recommandation",
+  "Walk-in": "Visite sur place",
+
+  // Leads inbox
+  "New leads from the website / Google": "Nouveaux contacts du site / Google",
+  "Leads from the website / Google": "Contacts du site / Google",
+  "Check each lead and add it to your requests, or import them all at once.":
+    "Vérifiez chaque contact et ajoutez-le aux demandes, ou importez-les tous d’un coup.",
+  "Import all": "Tout importer",
+  Accept: "Accepter",
+  Dismiss: "Refuser",
+  "Accept lead": "Accepter le contact",
+  "Add to requests": "Ajouter aux demandes",
+  "Add to admissions": "Ajouter aux demandes",
+  "Asked about": "Demande",
+  Received: "Reçu",
+  waiting: "en attente",
+  "To confirm": "À confirmer",
+  "Lead dismissed": "Contact refusé",
+  "leads imported": "contacts importés",
+  "need a manual review": "à vérifier à la main",
+  "Inquiry added to admissions": "Demande ajoutée",
+  "Add every waiting lead to the requests board? You can edit each one afterwards.":
+    "Ajouter tous les contacts en attente aux demandes ? Vous pourrez les modifier ensuite.",
+  "Dismiss this lead (spam, duplicate or test)?":
+    "Refuser ce contact (spam, doublon ou test) ?",
+  "No new leads right now. New requests from your website form appear here automatically.":
+    "Aucun nouveau contact. Les demandes du formulaire du site apparaissent ici automatiquement.",
+  "No new leads. The website connection is not configured on this server yet.":
+    "Aucun nouveau contact. La connexion au site n’est pas encore configurée sur ce serveur.",
+  "Communication consent recorded": "Accord de contact enregistré",
+  "Communication consent not recorded": "Accord de contact non enregistré",
+  "Optional. Existing contact details and consent are preserved when a match is found.":
+    "Facultatif. Si le contact existe déjà, ses coordonnées et son accord sont conservés.",
+  "Existing contact details and consent are preserved when a match is found.":
+    "Si le contact existe déjà, ses coordonnées et son accord sont conservés.",
+  "Incoming from n8n": "Reçus via n8n",
+  "Review inquiry": "Vérifier la demande",
+  "Review the program and advisor before adding an inquiry to the pipeline.":
+    "Vérifiez la formation et le conseiller avant d’ajouter la demande.",
+  "No incoming inquiries": "Aucune demande reçue",
+  "New inquiries from your n8n lead table will appear here.":
+    "Les nouvelles demandes de n8n apparaîtront ici.",
+  "Ready to receive": "Prêt à recevoir",
+  "Setup required": "Configuration requise",
+  Review: "Vérifier",
+
+  // Clients
+  "Everyone who contacted the academy, in one list.":
+    "Toutes les personnes qui ont contacté l’académie.",
+  "Add client": "Ajouter un client",
+  "Save client": "Enregistrer le client",
+  Client: "Client",
+  Clients: "Clients",
+  Student: "Élève",
+  "All clients": "Tous les clients",
+  "All students": "Tous les élèves",
+  "Need attention": "À suivre",
+  "Search by name, phone or email…": "Rechercher par nom, téléphone ou e-mail…",
+  "Search students…": "Rechercher un élève…",
+  "All programs": "Toutes les formations",
+  "Every student has a story.": "Chaque élève a son histoire.",
+  "Keep the whole journey in view.": "Tout le parcours au même endroit.",
+  Name: "Nom",
+  "Full name": "Nom complet",
+  Phone: "Téléphone",
+  "Preferred language": "Langue préférée",
+  Language: "Langue",
+  English: "Anglais",
+  Level: "Niveau",
+  Beginner: "Débutant",
+  Intermediate: "Intermédiaire",
+  Advanced: "Avancé",
+  "Guardian or sponsor": "Parent ou garant",
+  Notes: "Remarques",
+  Note: "Note",
+  "Communication consent": "Accord pour être contacté",
+  "Consent recorded": "Accord enregistré",
+  "No communication consent": "Pas d’accord de contact",
+  "Contact details": "Coordonnées",
+  "Edit details": "Modifier",
+  Status: "Statut",
+  Balance: "Solde",
+  Attendance: "Présence",
+  Active: "Actif",
+  Date: "Date",
+
+  // Client card
+  "Schedule follow-up": "Planifier une relance",
+  "Add note": "Ajouter une note",
+  "Book appointment": "Prendre rendez-vous",
+  "WhatsApp message": "Message WhatsApp",
+  "Record consultation": "Noter la consultation",
+  "Consultation notes": "Notes de consultation",
+  "Enroll in cohort": "Inscrire dans un groupe",
+  "Confirm enrollment": "Confirmer l’inscription",
+  "Choose a cohort": "Choisir un groupe",
+  "Choose the group; its program and price are used.":
+    "Choisissez le groupe : sa formation et son tarif seront utilisés.",
+  "Payment due date": "Date limite de paiement",
+  "Add to waitlist if full": "Liste d’attente si complet",
+  Enrollments: "Inscriptions",
+  "Enrollment history": "Historique des inscriptions",
+  "No enrollments yet": "Aucune inscription",
+  Transfer: "Changer de groupe",
+  Transferred: "Transféré",
+  Complete: "Terminer",
+  "Complete enrollment": "Terminer l’inscription",
+  Completed: "Terminé",
+  "Print certificate": "Imprimer le certificat",
+  Receipt: "Reçu",
+  Activity: "Historique",
+  Documents: "Documents",
+  Document: "Document",
+  "Upload document": "Ajouter un document",
+  "PDF, PNG, JPEG, or TXT. Up to 3 MB.": "PDF, PNG, JPEG ou TXT. 3 Mo maximum.",
+  "PDF, PNG, JPEG, or TXT. Up to 4 MB.": "PDF, PNG, JPEG ou TXT. 4 Mo maximum.",
+  "No documents yet": "Aucun document",
+  "Delete note": "Supprimer la note",
+  "No attendance recorded": "Aucune présence notée",
+  "Move student to another cohort": "Changer l’élève de groupe",
+  "Prepare message": "Préparer un message",
+  Appointments: "Rendez-vous",
+  Appointment: "Rendez-vous",
+  Visibility: "Visible par",
+  "General staff": "Toute l’équipe",
+  "Only me (private)": "Moi seul (privé)",
+  "🔒 Only me (private)": "🔒 Moi seul (privé)",
+  "Admissions only": "Équipe des admissions",
+  "Finance only": "Comptabilité seulement",
+  "Mark reviewed": "Marquer comme traité",
+  "Review attention flag": "Traiter l’alerte",
+  "Resolution note": "Note de suivi",
+
+  // Packages
+  "Session packages": "Forfaits de séances",
+  "New package": "Nouveau forfait",
+  "New session package": "Nouveau forfait de séances",
+  "Edit package": "Modifier le forfait",
+  "Package name": "Nom du forfait",
+  Package: "Forfait",
+  "Number of sessions": "Nombre de séances",
+  "Price for the whole package": "Prix du forfait complet",
+  "Creates a charge in Payments. Leave empty if free or paid per session.":
+    "Crée un montant dû dans Paiements. Laisser vide si gratuit ou payé à la séance.",
+  "sessions left": "séances restantes",
+  done: "faites",
+  booked: "prévus",
+  "in total": "au total",
+  Finished: "Terminé",
+  "Book next session": "Réserver la séance suivante",
+  "For example 5 consultations paid in advance. Each done or missed session is counted automatically.":
+    "Par exemple 5 consultations payées d’avance. Chaque séance faite ou manquée est décomptée automatiquement.",
+  "Counts in package": "Décompté du forfait",
+  used: "utilisées",
+  "Psychology consultations": "Consultations psychologiques",
+  "Couple therapy": "Thérapie de couple",
+  "Child follow-up": "Suivi enfant",
+  "Private lessons": "Cours particuliers",
+
+  // Calendar
+  "Who is booked, when and where: consultations, meetings and classes.":
+    "Qui a rendez-vous, quand et où : consultations, réunions et cours.",
+  "Consultations, meetings and group classes, all together.":
+    "Consultations, réunions et cours collectifs, tout ensemble.",
+  "Add to calendar": "Ajouter à l’agenda",
+  "Edit appointment": "Modifier le rendez-vous",
+  "Group class": "Cours collectif",
+  "Schedule group class": "Planifier un cours collectif",
+  "Edit class session": "Modifier la séance",
+  "Schedule session": "Planifier la séance",
+  "New session": "Nouvelle séance",
+  "Consultations & meetings": "Consultations et réunions",
+  Everything: "Tout",
+  Everyone: "Tout le monde",
+  "Whose calendar": "Agenda de",
+  Show: "Afficher",
+  Day: "Jour",
+  Week: "Semaine",
+  Month: "Mois",
+  List: "Liste",
+  Mon: "Lun",
+  Tue: "Mar",
+  Wed: "Mer",
+  Thu: "Jeu",
+  Fri: "Ven",
+  Sat: "Sam",
+  Sun: "Dim",
+  appointments: "rendez-vous",
+  "Click an empty time to book": "Cliquez sur un horaire libre pour réserver",
+  "List shows the next 30 days": "La liste montre les 30 prochains jours",
+  "Nothing booked": "Rien de prévu",
+  "No appointments or classes in the next 30 days.":
+    "Aucun rendez-vous ni cours dans les 30 prochains jours.",
+  "No sessions": "Aucune séance",
+  "Create a group first": "Créez d’abord un groupe",
+  "No-show": "Absent (non venu)",
+  "Marked as done": "Marqué comme fait",
+  "Marked as no-show": "Marqué comme absent",
+  Scheduled: "Prévu",
+  Cancelled: "Annulé",
+  Type: "Type",
+  Title: "Titre",
+  With: "Avec",
+  "Place or link": "Lieu ou lien",
+  "Start time": "Début",
+  "End time": "Fin",
+  Repeat: "Répéter",
+  "Only once": "Une seule fois",
+  "Every week": "Chaque semaine",
+  "Book anyway?": "Réserver quand même ?",
+  "WhatsApp reminder": "Rappel WhatsApp",
+  Consultation: "Consultation",
+  "Trial lesson": "Cours d’essai",
+  "Placement test": "Test de niveau",
+  Meeting: "Réunion",
+  Exam: "Examen",
+  "Session title": "Titre de la séance",
+  "Example: Lesson 3 · Grammar": "Exemple : Leçon 3 · Grammaire",
+  Room: "Salle",
+  "Weekly occurrences": "Nombre de semaines",
+  "Record attendance": "Noter les présences",
+  "Save attendance": "Enregistrer les présences",
+  "Cancel session": "Annuler la séance",
+  "Attendance is available after the session starts.":
+    "Les présences se notent après le début de la séance.",
+  "No active students in this cohort.": "Aucun élève actif dans ce groupe.",
+  "Choose an attendance status for every student.":
+    "Choisissez une présence pour chaque élève.",
+  Present: "Présent",
+  Absent: "Absent",
+  Late: "En retard",
+  Excused: "Excusé",
+  Session: "Séance",
+  "Class session": "Séance de cours",
+  "Make room for what’s next.": "Préparez la suite.",
+  "Your academy’s schedule, all together.":
+    "Le planning de l’académie, tout ensemble.",
+
+  // Programs & groups
+  "Your courses with their prices, and the groups that study them.":
+    "Vos formations avec leurs tarifs, et les groupes qui les suivent.",
+  Programs: "Formations",
+  Cohorts: "Groupes",
+  Groups: "Groupes",
+  Group: "Groupe",
+  Waitlist: "Liste d’attente",
+  Waitlisted: "En liste d’attente",
+  "Remove from the waitlist?": "Retirer de la liste d’attente ?",
+  "New program": "Nouvelle formation",
+  "Create program": "Créer la formation",
+  "Edit program": "Modifier la formation",
+  "Program name": "Nom de la formation",
+  "Add each course you sell (for example English A1, Applied Psychology) with its real price.":
+    "Ajoutez chaque formation proposée (par exemple Anglais A1, Psychologie appliquée) avec son vrai tarif.",
+  "Add a program first": "Ajoutez d’abord une formation",
+  Category: "Catégorie",
+  Duration: "Durée",
+  Description: "Description",
+  Tuition: "Tarif",
+  Currency: "Devise",
+  Color: "Couleur",
+  teal: "vert",
+  blue: "bleu",
+  purple: "violet",
+  amber: "orange",
+  "New group": "Nouveau groupe",
+  "Edit group": "Modifier le groupe",
+  "Create group": "Créer le groupe",
+  "New cohort": "Nouveau groupe",
+  "Create cohort": "Créer le groupe",
+  "Group name": "Nom du groupe",
+  "Cohort name": "Nom du groupe",
+  "Example: English A1 · Evening": "Exemple : Anglais A1 · Soir",
+  Teacher: "Enseignant",
+  Instructor: "Enseignant",
+  "No teacher yet": "Pas encore d’enseignant",
+  "Choose or type a new teacher's name":
+    "Choisissez ou écrivez le nom d’un nouvel enseignant",
+  Capacity: "Places",
+  "Room or meeting link": "Salle ou lien de visio",
+  "Start date": "Date de début",
+  "End date": "Date de fin",
+  Planned: "Prévu",
+  Full: "Complet",
+  "spots available": "places libres",
+  students: "élèves",
+  "Manage the learning experience.": "Gérez l’expérience d’apprentissage.",
+  "Programs, people, and room to grow.":
+    "Formations, équipes et places disponibles.",
+  "No programs available": "Aucune formation",
+  "No cohorts available": "Aucun groupe",
+  "4 weeks": "4 semaines",
+  "8 weeks": "8 semaines",
+  "12 weeks": "12 semaines",
+  "3 months": "3 mois",
+  "6 months": "6 mois",
+
+  // Payments
+  "A clear picture of payments.": "Une vue claire des paiements.",
+  "Track charges, installments, and recorded payments.":
+    "Suivez les montants dus, échéances et paiements.",
+  "Add charge": "Ajouter un montant dû",
+  "Edit charge": "Modifier le montant dû",
+  "Record payment": "Enregistrer un paiement",
+  "Record refund": "Enregistrer un remboursement",
+  "Refund amount": "Montant remboursé",
+  "Refund reason": "Motif du remboursement",
+  "Delete payment entry": "Supprimer le paiement",
+  "Delete this payment entry? Use this only to fix a mistake.":
+    "Supprimer ce paiement ? À utiliser seulement pour corriger une erreur.",
+  "All charges": "Tous les montants",
+  "Payment history": "Historique des paiements",
+  Outstanding: "À payer",
+  Overdue: "En retard",
+  Settled: "Réglé",
+  Partial: "Partiel",
+  Unpaid: "Non payé",
+  Paid: "Payé",
+  Amount: "Montant",
+  "Amount in DZD": "Montant en DZD",
+  "Due date": "Échéance",
+  "Due time": "Heure limite",
+  "Due today": "Pour aujourd’hui",
+  "Payment method": "Mode de paiement",
+  "Bank transfer": "Virement",
+  Cash: "Espèces",
+  "Card (external)": "Carte (TPE)",
+  Reference: "Référence",
+  Charge: "Montant dû",
+  Payment: "Paiement",
+  Discount: "Remise",
+  "Discount reason": "Motif de la remise",
+  "Net received": "Encaissé (net)",
+  "Split into installments": "Payer en plusieurs fois",
+  "Installment dates": "Dates des échéances",
+  "Separate dates with commas. Total stays unchanged.":
+    "Séparez les dates par des virgules. Le total reste le même.",
+  "Manual record only. No money is moved.":
+    "Simple enregistrement : aucun argent n’est transféré.",
+  "Money is recorded, never processed here.":
+    "Les paiements sont notés ici, jamais encaissés.",
+  "Payment reminder": "Rappel de paiement",
+
+  // Reports
+  "Understand what’s working.": "Comprendre ce qui marche.",
+  "Useful numbers, connected to real records.":
+    "Des chiffres utiles, liés aux vraies fiches.",
+  "Source performance": "Efficacité des sources",
+  "Enrollment conversion uses inquiries created in the selected period.":
+    "La conversion se calcule sur les demandes de la période choisie.",
+  Leads: "Demandes",
+  Conversion: "Conversion",
+  "Received by currency": "Encaissé par devise",
+  "Balances include all open charges. Currencies are never combined.":
+    "Les soldes incluent tous les montants dus. Les devises ne sont jamais mélangées.",
+  "Cohort occupancy": "Remplissage des groupes",
+  "Attendance rate": "Taux de présence",
+  "Present + late / recorded, excluding excused":
+    "Présents + retards / notés, hors excusés",
+  "No data in this period": "Aucune donnée sur cette période",
+  Monthly: "Mensuel",
+
+  // Tasks
+  "All team tasks": "Toutes les tâches de l’équipe",
+  "Your tasks": "Vos tâches",
+  "New task": "Nouvelle tâche",
+  "Edit task": "Modifier la tâche",
+  Task: "Tâche",
+  "Task completed": "Tâche terminée",
+  "Task reopened": "Tâche rouverte",
+  "No tasks match this view.": "Aucune tâche ici.",
+  Priority: "Priorité",
+  Normal: "Normale",
+  High: "Haute",
+  Upcoming: "À venir",
+  Owner: "Responsable",
+  "Make first contact": "Premier contact",
+  "Review communication consent": "Vérifier l’accord de contact",
+  "Welcome student and share cohort details":
+    "Accueillir l’élève et envoyer les infos du groupe",
+  "Discuss program options": "Discuter des formations",
+  "Follow up after consultation": "Relancer après la consultation",
+  "Confirm trial session": "Confirmer le cours d’essai",
+  "Send enrollment details": "Envoyer les infos d’inscription",
+  "Review repeated absences": "Vérifier les absences répétées",
+
+  // Settings
+  "Your academy, your team, your account and your data.":
+    "Votre académie, votre équipe, votre compte et vos données.",
+  "Make this workspace yours.": "Personnalisez votre espace.",
+  "Preferences, people, and connections.": "Préférences, équipe et connexions.",
+  "Workspace settings": "Paramètres généraux",
+  "Save settings": "Enregistrer les paramètres",
+  "Academy name": "Nom de l’académie",
+  "Default currency": "Devise par défaut",
+  "Time zone": "Fuseau horaire",
+  "Default language": "Langue par défaut",
+  "Team & permissions": "Équipe et accès",
+  "Add advisors, teachers and psychologists. Teachers do not need a login.":
+    "Ajoutez conseillers, enseignants et psychologues. Les enseignants n’ont pas besoin de compte.",
+  "Add staff member": "Ajouter un membre",
+  "Edit staff member": "Modifier le membre",
+  "Remove this staff member? If they have history, their account is deactivated instead.":
+    "Retirer ce membre ? S’il a un historique, son compte est seulement désactivé.",
+  "Account deactivated; history kept": "Compte désactivé, historique conservé",
+  "Needed only if this person signs in":
+    "Nécessaire seulement pour se connecter",
+  "At least 10 characters. Leave empty if they do not sign in.":
+    "Au moins 10 caractères. Laisser vide s’il ne se connecte pas.",
+  "At least 10 characters. Share it privately with the person.":
+    "Au moins 10 caractères. Transmettez-le en privé à la personne.",
+  "Set password": "Définir le mot de passe",
+  "New password": "Nouveau mot de passe",
+  "Current password": "Mot de passe actuel",
+  "Leave empty to keep your password. At least 10 characters.":
+    "Laisser vide pour garder votre mot de passe. Au moins 10 caractères.",
+  "No login": "Sans compte",
+  "Can sign in": "Peut se connecter",
+  Deactivated: "Désactivé",
+  Reactivate: "Réactiver",
+  Role: "Rôle",
+  Staff: "Équipe",
+  Administration: "Administration",
+  Administrator: "Administrateur",
+  "Admissions advisor": "Conseiller admissions",
+  "Academic coordinator": "Coordinateur pédagogique",
+  Finance: "Comptabilité",
+  "Read-only manager": "Direction (lecture seule)",
+  "My account": "Mon compte",
+  "Email (sign-in)": "E-mail (connexion)",
+  "Change name, email or password": "Changer nom, e-mail ou mot de passe",
+  "Data & import": "Données et import",
+  "Import clients from Excel": "Importer des clients depuis Excel",
+  "Upload your existing list of clients or students (.xlsx or .csv). Duplicates are skipped.":
+    "Chargez votre liste de clients ou d’élèves (.xlsx ou .csv). Les doublons sont ignorés.",
+  "Name, phone, email, course, level, notes…":
+    "Nom, téléphone, e-mail, formation, niveau, remarques…",
+  "Import from Excel": "Importer depuis Excel",
+  "Choose an Excel or CSV file": "Choisir un fichier Excel ou CSV",
+  "First row = column names (Name, Phone, Email, Course…). Up to 2000 rows.":
+    "Première ligne = noms des colonnes (Nom, Téléphone, E-mail, Formation…). 2000 lignes maximum.",
+  "rows found": "lignes trouvées",
+  "Check which column is which": "Vérifiez les colonnes",
+  Column: "Colonne",
+  "Also create a request for rows with a course or request type":
+    "Créer aussi une demande pour les lignes avec une formation ou un type",
+  "They appear in Requests as “New inquiry”.":
+    "Elles apparaissent dans Demandes comme « Nouvelle demande ».",
+  "clients imported": "clients importés",
+  requests: "demandes",
+  "rows skipped:": "lignes ignorées :",
+  Row: "Ligne",
+  "Name is missing.": "Nom manquant.",
+  "Phone or email is missing.": "Téléphone ou e-mail manquant.",
+  "Email is not valid.": "E-mail invalide.",
+  "Already in the CRM.": "Déjà dans le CRM.",
+  "The file has no rows under the header.":
+    "Le fichier n’a aucune ligne sous l’en-tête.",
+  "Use an Excel (.xlsx) or CSV file. Old .xls files: open them in Excel and save as .xlsx.":
+    "Utilisez un fichier Excel (.xlsx) ou CSV. Ancien format .xls : ouvrez-le dans Excel et enregistrez en .xlsx.",
+  Backups: "Sauvegardes",
+  "A copy of the whole database is saved automatically every day and kept 30 days. You can also download one now.":
+    "Une copie complète est faite automatiquement chaque jour et gardée 30 jours. Vous pouvez aussi en télécharger une.",
+  "File type: SQLite database (keep it private).":
+    "Type de fichier : base SQLite (à garder privée).",
+  "Download backup": "Télécharger une sauvegarde",
+  "Download your data as spreadsheets (CSV, opens in Excel).":
+    "Téléchargez vos données (CSV, s’ouvre dans Excel).",
+  "Start fresh": "Repartir de zéro",
+  "Remove all example records (fake students, teachers, prices) and keep only your account and real leads.":
+    "Supprimer toutes les données d’exemple (faux élèves, enseignants, tarifs) et garder seulement votre compte et les vrais contacts.",
+  "Remove all sample data": "Supprimer les données d’exemple",
+  "Delete sample data": "Supprimer les données d’exemple",
+  "Sample data removed": "Données d’exemple supprimées",
+  "Type DELETE to confirm": "Tapez DELETE pour confirmer",
+  "This deletes every client, request, program, group, session, payment, task and staff account except yours. Leads received from the website / Google stay and return to the inbox so you can import them.":
+    "Cela supprime tous les clients, demandes, formations, groupes, séances, paiements, tâches et comptes sauf le vôtre. Les contacts du site / Google restent et reviennent dans la boîte de réception.",
+  "Open the inbox": "Ouvrir la boîte de réception",
+  "New requests from your form arrive automatically through n8n.":
+    "Les demandes de votre formulaire arrivent automatiquement via n8n.",
+  "Message templates": "Modèles de messages",
+  "New template": "Nouveau modèle",
+  "Edit template": "Modifier le modèle",
+  "Edit templates": "Modifier les modèles",
+  "Template name": "Nom du modèle",
+  Template: "Modèle",
+  "Ready texts for WhatsApp. You can use:":
+    "Textes prêts pour WhatsApp. Vous pouvez utiliser :",
+  "You can use {name} {date} {time} {course} {amount} {due} {academy}":
+    "Vous pouvez utiliser {name} {date} {time} {course} {amount} {due} {academy}",
+  "No templates yet": "Aucun modèle",
+  "Appointment reminder": "Rappel de rendez-vous",
+  "Welcome to the group": "Bienvenue dans le groupe",
+  "First contact": "Premier contact",
+  Message: "Message",
+  "Open WhatsApp": "Ouvrir WhatsApp",
+  "Choose a message, check it, then open WhatsApp.":
+    "Choisissez un message, vérifiez-le, puis ouvrez WhatsApp.",
+  "This client has no phone number.":
+    "Ce client n’a pas de numéro de téléphone.",
+  "Communication consent is not recorded for this client.":
+    "L’accord de contact n’est pas enregistré pour ce client.",
+  Trash: "Corbeille",
+  "Everything deleted in the last 30 days. Restore it with one click.":
+    "Tout ce qui a été supprimé ces 30 derniers jours. Restaurez-le en un clic.",
+  Restore: "Restaurer",
+  Restored: "Restauré",
+  "Delete forever": "Supprimer définitivement",
+  "Delete forever? This cannot be undone.":
+    "Supprimer définitivement ? C’est irréversible.",
+  "Deleted by": "Supprimé par",
+  Integrations: "Connexions",
+  "Connection details": "Détails de la connexion",
+  "Check connection": "Tester la connexion",
+  "Not configured": "Non configuré",
+  "Provider adapters and credentials are required to enable delivery.":
+    "Un fournisseur et des identifiants sont nécessaires pour l’envoi.",
+  "No external message has been sent.": "Aucun message n’a été envoyé.",
+  Forms: "Formulaires",
+  "Message drafts": "Brouillons de messages",
+  "Messaging is not configured. Drafts remain available for review.":
+    "L’envoi n’est pas configuré. Les brouillons restent disponibles.",
+  "Draft message": "Préparer un message",
+  "Save draft": "Enregistrer le brouillon",
+  Draft: "Brouillon",
+  "Not sent": "Non envoyé",
+  Subject: "Objet",
+  Channel: "Canal",
+  "Automation history": "Historique des automatisations",
+  "Run internal rules": "Lancer les règles",
+  Rule: "Règle",
+  Detail: "Détail",
+  "Delete this appointment?": "Supprimer ce rendez-vous ?",
+  "Delete this charge?": "Supprimer ce montant dû ?",
+  "Delete this class session and its attendance?":
+    "Supprimer cette séance et ses présences ?",
+  "Delete this client and ALL their requests, payments, notes and files? This cannot be undone.":
+    "Supprimer ce client et TOUTES ses demandes, paiements, notes et fichiers ? (Restaurable 30 jours depuis la corbeille.)",
+  "Delete this document?": "Supprimer ce document ?",
+  "Delete this group and its sessions?": "Supprimer ce groupe et ses séances ?",
+  "Delete this note?": "Supprimer cette note ?",
+  "Delete this package? Its sessions stay in the calendar.":
+    "Supprimer ce forfait ? Ses séances restent dans l’agenda.",
+  "Delete this program and its empty groups and sessions?":
+    "Supprimer cette formation et ses groupes vides ?",
+  "Delete this request? The client stays in the CRM.":
+    "Supprimer cette demande ? Le client reste dans le CRM.",
+  "Delete this task?": "Supprimer cette tâche ?",
+  "Delete this template?": "Supprimer ce modèle ?",
+  "Allow pop-ups for this site to print.":
+    "Autorisez les fenêtres pop-up pour imprimer.",
+  "Choose a file to upload.": "Choisissez un fichier.",
+  "Enter a positive amount with at most two decimal places.":
+    "Entrez un montant positif (2 décimales max).",
+  "Amount is too large.": "Montant trop élevé.",
+  "Add, edit and remove everything from here.":
+    "Ajoutez, modifiez et supprimez tout depuis ici.",
+  "Try adjusting your filters.": "Essayez de modifier les filtres.",
+  "No matching records": "Aucun résultat",
+  "Create your first record to get started.":
+    "Créez votre première fiche pour commencer.",
+  "Record type": "Type de fiche",
+  "Data definitions": "Définitions",
+  "Authentication required": "Connexion requise",
+};
+
+Object.assign(french, {
+  "Book an appointment": "Prendre rendez-vous",
+  "Online booking is not open yet.":
+    "La prise de rendez-vous en ligne n’est pas encore ouverte.",
+  "Please contact the academy by phone or WhatsApp.":
+    "Merci de contacter l’académie par téléphone ou WhatsApp.",
+  "Request sent!": "Demande envoyée !",
+  "We will confirm your appointment by phone or WhatsApp.":
+    "Nous vous confirmerons le rendez-vous par téléphone ou WhatsApp.",
+  "Choose a service": "Choisissez une prestation",
+  "No services are open for booking yet.":
+    "Aucune prestation n’est encore ouverte à la réservation.",
+  "With whom?": "Avec qui ?",
+  "No preference": "Peu importe",
+  "First available": "Premier disponible",
+  "Choose a day and time": "Choisissez le jour et l’heure",
+  "No free time in the next two weeks. Please call the academy.":
+    "Aucun créneau libre dans les deux prochaines semaines. Merci d’appeler l’académie.",
+  "Your details": "Vos coordonnées",
+  "Message (optional)": "Message (facultatif)",
+  "I agree to be contacted by the academy about this appointment.":
+    "J’accepte d’être contacté(e) par l’académie au sujet de ce rendez-vous.",
+  "Send my request": "Envoyer ma demande",
+  "This time was just taken. Please choose another one.":
+    "Ce créneau vient d’être pris. Choisissez-en un autre.",
+  "Enter your name.": "Indiquez votre nom.",
+  "Enter a valid phone number.": "Numéro de téléphone invalide.",
+  "Enter your phone number.": "Indiquez votre numéro de téléphone.",
+  "Please accept to be contacted about this appointment.":
+    "Merci d’accepter d’être contacté(e).",
+  "Choose a time.": "Choisissez un horaire.",
+  "Too many requests. Please call the academy.":
+    "Trop de demandes. Merci d’appeler l’académie.",
+});
+
+Object.assign(french, {
+  "Working hours": "Horaires de travail",
+  "Used for online booking and to warn when someone is booked outside their hours. Leave all days off if this person has no fixed hours.":
+    "Utilisés pour la réservation en ligne et pour avertir d’un rendez-vous hors horaires. Laissez tous les jours décochés si la personne n’a pas d’horaires fixes.",
+  "Add a break": "Ajouter une pause",
+  "Day off": "Repos",
+  "Copy to Tue–Fri": "Copier du mardi au vendredi",
+  "Title shown to clients": "Titre affiché aux clients",
+  "Example: Clinical psychologist": "Exemple : Psychologue clinicienne",
+  "Time off": "Congés et absences",
+  "Time off added": "Absence ajoutée",
+  "appointments to move": "rendez-vous à déplacer",
+  "First day": "Premier jour",
+  "Last day": "Dernier jour",
+  "Reason (holiday, sick…)": "Motif (vacances, maladie…)",
+  "Add time off": "Ajouter une absence",
+  "Save working hours": "Enregistrer les horaires",
+  Hours: "Horaires",
+  "My working hours and time off": "Mes horaires et absences",
+  "Online booking": "Réservation en ligne",
+  "Clients choose a service, a person and a free time themselves. You confirm each request.":
+    "Les clients choisissent eux-mêmes la prestation, la personne et un créneau libre. Vous confirmez chaque demande.",
+  Closed: "Fermée",
+  "Copy link": "Copier le lien",
+  "Link copied": "Lien copié",
+  "Open page": "Ouvrir la page",
+  "Put this link in your Instagram bio, WhatsApp status or website.":
+    "Mettez ce lien dans votre bio Instagram, votre statut WhatsApp ou votre site.",
+  "Welcome text on the page": "Texte d’accueil de la page",
+  "Example: Consultations in French and Arabic, at the academy or online.":
+    "Exemple : Consultations en français et en arabe, à l’académie ou en ligne.",
+  "Minimum notice (hours)": "Délai minimum (heures)",
+  "Close online booking": "Fermer la réservation en ligne",
+  "Open online booking": "Ouvrir la réservation en ligne",
+  "Services clients can book": "Prestations réservables",
+  "Each service has a duration and the people who provide it.":
+    "Chaque prestation a une durée et les personnes qui l’assurent.",
+  "New service": "Nouvelle prestation",
+  "Edit service": "Modifier la prestation",
+  "Delete this service?": "Supprimer cette prestation ?",
+  "Service name": "Nom de la prestation",
+  "Shown to clients. Example: Individual consultation (60 min)":
+    "Visible par les clients. Exemple : Consultation individuelle (60 min)",
+  "Duration (minutes)": "Durée (minutes)",
+  "Short description": "Courte description",
+  "Who provides it": "Assurée par",
+  "Open for booking": "Ouverte à la réservation",
+  "No working hours yet for:": "Pas encore d’horaires pour :",
+  "Clients cannot book them until hours are set (Settings → Team).":
+    "Les clients ne peuvent pas les réserver tant que les horaires ne sont pas définis (Paramètres → Équipe).",
+  "Online bookings to confirm": "Réservations en ligne à confirmer",
+  "Clients booked these times on the public page.":
+    "Des clients ont réservé ces créneaux sur la page publique.",
+  "Appointment confirmed": "Rendez-vous confirmé",
+  "Request refused": "Demande refusée",
+  Refuse: "Refuser",
+  "Reminders to send": "Rappels à envoyer",
+  "Tomorrow's appointments and payments due within 3 days. One tap opens WhatsApp with the message ready.":
+    "Rendez-vous de demain et paiements dus sous 3 jours. Un clic ouvre WhatsApp avec le message prêt.",
+  "Nothing to remind": "Aucun rappel à envoyer",
+  "No appointments tomorrow and no payment due soon.":
+    "Aucun rendez-vous demain et aucun paiement proche.",
+  Tomorrow: "Demain",
+  Sent: "Envoyé",
+  "No phone": "Pas de téléphone",
+  "This person is on leave that day. Confirm to book anyway.":
+    "Cette personne est absente ce jour-là. Confirmez pour réserver quand même.",
+  "This time is outside this person's working hours. Confirm to book anyway.":
+    "Cet horaire est en dehors des heures de travail. Confirmez pour réserver quand même.",
+});
+Object.assign(french, {
+  "Show less": "Afficher moins",
+  "Show all": "Tout afficher",
+});
+
+// Round 5
+Object.assign(french, {
+  // login & password
+  "Enter your e-mail. We will send you a link to choose a new password.":
+    "Indiquez votre e-mail. Nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+  "Send the link": "Envoyer le lien",
+  "Back to sign in": "Retour à la connexion",
+  "Forgot your password?": "Mot de passe oublié ?",
+  "6-digit code from your authenticator app":
+    "Code à 6 chiffres de votre application d’authentification",
+  "Enter the 6-digit code from your authenticator app.":
+    "Saisissez le code à 6 chiffres de votre application d’authentification.",
+  "The code is not correct.": "Le code n’est pas correct.",
+  "If this e-mail belongs to an account, a link to choose a new password has been sent.":
+    "Si cet e-mail correspond à un compte, un lien pour choisir un nouveau mot de passe a été envoyé.",
+  "This link has expired. Ask for a new one.":
+    "Ce lien a expiré. Demandez-en un nouveau.",
+  "The password needs at least 10 characters.":
+    "Le mot de passe doit contenir au moins 10 caractères.",
+  "Email or password is incorrect.": "E-mail ou mot de passe incorrect.",
+  "Choose a new password": "Choisir un nouveau mot de passe",
+  "Repeat the new password": "Répétez le nouveau mot de passe",
+  "At least 10 characters.": "Au moins 10 caractères.",
+  "Save the new password": "Enregistrer le nouveau mot de passe",
+  "The two passwords are different.": "Les deux mots de passe sont différents.",
+  "Password changed": "Mot de passe modifié",
+  "You can now sign in with your new password.":
+    "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+  // certificate check
+  "Valid certificate": "Certificat authentique",
+  "Certificate not found": "Certificat introuvable",
+  "This code does not match any certificate issued by the academy.":
+    "Ce code ne correspond à aucun certificat délivré par l’académie.",
+  // 2FA
+  "Two-step sign-in": "Connexion en deux étapes",
+  "After the password, a 6-digit code from an app on your phone (Google Authenticator, Microsoft Authenticator…).":
+    "Après le mot de passe, un code à 6 chiffres d’une application sur votre téléphone (Google Authenticator, Microsoft Authenticator…).",
+  On: "Activée",
+  Off: "Désactivée",
+  "Turn on two-step sign-in": "Activer la connexion en deux étapes",
+  "1. Open your authenticator app and scan this QR code.":
+    "1. Ouvrez votre application d’authentification et scannez ce QR code.",
+  "Or type this key:": "Ou tapez cette clé :",
+  "2. Type the 6-digit code shown in the app:":
+    "2. Tapez le code à 6 chiffres affiché dans l’application :",
+  "Turn off": "Désactiver",
+  "Two-step sign-in is on": "Connexion en deux étapes activée",
+  "Two-step sign-in is off": "Connexion en deux étapes désactivée",
+  "The code is not correct. Check the time on your phone and try again.":
+    "Le code n’est pas correct. Vérifiez l’heure de votre téléphone et réessayez.",
+  "Reset 2-step": "Réinitialiser 2 étapes",
+  "Turn off two-step sign-in for this person (lost phone)?":
+    "Désactiver la connexion en deux étapes pour cette personne (téléphone perdu) ?",
+  // attendance
+  Attendance: "Présences",
+  "Mark who is here in a few taps, from your phone.":
+    "Notez les présents en quelques gestes, depuis votre téléphone.",
+  "Absent twice in a row": "Absent deux fois de suite",
+  "No classes this day": "Aucun cours ce jour-là",
+  "Choose another date, or add classes in Calendar.":
+    "Choisissez une autre date, ou ajoutez des cours dans l’agenda.",
+  "Everyone else present": "Tous les autres présents",
+  // finance
+  "Cash book": "Caisse",
+  "What was received each day, by payment method.":
+    "Ce qui a été encaissé chaque jour, par mode de paiement.",
+  Total: "Total",
+  "Who owes what": "Dettes",
+  "Open balances per client, the oldest first.":
+    "Soldes à payer par client, les plus anciens d’abord.",
+  "Due since": "Dû depuis",
+  For: "Pour",
+  Pay: "Salaires",
+  "Pay for teachers and psychologists":
+    "Rémunération des enseignants et psychologues",
+  "Group class hours taught and consultations done in the month, times each person's rate.":
+    "Heures de cours collectifs et consultations réalisées dans le mois, multipliées par le tarif de chacun.",
+  "Hours taught": "Heures enseignées",
+  "Consultations done": "Consultations réalisées",
+  Rate: "Tarif",
+  "Not set": "Non défini",
+  hour: "heure",
+  session: "séance",
+  "Set rate": "Définir le tarif",
+  "Pay rate": "Rémunération",
+  "Per hour of group class": "À l’heure de cours collectif",
+  "Per consultation done": "Par consultation réalisée",
+  "Not paid through the CRM": "Non payé via le CRM",
+  "Only classes already finished and consultations marked “Done” are counted.":
+    "Seuls les cours terminés et les consultations marquées « Fait » sont comptés.",
+  // psychology
+  "First consultation file": "Dossier de première consultation",
+  "Open my file": "Ouvrir mon dossier",
+  "Private: only you can read this file.":
+    "Privé : vous seul pouvez lire ce dossier.",
+  "First consultation questions": "Questions de la première consultation",
+  "One question per line. Psychologists answer them in each client's private file.":
+    "Une question par ligne. Les psychologues y répondent dans le dossier privé de chaque client.",
+  "Psychology file": "Dossier psychologique",
+  "Emergency contact": "Contact d’urgence",
+  "Name and phone of someone to call if needed":
+    "Nom et téléphone d’une personne à appeler si besoin",
+  "Session notes you write in each appointment appear here. Only you can see them.":
+    "Les notes que vous écrivez dans chaque rendez-vous apparaissent ici. Vous seul les voyez.",
+  "Session note (private)": "Note de séance (privée)",
+  "Only you can read it. It also appears in the client's psychology file.":
+    "Vous seul pouvez la lire. Elle apparaît aussi dans le dossier psychologique du client.",
+  "Session plan": "Plan des séances",
+  "Goals and steps planned for these sessions":
+    "Objectifs et étapes prévus pour ces séances",
+  "Reason for consultation": "Motif de consultation",
+  "History and context": "Histoire et contexte",
+  Goals: "Objectifs",
+  "Current treatment or medication": "Traitement ou médicaments actuels",
+  "Referred by": "Adressé par",
+  Consultations: "Consultations",
+  // languages
+  "Level and progress": "Niveau et progression",
+  "Placement test": "Test de niveau",
+  Test: "Test",
+  Score: "Score",
+  "Out of": "Sur",
+  "Level reached": "Niveau atteint",
+  "Oral interview": "Entretien oral",
+  "Written test": "Test écrit",
+  "Delete this result?": "Supprimer ce résultat ?",
+  Average: "Moyenne",
+  "Add a mark": "Ajouter une note",
+  "Next level": "Niveau suivant",
+  "Move to the next level": "Passer au niveau suivant",
+  "Group of the next level": "Groupe du niveau suivant",
+  "Printed on the certificate of the level just finished":
+    "Imprimé sur le certificat du niveau terminé",
+  "Add the tuition of the new group to Payments":
+    "Ajouter le tarif du nouveau groupe dans Paiements",
+  Assessment: "Évaluation",
+  "Example: Test 1 · Oral": "Exemple : Test 1 · Oral",
+  Mark: "Note",
+  "Mark sheet": "Relevé de notes",
+  "New assessment": "Nouvelle évaluation",
+  "Save marks": "Enregistrer les notes",
+  "marks saved": "notes enregistrées",
+  "The mark must be between 0 and the maximum.":
+    "La note doit être entre 0 et le maximum.",
+  // director report
+  "Director's report": "Rapport de direction",
+  "New clients, sources, revenue and team activity for the chosen period.":
+    "Nouveaux clients, sources, chiffre d’affaires et activité de l’équipe sur la période.",
+  "New clients": "Nouveaux clients",
+  "Became students": "Devenus élèves",
+  Revenue: "Chiffre d’affaires",
+  "Revenue by direction": "Chiffre d’affaires par activité",
+  "Payments received in the period, by type of activity.":
+    "Paiements reçus sur la période, par type d’activité.",
+  "Team activity": "Activité de l’équipe",
+  "Consultations done, missed, and classes taught in the period.":
+    "Consultations réalisées, manquées et cours donnés sur la période.",
+  "Classes taught": "Cours donnés",
+  "Print / PDF": "Imprimer / PDF",
+  // journal
+  Journal: "Journal",
+  "Activity journal": "Journal d’activité",
+  "Everything the team added, changed or deleted, newest first.":
+    "Tout ce que l’équipe a ajouté, modifié ou supprimé, du plus récent au plus ancien.",
+  "Search…": "Rechercher…",
+  From: "Depuis",
+  Who: "Qui",
+  "What happened": "Ce qui s’est passé",
+  // help & theme
+  "How this page works": "Comment fonctionne cette page",
+  "Got it": "Compris",
+  "Dark theme": "Thème sombre",
+  "Light theme": "Thème clair",
+  "Online bookings to confirm and reminders to send appear at the top.":
+    "Les réservations en ligne à confirmer et les rappels à envoyer apparaissent en haut.",
+  "“Today” shows everyone booked today. Click a line to open it.":
+    "« Aujourd’hui » montre tous les rendez-vous du jour. Cliquez sur une ligne pour l’ouvrir.",
+  "Click a number (new requests, payments…) to see the list behind it.":
+    "Cliquez sur un chiffre (demandes, paiements…) pour voir la liste correspondante.",
+  "New leads from the website arrive in the first box: Accept, Dismiss or Import all.":
+    "Les contacts du site arrivent dans le premier bloc : Accepter, Refuser ou Tout importer.",
+  "Each card is a request. Drag it to the next column, or use ⋯ to change its stage.":
+    "Chaque carte est une demande. Glissez-la vers la colonne suivante, ou utilisez ⋯ pour changer l’étape.",
+  "The pencil edits the request; the client's name opens their card.":
+    "Le crayon modifie la demande ; le nom du client ouvre sa fiche.",
+  "All clients, including people who only asked a question.":
+    "Tous les clients, y compris ceux qui ont seulement posé une question.",
+  "Click a name to open the card: notes, appointments, payments, documents.":
+    "Cliquez sur un nom pour ouvrir la fiche : notes, rendez-vous, paiements, documents.",
+  "Search works with names, e-mails and phone numbers (0…, +213…).":
+    "La recherche fonctionne avec les noms, e-mails et numéros (0…, +213…).",
+  "Click an empty time to book. Choose a person at the top to see their hours.":
+    "Cliquez sur un horaire libre pour réserver. Choisissez une personne en haut pour voir ses horaires.",
+  "Hatched time = outside working hours or on leave.":
+    "Zones hachurées = hors horaires ou en congé.",
+  "List view: mark appointments as done or missed in one tap.":
+    "Vue liste : marquez un rendez-vous fait ou manqué en un geste.",
+  "Choose the day, tap P (present), R (late), A (absent) or E (excused), then save.":
+    "Choisissez le jour, touchez P (présent), R (retard), A (absent) ou E (excusé), puis enregistrez.",
+  "“Everyone else present” fills the remaining students.":
+    "« Tous les autres présents » complète les élèves restants.",
+  "After two absences in a row the CRM suggests a WhatsApp message.":
+    "Après deux absences de suite, le CRM propose un message WhatsApp.",
+  "A program is what you sell (with its price). A group is a class of that program.":
+    "Une formation est ce que vous vendez (avec son tarif). Un groupe est une classe de cette formation.",
+  "Open a group to see students, upcoming classes and the mark sheet.":
+    "Ouvrez un groupe pour voir les élèves, les prochains cours et le relevé de notes.",
+  "Charges = what clients owe. Record a payment when money is received.":
+    "Montants dus = ce que doivent les clients. Enregistrez un paiement à la réception de l’argent.",
+  "Cash book, debts and pay are in the tabs. Each payment has a printable receipt.":
+    "Caisse, dettes et salaires sont dans les onglets. Chaque paiement a un reçu imprimable.",
+  "Choose the period at the top. Use Print to save the report as PDF.":
+    "Choisissez la période en haut. Utilisez Imprimer pour enregistrer le rapport en PDF.",
+  "Team: add people, their working hours, pay rate and password.":
+    "Équipe : ajoutez les personnes, leurs horaires, leur rémunération et leur mot de passe.",
+  "Online booking: open the public page and choose the services.":
+    "Réservation en ligne : ouvrez la page publique et choisissez les prestations.",
+  "Trash: restore anything deleted in the last 30 days.":
+    "Corbeille : restaurez tout ce qui a été supprimé ces 30 derniers jours.",
+  "Tick a task when it is done. The pencil changes its date or person.":
+    "Cochez une tâche quand elle est faite. Le crayon change sa date ou la personne.",
+});
+
+// Round 6
+Object.assign(french, {
+  Campaigns: "Campagnes",
+  "Send one message to a group of clients: new term, new course, event…":
+    "Envoyez un message à un groupe de clients : rentrée, nouvelle formation, événement…",
+  "1. Who receives it?": "1. Qui le reçoit ?",
+  "Only clients who agreed to be contacted and have a phone number.":
+    "Uniquement les clients qui ont accepté d’être contactés et ont un téléphone.",
+  "2. The message": "2. Le message",
+  "{name} is replaced by each client's first name.":
+    "{name} est remplacé par le prénom de chaque client.",
+  All: "Tous",
+  "Enrolled in": "Inscrit en",
+  "Current students": "Élèves actuels",
+  "Former students": "Anciens élèves",
+  "Never enrolled": "Jamais inscrits",
+  "clients match": "clients correspondent",
+  "Campaign name": "Nom de la campagne",
+  "Example: Registrations September": "Exemple : Inscriptions septembre",
+  "Example: English": "Exemple : Anglais",
+  "Prepare the campaign": "Préparer la campagne",
+  recipients: "destinataires",
+  sent: "envoyés",
+  failed: "échecs",
+  "Send all automatically": "Tout envoyer automatiquement",
+  "Previous campaigns": "Campagnes précédentes",
+  "Delete this campaign?": "Supprimer cette campagne ?",
+  "Online payment link": "Lien de paiement en ligne",
+  "Online card payment (CIB / Edahabia) is ready but not switched on. Add the Chargily key in Vercel (see Settings → Integrations).":
+    "Le paiement par carte (CIB / Edahabia) est prêt mais pas activé. Ajoutez la clé Chargily dans Vercel (voir Paramètres → Connexions).",
+  "The client pays by CIB or Edahabia card. The payment is recorded automatically in the CRM.":
+    "Le client paie par carte CIB ou Edahabia. Le paiement est enregistré automatiquement dans le CRM.",
+  "test mode": "mode test",
+  "Create the payment link": "Créer le lien de paiement",
+  "Pay link": "Lien de paiement",
+  "Card (online)": "Carte (en ligne)",
+  Invoice: "Facture",
+  "Invoice details": "Coordonnées de facturation",
+  "Company name": "Raison sociale",
+  Address: "Adresse",
+  "VAT (%)": "TVA (%)",
+  "0 = VAT not applicable": "0 = TVA non applicable",
+  "Company (for invoices)": "Entreprise (pour les factures)",
+  "Company NIF": "NIF de l’entreprise",
+  "Company address": "Adresse de l’entreprise",
+  "Client space": "Espace client",
+  "A private page for the client: upcoming appointments and classes, video links, marks, certificates, balance and online payment. No password needed.":
+    "Une page privée pour le client : prochains rendez-vous et cours, liens vidéo, notes, certificats, solde et paiement en ligne. Sans mot de passe.",
+  "A link already exists. Creating a new one stops the old one.":
+    "Un lien existe déjà. En créer un nouveau désactive l’ancien.",
+  "Stop the link": "Désactiver le lien",
+  "Create a new link": "Créer un nouveau lien",
+  "Create the link": "Créer le lien",
+  "The link no longer works": "Le lien ne fonctionne plus",
+  "Ask for feedback": "Demander un avis",
+  "Your experience": "Votre expérience",
+  "Client satisfaction": "Satisfaction des clients",
+  "Answers to the surveys sent after a course or consultations.":
+    "Réponses aux questionnaires envoyés après une formation ou des consultations.",
+  "No answers yet": "Pas encore de réponses",
+  "Ask for feedback from a client's card (button “Ask for feedback”).":
+    "Demandez un avis depuis la fiche d’un client (bouton « Demander un avis »).",
+  "surveys waiting for an answer": "questionnaires en attente de réponse",
+  Expenses: "Dépenses",
+  "Rent, salaries, advertising, supplies… to see the real profit.":
+    "Loyer, salaires, publicité, fournitures… pour voir le vrai bénéfice.",
+  "Add an expense": "Ajouter une dépense",
+  "Delete this expense?": "Supprimer cette dépense ?",
+  Rent: "Loyer",
+  Salaries: "Salaires",
+  Advertising: "Publicité",
+  Supplies: "Fournitures",
+  "Electricity, water, internet": "Électricité, eau, internet",
+  Taxes: "Impôts et taxes",
+  "Income − expenses": "Recettes − dépenses",
+  "Money received minus expenses, month by month.":
+    "Argent encaissé moins les dépenses, mois par mois.",
+  Month: "Mois",
+  Result: "Résultat",
+  "Salaries count only once you record them as an expense.":
+    "Les salaires ne comptent qu’une fois enregistrés comme dépense.",
+  "Online consultation (video link)": "Consultation en ligne (lien vidéo)",
+  "A free video room is created (Jitsi Meet). You can paste a Google Meet or Zoom link below instead.":
+    "Une salle vidéo gratuite est créée (Jitsi Meet). Vous pouvez coller un lien Google Meet ou Zoom à la place.",
+  "Video link": "Lien vidéo",
+  "Leave empty to create one automatically":
+    "Laisser vide pour en créer un automatiquement",
+  "Online (a video link is created for each booking)":
+    "En ligne (un lien vidéo est créé pour chaque réservation)",
+  "Join video call": "Rejoindre l’appel vidéo",
+  "Place available": "Place disponible",
+  "Feedback request": "Demande d’avis",
+  "Online consultation link": "Lien de consultation en ligne",
+  "Message sent": "Message envoyé",
+  "Send directly": "Envoyer directement",
+  "Connected services": "Services connectés",
+  "Each service works as soon as its key is added in Vercel → Settings → Environment Variables, then redeployed.":
+    "Chaque service fonctionne dès que sa clé est ajoutée dans Vercel → Settings → Environment Variables, puis redéployé.",
+  Connected: "Connecté",
+  "Not connected": "Non connecté",
+  "Online card payment (Chargily)": "Paiement par carte en ligne (Chargily)",
+  "Automatic WhatsApp (Meta)": "WhatsApp automatique (Meta)",
+  "Password e-mails (Resend)": "E-mails de mot de passe (Resend)",
+  "Daily automatic reminders": "Rappels automatiques chaque jour",
+  "Send today's reminders now": "Envoyer les rappels maintenant",
+  // portal & public pages
+  Hello: "Bonjour",
+  "My appointments": "Mes rendez-vous",
+  "No upcoming appointment.": "Aucun rendez-vous à venir.",
+  "No upcoming class.": "Aucun cours à venir.",
+  "My marks": "Mes notes",
+  "My certificates": "Mes certificats",
+  Check: "Vérifier",
+  "To pay": "À payer",
+  "Nothing to pay. Thank you!": "Rien à payer. Merci !",
+  "Pay by card (CIB / Edahabia)": "Payer par carte (CIB / Edahabia)",
+  "This link is no longer valid. Ask the academy for a new one.":
+    "Ce lien n’est plus valable. Demandez-en un nouveau à l’académie.",
+  "How was it?": "Comment ça s’est passé ?",
+  Rating: "Note",
+  "A comment? (optional)": "Un commentaire ? (facultatif)",
+  Send: "Envoyer",
+  "Thank you for your feedback!": "Merci pour votre avis !",
+  "Thank you, your answer was already recorded.":
+    "Merci, votre réponse a déjà été enregistrée.",
+  "Choose from 1 to 5 stars.": "Choisissez de 1 à 5 étoiles.",
+  "The payment did not go through": "Le paiement n’a pas abouti",
+  "Payment received, thank you!": "Paiement reçu, merci !",
+  "No money was taken. You can try again from the link.":
+    "Aucun montant n’a été prélevé. Vous pouvez réessayer depuis le lien.",
+  "Your receipt is recorded by the academy.":
+    "Votre reçu est enregistré par l’académie.",
+  "Online payment is not set up yet (Chargily key missing).":
+    "Le paiement en ligne n’est pas encore configuré (clé Chargily manquante).",
+  "WhatsApp sending is not set up yet.":
+    "L’envoi WhatsApp n’est pas encore configuré.",
+});
+Object.assign(french, {
+  "Choose who receives the message with the filters, then write the message.":
+    "Choisissez les destinataires avec les filtres, puis écrivez le message.",
+  "Only clients who agreed to be contacted are included.":
+    "Seuls les clients ayant accepté d’être contactés sont inclus.",
+  "Send one by one with the WhatsApp buttons, or all at once when WhatsApp is connected.":
+    "Envoyez un par un avec les boutons WhatsApp, ou tous d’un coup quand WhatsApp est connecté.",
+});
+Object.assign(french, {
+  "Good morning": "Bonjour",
+  "Good afternoon": "Bon après-midi",
+  "Good evening": "Bonsoir",
+  "booked today": "rendez-vous aujourd’hui",
+  "new requests": "nouvelles demandes",
+  "to confirm": "à confirmer",
+  "open tasks": "tâches ouvertes",
+});
+
+// Academy workbook import
+Object.assign(french, {
+  "Import the academy workbook": "Importer le classeur de l’académie",
+  "Replace all current data with your full Excel workbook (clients, courses, registrations, team, tasks).":
+    "Remplace toutes les données actuelles par votre classeur Excel complet (clients, formations, inscriptions, équipe, tâches).",
+  "Company, Team, Courses, Contacts, Enrollments…":
+    "Académie, équipe, formations, contacts, inscriptions…",
+  "Import the workbook": "Importer le classeur",
+  "Use an Excel (.xlsx) file.": "Utilisez un fichier Excel (.xlsx).",
+  "This file has no Contacts sheet.":
+    "Ce fichier n’a pas de feuille « Contacts ».",
+  "Academy data imported": "Données de l’académie importées",
+  "Programmes and services": "Formations et services",
+  "Groups and events": "Groupes et événements",
+  Registrations: "Inscriptions",
+  "Open requests": "Demandes en cours",
+  "Amounts due": "Montants dus",
+  "Verified payments": "Paiements vérifiés",
+  "Team members": "Membres de l’équipe",
+  Tasks: "Tâches",
+  "History entries": "Entrées d’historique",
+  "Import finished. Your CRM now contains:":
+    "Import terminé. Votre CRM contient maintenant :",
+  "Choose the workbook (.xlsx)": "Choisir le classeur (.xlsx)",
+  "One sheet per type: Company, Team, Services, Courses, Contacts, Enrollments, Activities, Tasks…":
+    "Une feuille par type : Company, Team, Services, Courses, Contacts, Enrollments, Activities, Tasks…",
+  "Everything currently in the CRM (clients, requests, groups, payments, calendar, staff accounts except yours) is replaced by this file. Download a backup first if you need it.":
+    "Tout ce qui est actuellement dans la CRM (clients, demandes, groupes, paiements, agenda, comptes de l’équipe sauf le vôtre) sera remplacé par ce fichier. Téléchargez d’abord une sauvegarde si besoin.",
+  "Type IMPORT to confirm": "Tapez IMPORT pour confirmer",
+  "Importing…": "Import en cours…",
+  "Replace and import": "Remplacer et importer",
+  "Courses and events": "Formations et événements",
+  Services: "Services",
+  Team: "Équipe",
+});
+
+Object.assign(french, {
+  "Add what is new": "Ajouter les nouveautés",
+  "Keeps everything already in the CRM. Only new clients, courses, registrations and tasks are added; people already known (same phone) are not duplicated.":
+    "Garde tout ce qui est déjà dans la CRM. Seuls les nouveaux clients, formations, inscriptions et tâches sont ajoutés ; les personnes déjà connues (même téléphone) ne sont pas dupliquées.",
+  "Replace everything": "Tout remplacer",
+  "Deletes all current data first (use it once, to remove the sample data).":
+    "Supprime d’abord toutes les données actuelles (à utiliser une seule fois, pour retirer les données d’exemple).",
+  "Import finished. Added to the CRM:": "Import terminé. Ajouté à la CRM :",
+});

@@ -56,6 +56,7 @@ before(async () => {
       PORT: "0",
       CRM_DB: resolve(folder, "test.sqlite"),
       DEMO_PASSWORD: "LuminolDemo!2026",
+      SEED_SAMPLE_DATA: "1",
       N8N_INTAKE_TOKEN: token,
       N8N_INTAKE_OWNER_ID: "1",
     },
@@ -175,7 +176,7 @@ test("intake retries create exactly one review task, without an opportunity or r
   );
 });
 
-test("phone-only intake is captured; human review confirms email and avoids duplicate conversions", async () => {
+test("phone-only intake is captured; review may add an email and avoids duplicate conversions", async () => {
   const submitted = await capture(
     inquiry("phone", { email: "", phone: "٠٥٥٥ ١٢٣ ٩٨٨", consent: false }),
   );
@@ -186,11 +187,6 @@ test("phone-only intake is captured; human review confirms email and avoids dupl
   const path = `/integrations/n8n/inquiries/${row.id}/convert`;
   const assignment = { program_id: 1, owner_id: 1, version: row.version };
   assert.equal(
-    (await request(path, assignment, { cookie: admin })).status,
-    400,
-  );
-  assert.equal((await state()).contacts.length, before.contacts.length);
-  assert.equal(
     (
       await request(
         path,
@@ -200,6 +196,7 @@ test("phone-only intake is captured; human review confirms email and avoids dupl
     ).status,
     409,
   );
+  assert.equal((await state()).contacts.length, before.contacts.length);
   const first = await request(
     path,
     { ...assignment, email: "phone-review@example.test" },
@@ -293,4 +290,45 @@ test("malformed intake is rejected without side effects", async () => {
   const after = await state();
   assert.equal(after.incoming.length, before.incoming.length);
   assert.equal(after.tasks.length, before.tasks.length);
+});
+
+test("phone-only leads import in bulk without a program and can be dismissed", async () => {
+  const a = await capture(
+    inquiry("bulk-a", {
+      email: "",
+      phone: "0661 22 33 44",
+      service_type: "psychological consultation",
+      course_interest: "",
+    }),
+  );
+  const b = await capture(inquiry("bulk-b", { course_interest: "Spanish A1" }));
+  const c = await capture(inquiry("bulk-c"));
+  assert.equal(
+    (
+      await request(
+        `/integrations/n8n/inquiries/${c.json.intake_id}/dismiss`,
+        {},
+        { cookie: admin },
+      )
+    ).status,
+    200,
+  );
+  const result = await request(
+    "/integrations/n8n/inquiries/import-all",
+    {},
+    { cookie: admin },
+  );
+  assert.equal(result.status, 200);
+  assert.ok(result.json.imported >= 2);
+  const s = await state();
+  assert.ok(!s.incoming.some((x) => x.id === c.json.intake_id));
+  const phoneOnly = s.contacts.find((x) => x.phone === "+213661223344");
+  assert.equal(phoneOnly.email, "");
+  const consult = s.opportunities.find((o) => o.contact_id === phoneOnly.id);
+  assert.equal(consult.service_type, "Psychology consultation");
+  assert.equal(consult.program_id, null);
+  const spanish = s.opportunities.find((o) => o.interest === "Spanish A1");
+  assert.equal(spanish.program_id, null);
+  assert.equal(a.status, 200);
+  assert.equal(b.status, 200);
 });

@@ -16,9 +16,23 @@ import {
   Wallet,
   Shield,
   Languages,
+  Pencil,
+  Trash2,
+  UserRound,
+  Star,
+  CreditCard,
 } from "lucide-react";
 import { useApp } from "./context";
 import { Dialog, Button, Badge, Avatar, Tabs, Empty, TaskRows } from "./ui";
+import { useRequestLabel, serviceTone, useRemove } from "./pages";
+import { LanguageSection, PsychologySection } from "./academy";
+import { useFeedbackRequest, useInvoice } from "./growth";
+import {
+  PackagesSection,
+  PrintButton,
+  useCertificate,
+  useReceipt,
+} from "./tools";
 
 export default function Profile({
   id,
@@ -42,6 +56,15 @@ export default function Profile({
     toast,
   } = useApp();
   const contact = person(id);
+  const label = useRequestLabel();
+  const remove = useRemove();
+  const certificate = useCertificate();
+  const invoice = useInvoice();
+  const askFeedback = useFeedbackRequest();
+  const receipt = useReceipt();
+  const appointments = (data.appointments || []).filter(
+    (a) => a.contact_id === id,
+  );
   const [tab, setTab] = useState("Overview");
   const enrollments = data.enrollments.filter((e) => e.contact_id === id);
   const opportunities = data.opportunities.filter((o) => o.contact_id === id);
@@ -65,23 +88,37 @@ export default function Profile({
         <div>
           <h2>{contact.name}</h2>
           <p>
-            {enrollments.length ? t("Students") : t("Admissions")}{" "}
-            <span>·</span> LA-{String(id).padStart(4, "0")}
+            {enrollments.length ? t("Student") : t("Client")} <span>·</span> LA-
+            {String(id).padStart(4, "0")}
           </p>
         </div>
-        <Badge tone="teal">
-          {t(enrollments.length ? "Enrolled" : "Contact")}
+        <Badge tone={enrollments.length ? "teal" : "neutral"}>
+          {t(enrollments.length ? "Enrolled" : "Client")}
         </Badge>
       </div>
       <div className="profile-contact">
-        <span>
-          <Mail size={14} />
-          <bdi>{contact.email}</bdi>
-        </span>
-        <span>
-          <Phone size={14} />
-          <bdi>{contact.phone || "—"}</bdi>
-        </span>
+        {contact.phone && (
+          <a href={`tel:${contact.phone.replace(/\s/g, "")}`}>
+            <Phone size={14} />
+            <bdi>{contact.phone}</bdi>
+          </a>
+        )}
+        {contact.phone && (
+          <a
+            href={`https://wa.me/${contact.phone.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <MessageSquare size={14} />
+            WhatsApp
+          </a>
+        )}
+        {contact.email && (
+          <a href={`mailto:${contact.email}`}>
+            <Mail size={14} />
+            <bdi>{contact.email}</bdi>
+          </a>
+        )}
       </div>
       <div className="profile-actions">
         {data.permissions.write && (
@@ -100,13 +137,56 @@ export default function Profile({
             </Button>
           </>
         )}
+        {["admin", "admissions", "academic", "instructor"].includes(
+          data.user.role,
+        ) && (
+          <Button
+            icon={<CalendarDays size={15} />}
+            onClick={() => open({ type: "appointment", contact })}
+          >
+            {t("Book appointment")}
+          </Button>
+        )}
+        {contact.phone && (
+          <Button
+            icon={<MessageSquare size={15} />}
+            onClick={() => open({ type: "whatsapp", contact })}
+          >
+            {t("WhatsApp message")}
+          </Button>
+        )}
+        {["admin", "admissions", "academic"].includes(data.user.role) && (
+          <Button
+            icon={<UserRound size={15} />}
+            onClick={() => open({ type: "portal", contact })}
+          >
+            {t("Client space")}
+          </Button>
+        )}
+        {["admin", "admissions", "academic", "instructor"].includes(
+          data.user.role,
+        ) && (
+          <Button
+            icon={<Star size={15} />}
+            onClick={() =>
+              askFeedback(
+                contact,
+                enrollments.length
+                  ? cohort(enrollments[enrollments.length - 1].cohort_id).name
+                  : t("Your experience"),
+              )
+            }
+          >
+            {t("Ask for feedback")}
+          </Button>
+        )}
         {data.permissions.editAdmissions && (
           <Button
             variant="primary"
             icon={<Plus size={15} />}
             onClick={() => open({ type: "inquiry", contact })}
           >
-            {t("New inquiry")}
+            {t("New request")}
           </Button>
         )}
       </div>
@@ -164,6 +244,14 @@ export default function Profile({
                   <dt>{t("Preferred language")}</dt>
                   <dd>{contact.language}</dd>
                 </div>
+                {contact.level && (
+                  <div>
+                    <dt>{t("Level")}</dt>
+                    <dd>
+                      <Badge tone="blue">{contact.level}</Badge>
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt>{t("Communication consent")}</dt>
                   <dd>
@@ -180,6 +268,12 @@ export default function Profile({
                   <dt>{t("Guardian or sponsor")}</dt>
                   <dd>{contact.guardian || "—"}</dd>
                 </div>
+                {contact.notes && (
+                  <div className="wide-info">
+                    <dt>{t("Notes")}</dt>
+                    <dd className="pre-line">{contact.notes}</dd>
+                  </div>
+                )}
                 <div>
                   <dt>{t("Date")}</dt>
                   <dd>{date(contact.created_at)}</dd>
@@ -189,14 +283,15 @@ export default function Profile({
             {opportunities.length > 0 && (
               <div className="profile-section">
                 <div className="section-label">
-                  <h3>{t("Admissions")}</h3>
+                  <h3>{t("Requests")}</h3>
                 </div>
                 {opportunities.map((o) => (
                   <div className="opportunity-detail" key={o.id}>
                     <div>
-                      <Badge tone={program(o.program_id).color}>
-                        {t(program(o.program_id).name)}
+                      <Badge tone={serviceTone(o.service_type)}>
+                        {t(o.service_type)}
                       </Badge>
+                      <strong>{label(o)}</strong>
                       <Badge tone={o.stage === "Enrolled" ? "teal" : "neutral"}>
                         {t(o.stage)}
                       </Badge>
@@ -216,9 +311,22 @@ export default function Profile({
                           <dd>{o.reason}</dd>
                         </div>
                       )}
+                      {o.notes && (
+                        <div>
+                          <dt>{t("Notes")}</dt>
+                          <dd className="pre-line">{o.notes}</dd>
+                        </div>
+                      )}
                     </dl>
                     {data.permissions.editAdmissions && (
-                      <div className="row-actions">
+                      <div className="row-actions wrap">
+                        <Button
+                          variant="small"
+                          icon={<Pencil size={14} />}
+                          onClick={() => open({ type: "request", record: o })}
+                        >
+                          {t("Edit")}
+                        </Button>
                         <Button
                           variant="small"
                           onClick={() => open({ type: "stage", record: o })}
@@ -246,6 +354,42 @@ export default function Profile({
                       </div>
                     )}
                   </div>
+                ))}
+              </div>
+            )}
+            <PackagesSection contact={contact} />
+            <PsychologySection contact={contact} />
+            <LanguageSection contact={contact} />
+            {appointments.length > 0 && (
+              <div className="profile-section">
+                <div className="section-label">
+                  <h3>{t("Appointments")}</h3>
+                </div>
+                {appointments.map((a) => (
+                  <button
+                    className="profile-list-row clickable"
+                    key={a.id}
+                    onClick={() => open({ type: "appointment", record: a })}
+                  >
+                    <CalendarDays size={18} />
+                    <div>
+                      <strong>{a.title}</strong>
+                      <small>
+                        {t(a.kind)} · {date(a.starts_at)} · {time(a.starts_at)}
+                      </small>
+                    </div>
+                    <Badge
+                      tone={
+                        a.status === "Done"
+                          ? "teal"
+                          : a.status === "Cancelled"
+                            ? "neutral"
+                            : "amber"
+                      }
+                    >
+                      {t(a.status)}
+                    </Badge>
+                  </button>
                 ))}
               </div>
             )}
@@ -300,7 +444,9 @@ export default function Profile({
                   <dl className="profile-info">
                     <div>
                       <dt>{t("Instructor")}</dt>
-                      <dd>{user(h.instructor_id).name}</dd>
+                      <dd>
+                        {h.instructor_id ? user(h.instructor_id).name : "—"}
+                      </dd>
                     </div>
                     <div>
                       <dt>{t("Date")}</dt>
@@ -340,6 +486,16 @@ export default function Profile({
                       >
                         {t("Complete")}
                       </Button>
+                    </div>
+                  )}
+                  {e.status === "Completed" && (
+                    <div className="row-actions">
+                      <PrintButton
+                        label="Print certificate"
+                        onClick={() =>
+                          certificate({ ...e, level: e.level || contact.level })
+                        }
+                      />
                     </div>
                   )}
                 </div>
@@ -452,9 +608,32 @@ export default function Profile({
                     <strong>{money(ch.balance, ch.currency)}</strong>
                   </div>
                 </div>
+                {data.payments
+                  .filter((p) => p.charge_id === ch.id)
+                  .map((p) => (
+                    <div className="payment-line" key={p.id}>
+                      <span>
+                        {date(p.created_at)} · {t(p.method)} ·{" "}
+                        <strong>{money(p.amount, p.currency)}</strong>
+                      </span>
+                      <PrintButton label="Receipt" onClick={() => receipt(p)} />
+                    </div>
+                  ))}
                 <div className="charge-footer">
                   <span>
                     {t("Due date")} · {date(ch.due_date)}
+                  </span>
+                  <span className="row-actions">
+                    <PrintButton label="Invoice" onClick={() => invoice(ch)} />
+                    {ch.balance > 0 && ch.currency === "DZD" && (
+                      <Button
+                        variant="small"
+                        icon={<CreditCard size={14} />}
+                        onClick={() => open({ type: "paylink", record: ch })}
+                      >
+                        {t("Pay link")}
+                      </Button>
+                    )}
                   </span>
                   {data.permissions.editFinance && ch.balance > 0 && (
                     <Button
@@ -483,11 +662,25 @@ export default function Profile({
                   </span>
                   <div>
                     <strong>{a.user_name}</strong>
-                    <p>{a.text}</p>
+                    {["note", "consultation"].includes(a.kind) &&
+                      (data.user.role === "admin" ||
+                        a.user_id === data.user.id) && (
+                        <button
+                          className="icon-button danger timeline-delete"
+                          aria-label={t("Delete note")}
+                          title={t("Delete note")}
+                          onClick={() =>
+                            remove(`/activities/${a.id}`, "Delete this note?")
+                          }
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    <p className="pre-line">{a.text}</p>
                     <small>
                       {date(a.created_at)} · {time(a.created_at)}{" "}
                       {a.visibility !== "general" &&
-                        `· ${t(a.visibility === "finance" ? "Finance only" : "Admissions only")}`}
+                        `· ${t(a.visibility === "finance" ? "Finance only" : a.visibility === "private" ? "🔒 Only me (private)" : "Admissions only")}`}
                     </small>
                   </div>
                 </div>
@@ -532,6 +725,20 @@ export default function Profile({
                     </small>
                   </span>
                   <Download size={18} />
+                  {["admin", "admissions", "academic"].includes(
+                    data.user.role,
+                  ) && (
+                    <button
+                      className="icon-button danger"
+                      aria-label={t("Delete")}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        remove(`/documents/${d.id}`, "Delete this document?");
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </a>
               ))}
             {!data.documents.some((d) => d.contact_id === id) && (
