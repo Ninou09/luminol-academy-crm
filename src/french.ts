@@ -1626,3 +1626,953 @@ Object.assign(french, {
   "Client answers “1” to confirm or “2” to cancel: in Meta → WhatsApp → Configuration, set the webhook address to the one below, and add WHATSAPP_VERIFY_TOKEN (any secret word, the same in Meta) and WHATSAPP_APP_SECRET (Meta app secret) in Vercel. A cancelled slot is then offered to the waiting list automatically.":
     "Le client répond « 1 » pour confirmer ou « 2 » pour annuler : dans Meta → WhatsApp → Configuration, mettez l’adresse webhook ci-dessus, et ajoutez WHATSAPP_VERIFY_TOKEN (un mot secret au choix, le même dans Meta) et WHATSAPP_APP_SECRET (secret de l’application Meta) dans Vercel. Un créneau annulé est alors proposé automatiquement à la liste d’attente.",
 });
+
+Object.assign(french, {
+  "Payment received": "Paiement reçu",
+  "Thank you!": "Merci !",
+  "Receipt on WhatsApp": "Reçu par WhatsApp",
+  "Still owes": "Doit encore",
+  "missed appointments before — confirm the day before.":
+    "rendez-vous manqués auparavant — confirmez la veille.",
+  "Write the note": "Écrire la note",
+  "same as before": "comme avant",
+  "vs previous period": "vs période précédente",
+  "paying clients came back": "clients payants sont revenus",
+  Quiet: "Calme",
+  Busy: "Chargé",
+  "Cash closing": "Clôture de caisse",
+  "Total of the day": "Total du jour",
+  "Counted by": "Compté par",
+  "Checked by": "Vérifié par",
+  "Close the cash desk": "Clôturer la caisse",
+  "Notes to write": "Notes à écrire",
+  "Consultations finished in the last 2 weeks without a session note. Only you can read your notes.":
+    "Consultations terminées ces 2 dernières semaines sans note de séance. Vous seul lisez vos notes.",
+  "Busiest times": "Heures les plus chargées",
+  "Appointments and classes over the last 90 days, by day and hour. Darker = busier.":
+    "Rendez-vous et cours des 90 derniers jours, par jour et heure. Plus foncé = plus chargé.",
+  "Loyal clients": "Clients fidèles",
+  "Share of paying clients who paid on two different days or more.":
+    "Part des clients payants qui ont payé à deux dates différentes ou plus.",
+  "Top 10 clients": "Top 10 des clients",
+  "Money paid in the period.": "Argent payé sur la période.",
+  "Cash desk of the day": "Caisse du jour",
+  "Everything received today, by payment method. Print it when you close.":
+    "Tout ce qui a été encaissé aujourd’hui, par mode de paiement. Imprimez-le à la fermeture.",
+  Saturday: "Samedi",
+  Sunday: "Dimanche",
+  Monday: "Lundi",
+  Tuesday: "Mardi",
+  Wednesday: "Mercredi",
+  Thursday: "Jeudi",
+  Friday: "Vendredi",
+  "“Phone booking”: type the phone number first; a known client is found, otherwise a new one is created.":
+    "« Rendez-vous par téléphone » : tapez d’abord le numéro ; un client connu est retrouvé, sinon il est créé.",
+  "Mark each appointment “Arrived” or “No-show”. A cancelled slot creates a task with the first person on the waiting list.":
+    "Marquez chaque rendez-vous « Arrivé » ou « Absent ». Un créneau annulé crée une tâche avec la première personne de la liste d’attente.",
+  "At the end of the day, “Close the cash desk” prints what was received, by payment method.":
+    "En fin de journée, « Clôturer la caisse » imprime ce qui a été encaissé, par mode de paiement.",
+  "Your consultations and classes, by day. “Take attendance” opens the roll call of the class.":
+    "Vos consultations et cours, par jour. « Faire l’appel » ouvre la liste de présence du cours.",
+  "“Notes to write”: finished consultations without a session note.":
+    "« Notes à écrire » : consultations terminées sans note de séance.",
+  "Add your days off at the bottom: the secretary cannot book you on those days.":
+    "Ajoutez vos congés en bas : la secrétaire ne peut pas vous réserver ces jours-là.",
+  "Choose the period at the top. Each number shows the change compared with the period just before.":
+    "Choisissez la période en haut. Chaque chiffre montre l’évolution par rapport à la période précédente.",
+  "Hover a bar to see the exact figures. “Busiest times” helps to plan opening hours.":
+    "Survolez une barre pour voir les chiffres exacts. « Heures les plus chargées » aide à planifier les horaires.",
+  "Set the monthly goals with the button; Export or Print to share.":
+    "Définissez les objectifs du mois avec le bouton ; Exporter ou Imprimer pour partager.",
+});
+
+Object.assign(french, {
+  "Share of paying clients who paid on two different days or more, and the 10 clients who paid the most in the period.":
+    "Part des clients payants qui ont payé à deux dates différentes ou plus, et les 10 clients qui ont le plus payé sur la période.",
+});
+
+Object.assign(french, { Time: "Heure" });
+
+Object.assign(french, {
+  "One room per line (Salle 1, Cabinet psy…). Used by the room board and the booking forms.":
+    "Une salle par ligne (Salle 1, Cabinet psy…). Utilisé par le planning des salles et les formulaires de rendez-vous.",
+  Duplicates: "Doublons",
+  "Import a bank statement": "Importer un relevé",
+  "Consent signed": "Consentement signé",
+  "Sign the consent": "Faire signer le consentement",
+  "Questionnaire before the consultation":
+    "Questionnaire avant la consultation",
+  present: "présent",
+  late: "en retard",
+  absent: "absent",
+  excused: "excusé",
+  "Thank you, your answers were sent.": "Merci, vos réponses ont été envoyées.",
+  "Your specialist will read them before the consultation.":
+    "Votre spécialiste les lira avant la consultation.",
+  "Before your consultation, these questions help your specialist prepare. Your answers are confidential and only your specialist reads them.":
+    "Avant votre consultation, ces questions aident votre spécialiste à se préparer. Vos réponses sont confidentielles : seul votre spécialiste les lit.",
+  "Send my answers": "Envoyer mes réponses",
+  "I agree that": "J’accepte que",
+  "keeps my contact details and the information I give, uses them only for my follow-up, reminders and messages from the academy, and never shares them. I can ask at any time to see, correct or delete them.":
+    "conserve mes coordonnées et les informations que je donne, les utilise uniquement pour mon suivi, les rappels et les messages de l’académie, et ne les partage jamais. Je peux à tout moment demander à les voir, les corriger ou les supprimer.",
+  "Consent signed and saved in the documents":
+    "Consentement signé et enregistré dans les documents",
+  "Consent to be signed": "Consentement à signer",
+  "Sign here with your finger": "Signez ici avec le doigt",
+  Clear: "Effacer",
+  "Save the signature": "Enregistrer la signature",
+  "before your consultation, please answer a few questions here:":
+    "avant votre consultation, merci de répondre à quelques questions ici :",
+  "The client answers on their phone. The answers go to the specialist of their next appointment, in the private file.":
+    "Le client répond sur son téléphone. Les réponses vont au spécialiste de son prochain rendez-vous, dans le dossier privé.",
+  years: "ans",
+  "Happy birthday": "Joyeux anniversaire",
+  "The whole team of": "Toute l’équipe de",
+  "wishes you a wonderful year.": "vous souhaite une très belle année.",
+  "Wish happy birthday": "Souhaiter l’anniversaire",
+  "No room yet.": "Pas encore de salle.",
+  "Open the requests": "Ouvrir les demandes",
+  since: "depuis",
+  Call: "Appeler",
+  registrations: "inscriptions",
+  charges: "montants dus",
+  "Possible duplicates": "Doublons possibles",
+  "Merging keeps the first card and moves everything from the second one into it (appointments, payments, groups, notes, documents). The second card is then removed.":
+    "La fusion garde la première fiche et y déplace tout le contenu de la seconde (rendez-vous, paiements, groupes, notes, documents). La seconde fiche est ensuite supprimée.",
+  "No duplicates found.": "Aucun doublon trouvé.",
+  Keep: "Garder",
+  "Merge into the first": "Fusionner dans la première",
+  Merge: "Fusionner",
+  "Clients merged": "Clients fusionnés",
+  "payments recorded": "paiements enregistrés",
+  "Export the statement of your CCP / BaridiMob or bank account as Excel or CSV. The CRM suggests which client each amount belongs to; check, tick and record.":
+    "Exportez le relevé de votre compte CCP / BaridiMob ou bancaire en Excel ou CSV. La CRM propose à quel client correspond chaque montant ; vérifiez, cochez et enregistrez.",
+  "Choose the statement (.xlsx or .csv)": "Choisir le relevé (.xlsx ou .csv)",
+  Record: "Enregistrer",
+  "Not a client payment — skip": "Pas un paiement client — ignorer",
+  payments: "paiements",
+  "Birthdays this week": "Anniversaires de la semaine",
+  "A short message on their birthday keeps clients close to the academy.":
+    "Un petit message le jour de l’anniversaire rapproche les clients de l’académie.",
+  Rooms: "Salles",
+  "Add your rooms in Settings → Workspace settings to see who uses which room.":
+    "Ajoutez vos salles dans Paramètres → Paramètres généraux pour voir qui utilise quelle salle.",
+  "Who uses which room. Click a free space to book it.":
+    "Qui utilise quelle salle. Cliquez sur un espace libre pour réserver.",
+  "Requests waiting for more than 24 hours":
+    "Demandes en attente depuis plus de 24 h",
+  "A quick answer doubles the chance that the client comes. Call or write to them first.":
+    "Une réponse rapide double la chance que le client vienne. Appelez-les ou écrivez-leur en premier.",
+  "Sell a package": "Vendre un forfait",
+  "Birth date": "Date de naissance",
+  "Rooms of the academy": "Salles de l’académie",
+  Satisfaction: "Satisfaction",
+  "Requests waiting > 24 h": "Demandes en attente > 24 h",
+  "Date column": "Colonne date",
+  "Amount column": "Colonne montant",
+  "Description column": "Colonne libellé",
+  "Same phone": "Même téléphone",
+  "Same name": "Même nom",
+});
+
+Object.assign(french, {
+  "Monthly report for the accountant": "Rapport mensuel pour le comptable",
+  "Money in by payment method": "Entrées par mode de paiement",
+  "Money out by category": "Sorties par catégorie",
+  "Report for the accountant": "Rapport pour le comptable",
+  "Personal data file": "Dossier de données personnelles",
+  Yes: "Oui",
+  No: "Non",
+  "Private session notes of the psychologist are not included; they can be given only by the psychologist.":
+    "Les notes de séance privées du psychologue ne sont pas incluses ; seul le psychologue peut les communiquer.",
+  "Chance that this request becomes a client":
+    "Chance que cette demande devienne un client",
+  "Next appointments": "Prochains rendez-vous",
+  "In the waiting room": "En salle d’attente",
+  Expected: "Attendu",
+  "No more appointments today.": "Plus de rendez-vous aujourd’hui.",
+  "Automatic rules": "Règles automatiques",
+  "Checked every evening (and when you press “Run now”). Each rule only creates a task for the team — nothing is sent to clients without you.":
+    "Vérifiées chaque soir (et quand vous appuyez sur « Lancer maintenant »). Chaque règle crée seulement une tâche pour l’équipe — rien n’est envoyé aux clients sans vous.",
+  "Waiting-room screen": "Écran salle d’attente",
+  Hot: "Chaude",
+  Warm: "Tiède",
+  Cold: "Froide",
+  "Missed appointment → call the client back":
+    "Rendez-vous manqué → rappeler le client",
+  "Payment 30 days late → follow-up task":
+    "Paiement en retard de 30 jours → tâche de relance",
+  "Request without answer for 48 h → reminder to its advisor":
+    "Demande sans réponse depuis 48 h → rappel au conseiller",
+  "Last session of a package → offer a new one":
+    "Dernière séance d’un forfait → en proposer un nouveau",
+  "Group just finished → ask the students for feedback":
+    "Groupe terminé → demander l’avis des élèves",
+  "Two absences in a month → contact the student":
+    "Deux absences dans le mois → contacter l’élève",
+  "Run internal rules": "Lancer maintenant",
+});
+
+Object.assign(french, { "tasks created": "tâches créées" });
+
+Object.assign(french, {
+  "Sale price": "Prix de vente",
+  "No item yet.": "Aucun article pour l’instant.",
+  "Low stock": "Stock faible",
+  "Not sold": "Non vendu",
+  "alert below": "alerte sous",
+  "Sell to a client": "Vendre à un client",
+  Quantity: "Quantité",
+  "Sell and take the payment": "Vendre et encaisser",
+  "Open the stock": "Ouvrir le stock",
+  Stock: "Stock",
+  "Books, tests and materials. When an item goes below its alert level, the secretary sees it on the home page.":
+    "Livres, tests et matériel. Quand un article passe sous son seuil d’alerte, la secrétaire le voit sur l’accueil.",
+  "Stock running low": "Stock presque épuisé",
+  "Tell the director to order more.": "Prévenez le directeur pour recommander.",
+  Item: "Article",
+  "Unit (book, box…)": "Unité (livre, boîte…)",
+  "Alert below": "Alerte sous",
+});
+
+// Platform round: inbox, scenarios, forms, documents, reports.
+Object.assign(french, {
+  "New conversation": "Nouvelle conversation",
+  "WhatsApp is not connected yet: this page works as a log. Write down what the client sent and what you answered; once Meta is connected, messages arrive here by themselves.":
+    "WhatsApp n'est pas encore connecté : cette page sert de journal. Notez ce que le client a envoyé et ce que vous avez répondu ; une fois Meta connecté, les messages arriveront ici tout seuls.",
+  "Search a name or a number": "Chercher un nom ou un numéro",
+  You: "Vous",
+  "Choose a conversation on the left.": "Choisissez une conversation à gauche.",
+  "Assigned to": "Confiée à",
+  "Not assigned": "Non attribuée",
+  "Create an appointment": "Créer un rendez-vous",
+  "Write with AI": "Rédiger avec l'IA",
+  "Mark as resolved": "Marquer comme résolu",
+  "No message yet. Write the first one below.":
+    "Aucun message. Écrivez le premier ci-dessous.",
+  "Internal note": "Note interne",
+  "Quick reply": "Réponse rapide",
+  "Quick reply…": "Réponse rapide…",
+  "How did the call go?": "Comment s'est passé l'appel ?",
+  "What was said": "Ce qui a été dit",
+  "Call back on": "Rappeler le",
+  "A task to call back is created for you.":
+    "Une tâche « rappeler » est créée pour vous.",
+  "Call saved in the history": "Appel enregistré dans l'historique",
+  "Save the call": "Enregistrer l'appel",
+  "What is the situation?": "Quelle est la situation ?",
+  "Example: remind the payment kindly, offer the next English group…":
+    "Exemple : rappeler gentiment le paiement, proposer le prochain groupe d'anglais…",
+  "Draft — check it before sending": "Brouillon — vérifiez-le avant d'envoyer",
+  "Private notes of the psychologist and medical information are never sent to the AI.":
+    "Les notes privées du psychologue et les informations médicales ne sont jamais envoyées à l'IA.",
+  "Use this text": "Utiliser ce texte",
+  "Press “Suggest”: who to call, who may leave, who to offer a package.":
+    "Appuyez sur « Suggérer » : qui appeler, qui risque de partir, à qui proposer un forfait.",
+  "Your question": "Votre question",
+  "New tag": "Nouvelle étiquette",
+  "Team comments": "Commentaires de l'équipe",
+  "Write @ and a first name to notify a colleague.":
+    "Écrivez @ et un prénom pour prévenir un collègue.",
+  "Comment added": "Commentaire ajouté",
+  notified: "prévenu(s)",
+  "Write a comment for the team": "Écrire un commentaire pour l'équipe",
+  "The same conversation is on the Messages page.":
+    "La même conversation se trouve dans la page Messages.",
+  new: "nouvelle(s)",
+  "All read": "Tout est lu",
+  "Mark all as read": "Tout marquer comme lu",
+  "History of changes": "Historique des modifications",
+  "Same as now": "Identique à maintenant",
+  "Go back to this version?": "Revenir à cette version ?",
+  "Earlier version restored": "Version précédente restaurée",
+  Signature: "Signature",
+  signed: "signé",
+  "Document saved in the client's documents":
+    "Document enregistré dans les documents du client",
+  "Prepare a document": "Préparer un document",
+  "Signature of the client": "Signature du client",
+  Preview: "Aperçu",
+  "Save in the documents": "Enregistrer dans les documents",
+  Brought: "A amené",
+  "client(s)": "client(s)",
+  "The next session is with the loyalty discount":
+    "La prochaine séance bénéficie de la remise fidélité",
+  Loyalty: "Fidélité",
+  "session(s) before": "séance(s) avant",
+  Messages: "Messages",
+  "Every conversation with each client in one place: WhatsApp, e-mails, calls and notes.":
+    "Toutes les conversations avec chaque client au même endroit : WhatsApp, e-mails, appels et notes.",
+  "No conversation yet": "Aucune conversation pour l'instant",
+  "Incoming WhatsApp messages and the replies you log will appear here.":
+    "Les messages WhatsApp reçus et les réponses que vous notez apparaîtront ici.",
+  "What to do next?": "Que faire ensuite ?",
+  "The assistant reads the requests, payments and visits and suggests today's most useful actions.":
+    "L'assistant lit les demandes, les paiements et les visites et propose les actions les plus utiles du jour.",
+  "Ask a question about your numbers": "Posez une question sur vos chiffres",
+  "Write in plain words, for example: How many new clients from Instagram in November?":
+    "Écrivez simplement, par exemple : Combien de nouveaux clients venus d'Instagram en novembre ?",
+  "No change yet": "Aucune modification",
+  "Each edit is kept here, with who made it.":
+    "Chaque modification est gardée ici, avec son auteur.",
+  Reached: "Joint",
+  "No answer": "Pas de réponse",
+  "Call back": "À rappeler",
+  "Wrong number": "Mauvais numéro",
+  Unread: "Non lus",
+  Mine: "Les miennes",
+  New: "Nouveau",
+  Resolved: "Résolu",
+  "Saved in the conversation": "Enregistré dans la conversation",
+  "We answered": "Nous avons répondu",
+  "The client wrote": "Le client a écrit",
+  "Paste or write what the client sent":
+    "Collez ou écrivez ce que le client a envoyé",
+  "Visible to the team only": "Visible seulement par l'équipe",
+  "Write your answer": "Écrivez votre réponse",
+  "Only save": "Seulement enregistrer",
+  "Save in the conversation": "Enregistrer dans la conversation",
+  "Writing…": "Rédaction…",
+  "Write again": "Réécrire",
+  "Write a draft": "Rédiger un brouillon",
+  "Reading the file…": "Lecture du dossier…",
+  "Summary of the client": "Résumé du client",
+  "Thinking…": "Réflexion…",
+  Suggest: "Suggérer",
+  Ask: "Demander",
+  "Training contract": "Contrat de formation",
+  "Consultation agreement": "Accord de consultation",
+  "Attendance certificate": "Attestation de présence",
+  Certificate: "Certificat",
+  "New scenario": "Nouveau scénario",
+  "Ready-made, one click:": "Prêts à l'emploi, en un clic :",
+  "Scenario added": "Scénario ajouté",
+  "run(s)": "exécution(s)",
+  When: "Quand",
+  after: "après",
+  before: "avant",
+  If: "Si",
+  Do: "Faire",
+  "Log of runs": "Journal des exécutions",
+  "Test on the last case": "Test sur le dernier cas",
+  "Delete this scenario?": "Supprimer ce scénario ?",
+  "action(s) done now": "action(s) faite(s) maintenant",
+  "Run the scenarios now": "Lancer les scénarios maintenant",
+  "They also run by themselves when someone opens the CRM and every morning.":
+    "Ils se lancent aussi tout seuls quand quelqu'un ouvre le CRM et chaque matin.",
+  "day(s)": "jour(s)",
+  "hour(s)": "heure(s)",
+  service: "service",
+  with: "avec",
+  source: "source",
+  amount: "montant",
+  language: "langue",
+  tag: "étiquette",
+  segment: "segment",
+  "days without a visit": "jours sans visite",
+  "Scenario saved": "Scénario enregistré",
+  "Example: thank you after the first consultation":
+    "Exemple : merci après la première consultation",
+  Unit: "Unité",
+  hours: "heures",
+  days: "jours",
+  "Days without a visit": "Jours sans visite",
+  "If (optional)": "Si (facultatif)",
+  "Service contains": "Le service contient",
+  "Source contains": "La source contient",
+  "Amount at least": "Montant minimum",
+  "Language of the client": "Langue du client",
+  Tag: "Étiquette",
+  "Saved segment": "Segment enregistré",
+  "Task, for example: Call {name}": "Tâche, par exemple : Appeler {name}",
+  "Due in (days)": "À faire dans (jours)",
+  "My own text": "Mon propre texte",
+  "The person in charge": "La personne responsable",
+  "Add an action": "Ajouter une action",
+  "You can use {name}, {date}, {time}, {service}, {amount} and {academy} in the texts.":
+    "Vous pouvez utiliser {name}, {date}, {time}, {service}, {amount} et {academy} dans les textes.",
+  "Without the Meta key, WhatsApp messages are prepared in Drafts to send by hand.":
+    "Sans la clé Meta, les messages WhatsApp sont préparés dans les Brouillons pour un envoi à la main.",
+  "Save the scenario": "Enregistrer le scénario",
+  "Field added": "Champ ajouté",
+  "Field name": "Nom du champ",
+  Text: "Texte",
+  Number: "Nombre",
+  "List of choices": "Liste de choix",
+  "Yes / No": "Oui / Non",
+  "Choices (one per line or comma)":
+    "Choix (un par ligne ou séparés par des virgules)",
+  "Delete this field and its values?": "Supprimer ce champ et ses valeurs ?",
+  "Delete this tag?": "Supprimer cette étiquette ?",
+  "Service or course": "Service ou cours",
+  "Example: Psychology": "Exemple : Psychologie",
+  "No visit for (days)": "Pas venu depuis (jours)",
+  "Only clients who agreed to be contacted":
+    "Seulement les clients qui acceptent d'être contactés",
+  "Segment saved": "Segment enregistré",
+  "Segment name": "Nom du segment",
+  "Save the segment": "Enregistrer le segment",
+  "New form": "Nouveau formulaire",
+  opened: "ouvertures",
+  conversion: "conversion",
+  "spam blocked": "spams bloqués",
+  "Copy the link": "Copier le lien",
+  "Code for the website": "Code pour le site",
+  "Title (French)": "Titre (français)",
+  "Title (Arabic)": "Titre (arabe)",
+  "Introduction (French)": "Introduction (français)",
+  "Introduction (Arabic)": "Introduction (arabe)",
+  "Program (optional)": "Programme (facultatif)",
+  Questions: "Questions",
+  Question: "Question",
+  "Saved as": "Enregistré comme",
+  "Saved in the notes": "Enregistré dans les notes",
+  Interest: "Intérêt",
+  "Choices, separated by commas": "Choix, séparés par des virgules",
+  "Add a question": "Ajouter une question",
+  "Consent text (leave empty if not needed)":
+    "Texte de consentement (vide si inutile)",
+  "Spam protection is automatic: hidden trap field, minimum filling time and a limit per visitor.":
+    "La protection anti-spam est automatique : champ piège caché, temps de remplissage minimum et limite par visiteur.",
+  "Form saved": "Formulaire enregistré",
+  "Save the form": "Enregistrer le formulaire",
+  "Start from a model:": "Partir d'un modèle :",
+  "Document template": "Modèle de document",
+  Branch: "Filiale",
+  "Rooms (comma)": "Salles (virgules)",
+  staff: "personne(s)",
+  "Delete this branch?": "Supprimer cette filiale ?",
+  "Staff member": "Membre de l'équipe",
+  "Last backup": "Dernière sauvegarde",
+  "On this computer": "Sur cet ordinateur",
+  "Database size": "Taille de la base",
+  "Errors (last 30)": "Erreurs (30 dernières)",
+  "Last scenario run": "Dernier scénario lancé",
+  "Database version": "Version de la base",
+  "What is it for?": "À quoi sert-elle ?",
+  "Create a key": "Créer une clé",
+  "Copy this key now: it will not be shown again.":
+    "Copiez cette clé maintenant : elle ne sera plus affichée.",
+  created: "créée",
+  "last used": "dernière utilisation",
+  revoked: "révoquée",
+  "Revoke this key? Tools using it will stop working.":
+    "Révoquer cette clé ? Les outils qui l'utilisent ne fonctionneront plus.",
+  Revoke: "Révoquer",
+  "How to use the API": "Comment utiliser l'API",
+  "Address (https://…)": "Adresse (https://…)",
+  "last call": "dernier appel",
+  "Test sent": "Test envoyé",
+  "Copy this address, then in Google Calendar: Other calendars → + → From URL → paste.":
+    "Copiez cette adresse, puis dans Google Agenda : Autres agendas → + → À partir de l'URL → collez.",
+  "Open on the phone": "Ouvrir sur le téléphone",
+  "Two-way sync (busy times from Google blocking the CRM) needs a Google Cloud project; see the list of what to do.":
+    "La synchronisation dans les deux sens (les créneaux occupés de Google bloquent le CRM) demande un projet Google Cloud ; voir la liste des choses à faire.",
+  "Scenarios: When → If → Do": "Scénarios : Quand → Si → Faire",
+  "The CRM watches events and does the work for you. Each scenario runs once per client and event.":
+    "Le CRM surveille les événements et fait le travail pour vous. Chaque scénario s'exécute une fois par client et par événement.",
+  "No scenario yet": "Aucun scénario",
+  "Start with a ready-made one or create your own.":
+    "Commencez par un scénario prêt ou créez le vôtre.",
+  "Your own fields": "Vos propres champs",
+  "Add the information you need on each client, request or group: Wilaya, profession, how they found you…":
+    "Ajoutez les informations utiles sur chaque client, demande ou groupe : Wilaya, profession, comment il vous a connu…",
+  "Colour labels on clients. Click a tag on the client card to add or remove it.":
+    "Étiquettes de couleur sur les clients. Cliquez sur une étiquette dans la fiche client pour l'ajouter ou l'enlever.",
+  Segments: "Segments",
+  "Save a group of clients, for example: Psychology + Blida + no visit for 60 days. Use it in campaigns and scenarios.":
+    "Enregistrez un groupe de clients, par exemple : Psychologie + Blida + pas venu depuis 60 jours. Utilisez-le dans les campagnes et les scénarios.",
+  "Your forms": "Vos formulaires",
+  "Replace Google Forms and Tally. Each answer creates the client and the request directly in the CRM.":
+    "Remplace Google Forms et Tally. Chaque réponse crée le client et la demande directement dans le CRM.",
+  "No form yet": "Aucun formulaire",
+  "Create one, then share its link on Instagram, Facebook or your website.":
+    "Créez-en un, puis partagez son lien sur Instagram, Facebook ou votre site.",
+  "Document templates": "Modèles de documents",
+  "Contracts, agreements, attendance certificates. Variables: {name}, {course}, {price}, {date}, {birth_date}, {today}, {academy}. Open a client card → Document to fill, sign and save as PDF.":
+    "Contrats, accords, attestations de présence. Variables : {name}, {course}, {price}, {date}, {birth_date}, {today}, {academy}. Ouvrez une fiche client → Document pour remplir, signer et enregistrer en PDF.",
+  Branches: "Filiales",
+  "Several addresses: each one with its rooms and its team. The director sees the totals of all branches.":
+    "Plusieurs adresses : chacune avec ses salles et son équipe. Le directeur voit les totaux de toutes les filiales.",
+  "Access of each person": "Accès de chaque personne",
+  "On top of the role, tick or untick what each person may do. Changes apply at their next page load.":
+    "En plus du rôle, cochez ou décochez ce que chaque personne peut faire. Les changements s'appliquent à son prochain chargement de page.",
+  "System status": "État du système",
+  "Everything that keeps the CRM running. Green is fine; grey only means the service is not connected yet.":
+    "Tout ce qui fait tourner le CRM. Vert = tout va bien ; gris = le service n'est pas encore connecté.",
+  "Recent errors": "Erreurs récentes",
+  "Technical messages. Send them to the person who maintains the CRM if something does not work.":
+    "Messages techniques. Envoyez-les à la personne qui entretient le CRM si quelque chose ne marche pas.",
+  "API keys": "Clés API",
+  "For your website, n8n or Zapier: read clients, requests, appointments and payments, and send new requests.":
+    "Pour votre site, n8n ou Zapier : lire les clients, demandes, rendez-vous et paiements, et envoyer de nouvelles demandes.",
+  "Outgoing webhooks": "Webhooks sortants",
+  "The CRM calls your address at each event: new request, payment, appointment, new client. Each call is signed (X-Luminol-Signature).":
+    "Le CRM appelle votre adresse à chaque événement : nouvelle demande, paiement, rendez-vous, nouveau client. Chaque appel est signé (X-Luminol-Signature).",
+  "My appointments in Google Calendar": "Mes rendez-vous dans Google Agenda",
+  "Subscribe once: your CRM appointments and groups appear in Google Calendar or on the phone, and stay up to date.":
+    "Abonnez-vous une fois : vos rendez-vous et groupes du CRM apparaissent dans Google Agenda ou sur le téléphone, et restent à jour.",
+  "A new request arrives": "Une nouvelle demande arrive",
+  "An appointment is created": "Un rendez-vous est créé",
+  "Before an appointment": "Avant un rendez-vous",
+  "An appointment is cancelled": "Un rendez-vous est annulé",
+  "The client did not come": "Le client n'est pas venu",
+  "After an appointment": "Après un rendez-vous",
+  "A payment is received": "Un paiement est reçu",
+  "A payment is late": "Un paiement est en retard",
+  "A package is almost used": "Un forfait est presque terminé",
+  "A group session is missed": "Une séance de groupe est manquée",
+  "Birthday of the client": "Anniversaire du client",
+  "A group has ended": "Un groupe est terminé",
+  "The client has not come for a while":
+    "Le client n'est pas venu depuis longtemps",
+  "Create a task": "Créer une tâche",
+  "Prepare a WhatsApp message": "Préparer un message WhatsApp",
+  "Change the request stage": "Changer l'étape de la demande",
+  "Add a tag": "Ajouter une étiquette",
+  "Notify a staff member": "Prévenir un membre de l'équipe",
+  "Edit the scenario": "Modifier le scénario",
+  "How long before": "Combien de temps avant",
+  Wait: "Attendre",
+  "Edit the form": "Modifier le formulaire",
+  "Sees finances": "Voit les finances",
+  "Can delete": "Peut supprimer",
+  "Can export": "Peut exporter",
+  "Sees phone numbers": "Voit les numéros",
+  "Cloud storage and daily backups":
+    "Stockage en ligne et sauvegardes quotidiennes",
+  "Daily automatic tasks (cron)": "Tâches automatiques quotidiennes (cron)",
+  "E-mail sending": "Envoi d'e-mails",
+  "Online payment (Chargily)": "Paiement en ligne (Chargily)",
+  "AI assistant (Claude)": "Assistant IA (Claude)",
+  "Push notifications on the phone": "Notifications sur le téléphone",
+  "Create a new link (the old one stops)":
+    "Créer un nouveau lien (l'ancien s'arrête)",
+  "Create my calendar link": "Créer mon lien d'agenda",
+  "late payment(s)": "paiement(s) en retard",
+  "No appointment today.": "Aucun rendez-vous aujourd'hui.",
+  "Nothing to do. Well done!": "Rien à faire. Bravo !",
+  "Nobody is late.": "Personne n'est en retard.",
+  "Move up": "Monter",
+  "Move down": "Descendre",
+  Main: "Principal",
+  "What to count": "Quoi compter",
+  "Split by": "Répartir par",
+  "First visit": "Première visite",
+  "After 1 month": "Après 1 mois",
+  "After 3 months": "Après 3 mois",
+  "After 6 months": "Après 6 mois",
+  "Already due": "Déjà dû",
+  Subscriptions: "Abonnements",
+  "Booked appointments": "Rendez-vous réservés",
+  "Total expected": "Total attendu",
+  Sessions: "Séances",
+  Workload: "Charge",
+  Subscription: "Abonnement",
+  "4 consultations per month": "4 consultations par mois",
+  "Per month": "Par mois",
+  "Billing day": "Jour de facturation",
+  Start: "Démarrer",
+  month: "mois",
+  day: "jour",
+  "last billed": "dernière facture",
+  Code: "Code",
+  "or amount": "ou montant",
+  "Max uses": "Utilisations max.",
+  "Valid until": "Valable jusqu'au",
+  Create: "Créer",
+  until: "jusqu'au",
+  Apply: "Appliquer",
+  "Bought by": "Acheté par",
+  Card: "Carte",
+  "Pay with it": "Payer avec",
+  "Every N-th session": "Chaque N-ième séance",
+  "Discount %": "Remise %",
+  "Reward per friend": "Récompense par ami",
+  "Choose “Referred by” on a client card to count who brings friends.":
+    "Choisissez « Recommandé par » dans une fiche client pour compter qui amène des amis.",
+  "friend(s) brought": "ami(s) amené(s)",
+  reward: "récompense",
+  "Amount due": "Montant dû",
+  "Gift card": "Carte cadeau",
+  Print: "Imprimer",
+  "Appointments today": "Rendez-vous aujourd'hui",
+  "My open tasks": "Mes tâches ouvertes",
+  "Unread messages": "Messages non lus",
+  "New clients this month": "Nouveaux clients ce mois",
+  "Collected this month": "Encaissé ce mois",
+  "Late payments": "Paiements en retard",
+  "Today's agenda": "Agenda du jour",
+  "Revenue, last 6 months": "Recettes, 6 derniers mois",
+  "Requests by source": "Demandes par source",
+  "Who owes the most": "Qui doit le plus",
+  "My dashboard": "Mon tableau de bord",
+  "Choose the numbers and lists you want to see first. Drag them to change the order.":
+    "Choisissez les chiffres et listes à voir en premier. Faites-les glisser pour changer l'ordre.",
+  "Add a widget": "Ajouter un bloc",
+  "Report builder": "Créateur de rapports",
+  "What to count × how to split it × which period. Export to Excel or print as PDF.":
+    "Quoi compter × comment le répartir × quelle période. Export Excel ou impression PDF.",
+  "Nothing in this period": "Rien sur cette période",
+  "Choose a longer period or another measure.":
+    "Choisissez une période plus longue ou une autre mesure.",
+  "Do clients come back?": "Les clients reviennent-ils ?",
+  "For the clients whose first visit or payment was in a month: how many came back after 1, 3 and 6 months.":
+    "Pour les clients dont la première visite ou le premier paiement date d'un mois : combien sont revenus après 1, 3 et 6 mois.",
+  "Expected money, next 3 months": "Argent attendu, 3 prochains mois",
+  "Amounts already due + monthly subscriptions + booked appointments (at the average of the last 90 days, minus 15% of absences).":
+    "Montants déjà dus + abonnements mensuels + rendez-vous réservés (à la moyenne des 90 derniers jours, moins 15 % d'absences).",
+  "Specialists compared": "Comparaison des spécialistes",
+  "Last 90 days: sessions done, hours, how full their week was, money of their clients and the average rating.":
+    "90 derniers jours : séances faites, heures, remplissage de la semaine, argent de leurs clients et note moyenne.",
+  "No session yet": "Aucune séance pour l'instant",
+  "Sessions marked as done will appear here.":
+    "Les séances marquées comme faites apparaîtront ici.",
+  "Monthly subscriptions": "Abonnements mensuels",
+  "For example “4 consultations per month”: the amount is added automatically every month on the chosen day, then reminded like any payment.":
+    "Par exemple « 4 consultations par mois » : le montant est ajouté automatiquement chaque mois au jour choisi, puis rappelé comme tout paiement.",
+  "Promo codes": "Codes promo",
+  "For a campaign: a percentage or an amount off. Apply the code to an amount due.":
+    "Pour une campagne : un pourcentage ou un montant de remise. Appliquez le code à un montant dû.",
+  "Gift cards": "Cartes cadeaux",
+  "Sell a gift card with a QR code. The person who receives it pays with the code.":
+    "Vendez une carte cadeau avec un QR code. La personne qui la reçoit paie avec le code.",
+  "Loyalty and referrals": "Fidélité et parrainage",
+  "Every N-th session with a discount and a reward for clients who bring a friend.":
+    "Chaque N-ième séance avec une remise et une récompense pour les clients qui amènent un ami.",
+  Customise: "Personnaliser",
+  "Money collected": "Argent encaissé",
+  "Number of payments": "Nombre de paiements",
+  "Requests turned into clients": "Demandes devenues clients",
+  "Appointments done": "Rendez-vous faits",
+  "Clients who did not come": "Clients absents",
+  Consent: "Consentement",
+  "No consent": "Sans consentement",
+  Stop: "Arrêter",
+  Resume: "Reprendre",
+  "Pay with a gift card": "Payer avec une carte cadeau",
+  "Apply a promo code": "Appliquer un code promo",
+  "Tag or segment": "Étiquette ou segment",
+  "All tags and segments": "Toutes les étiquettes et segments",
+  "Thank you, your request was sent.": "Merci, votre demande a été envoyée.",
+  "The academy will contact you very soon.":
+    "L'académie vous contactera très bientôt.",
+  Pending: "En attente",
+  "Reminder the day before": "Rappel la veille",
+  "Thank you after the consultation + review":
+    "Merci après la consultation + avis",
+  "Bring back a client who has not come for 60 days":
+    "Faire revenir un client absent depuis 60 jours",
+  "Client edited": "Client modifié",
+  "Request edited": "Demande modifiée",
+  "Appointment edited": "Rendez-vous modifié",
+  "Before restoring an earlier version":
+    "Avant de restaurer une version précédente",
+  connected: "connecté",
+  "not set up": "non configuré",
+  "field:text": "Texte court",
+  "field:phone": "Téléphone",
+  "field:email": "E-mail",
+  "field:textarea": "Texte long",
+  "field:select": "Liste",
+  "field:date": "Date",
+  "field:number": "Nombre",
+  "field:checkbox": "Case à cocher",
+  "count:contacts": "Clients",
+  "count:opportunities": "Demandes",
+  "count:appointments": "Rendez-vous",
+  "count:payments": "Paiements",
+  "count:messages": "Messages",
+  "count:tasks": "Tâches",
+  "count:documents": "Documents",
+  "count:users": "Équipe",
+  "event:contact.created": "Nouveau client",
+  "event:inquiry.created": "Nouvelle demande",
+  "event:appointment.created": "Nouveau rendez-vous",
+  "event:payment.received": "Paiement reçu",
+  "{name}": "Nom du client",
+  "{course}": "Formation / service",
+  "{price}": "Prix",
+  "{date}": "Date de début",
+  "{birth_date}": "Date de naissance",
+  Format: "Format",
+  Scenarios: "Scénarios",
+  "Fields, tags & segments": "Champs, étiquettes et segments",
+  "Branches & access": "Filiales et accès",
+  "API & webhooks": "API et webhooks",
+  Conversation: "Conversation",
+  Excel: "Excel",
+  PDF: "PDF",
+  name: "nom",
+  phone: "téléphone",
+  email: "e-mail",
+  notes: "notes",
+  level: "niveau",
+  consent: "consentement",
+  guardian: "tuteur",
+  birth_date: "date de naissance",
+  stage: "étape",
+  interest: "intérêt",
+  title: "titre",
+  starts_at: "début",
+  ends_at: "fin",
+  status: "statut",
+  location: "lieu",
+  staff_id: "spécialiste",
+  owner_id: "responsable",
+  company: "entreprise",
+  emergency_contact: "contact d'urgence",
+  expected_date: "date prévue",
+  tags: "étiquettes",
+  campaign: "campagne",
+  kind: "type",
+  Interface: "Interface",
+  "conv:New": "Nouveau",
+  "conv:Open": "En cours",
+  "conv:Resolved": "Résolu",
+});
+
+// Platform round: inbox, scenarios, forms, documents, reports.
+Object.assign(french, {
+  "E-mail": "E-mail",
+});
+
+// Platform round: inbox, scenarios, forms, documents, reports.
+Object.assign(french, {
+  "collected this month": "encaissé ce mois",
+  "new clients this month": "nouveaux clients ce mois",
+  "appointments today": "rendez-vous aujourd'hui",
+  "tasks to do": "tâches à faire",
+  "unread messages": "messages non lus",
+});
+
+// Platform round: inbox, scenarios, forms, documents, reports.
+Object.assign(french, {
+  "Ask Luminol": "Demander à Luminol",
+  "Clear the conversation": "Effacer la conversation",
+  "Hello! Ask me a question about your clients, your agenda, payments or how to use the CRM.":
+    "Bonjour ! Posez-moi une question sur vos clients, votre agenda, les paiements ou l'utilisation du CRM.",
+  "Task created": "Tâche créée",
+  "Write your question…": "Écrivez votre question…",
+  "correct on recent cases": "de réponses justes sur les cas récents",
+  cases: "cas",
+  Estimate: "Estimation",
+  "Simple rules until there are about 40 finished cases.":
+    "Des règles simples, en attendant environ 40 cas terminés.",
+  "Models updated": "Modèles mis à jour",
+  "Update the models": "Mettre à jour les modèles",
+  "Clients who may leave": "Clients qui risquent de partir",
+  "Long gap compared with their usual rhythm.":
+    "Longue absence par rapport à leur rythme habituel.",
+  "Plan a call": "Prévoir un appel",
+  "Not enough finished appointments yet.":
+    "Pas encore assez de rendez-vous terminés.",
+  come: "viennent",
+  "Clients write most at": "Les clients écrivent surtout à",
+  "a good time for campaigns.": "un bon moment pour les campagnes.",
+  "Claude key": "Clé Claude",
+  "everything still works for free": "tout fonctionne quand même gratuitement",
+  "Use Claude when the key is set":
+    "Utiliser Claude quand la clé est installée",
+  "Monthly limit (tokens)": "Limite mensuelle (jetons)",
+  "Used this month": "Utilisé ce mois",
+  "About 2 million tokens ≈ a few hundred questions. When the limit is reached, the free assistant answers until next month.":
+    "Environ 2 millions de jetons ≈ quelques centaines de questions. Une fois la limite atteinte, l'assistant gratuit répond jusqu'au mois suivant.",
+  "Message sent at once in an emergency (distress, violence)":
+    "Message envoyé tout de suite en cas d'urgence (détresse, violence)",
+  "The bot never gives psychological advice. In an emergency it sends this text, marks the conversation as urgent and notifies the specialists and the director.":
+    "Le bot ne donne jamais de conseil psychologique. En cas d'urgence, il envoie ce texte, marque la conversation comme urgente et prévient les spécialistes et le directeur.",
+  "New answer": "Nouvelle réponse",
+  "use(s)": "utilisation(s)",
+  "Delete this answer?": "Supprimer cette réponse ?",
+  "Try the bot: write like a client":
+    "Essayez le bot : écrivez comme un client",
+  Try: "Essayer",
+  "No answer in the knowledge base: a person will answer.":
+    "Pas de réponse dans la base : une personne répondra.",
+  "Answer of the bot": "Réponse du bot",
+  "Answer (French)": "Réponse (français)",
+  "Answer (Arabic)": "Réponse (arabe)",
+  "Words clients use (commas)": "Mots utilisés par les clients (virgules)",
+  "Urgent: a person must answer now":
+    "Urgent : une personne doit répondre maintenant",
+  "Answer suggested by the bot": "Réponse proposée par le bot",
+  "Use this answer": "Utiliser cette réponse",
+  "Reading the receipt…": "Lecture du reçu…",
+  "No amount found: type it by hand.":
+    "Aucun montant trouvé : saisissez-le à la main.",
+  "Scan a receipt": "Scanner un reçu",
+  Welcome: "Bienvenue",
+  "The ✨ button at the bottom answers your questions at any time.":
+    "Le bouton ✨ en bas répond à vos questions à tout moment.",
+  "Show me": "Montrer",
+  "No review with a comment yet.":
+    "Aucun avis avec commentaire pour l'instant.",
+  "mention(s)": "mention(s)",
+  negative: "négative(s)",
+  "Not available": "Non disponible",
+  "Predictions are shown to the director, the administrator and the secretary.":
+    "Les prévisions sont visibles par le directeur, l'administrateur et la secrétaire.",
+  Predictions: "Prévisions",
+  "Computed inside the CRM from your own history, free. Each score says why.":
+    "Calculées dans le CRM à partir de votre historique, gratuitement. Chaque score explique pourquoi.",
+  "Risk of absence — next 14 days": "Risque d'absence — 14 prochains jours",
+  "Send an extra reminder or call the clients at the top.":
+    "Envoyez un rappel de plus ou appelez les clients en haut de la liste.",
+  "No appointment": "Aucun rendez-vous",
+  "Upcoming appointments will appear here.":
+    "Les prochains rendez-vous apparaîtront ici.",
+  "Clients to call this week": "Clients à appeler cette semaine",
+  "They used to come regularly and have stopped.":
+    "Ils venaient régulièrement et se sont arrêtés.",
+  "Nobody for now": "Personne pour l'instant",
+  "Clients with a long unusual gap will appear here.":
+    "Les clients avec une absence inhabituelle apparaîtront ici.",
+  "Most promising requests": "Demandes les plus prometteuses",
+  "Chance that the request becomes a client. Answer the top ones first.":
+    "Chance que la demande devienne un client. Répondez d'abord aux premières.",
+  "No open request": "Aucune demande ouverte",
+  "Open requests will appear here.": "Les demandes ouvertes apparaîtront ici.",
+  "Best times": "Meilleurs horaires",
+  "When clients really come, and when they write to you.":
+    "Quand les clients viennent vraiment, et quand ils vous écrivent.",
+  "Workload of the next 4 weeks": "Charge des 4 prochaines semaines",
+  "Booked hours compared with working hours. Above 90 %: think of a new group or more hours.":
+    "Heures réservées par rapport aux heures de travail. Au-delà de 90 % : pensez à un nouveau groupe ou à plus d'heures.",
+  "Assistant and AI": "Assistant et IA",
+  "The assistant and the bot work for free with your data and the knowledge base. With a Claude key they write better answers, within the monthly limit below.":
+    "L'assistant et le bot fonctionnent gratuitement avec vos données et la base de connaissances. Avec une clé Claude, ils écrivent de meilleures réponses, dans la limite mensuelle ci-dessous.",
+  "Bot for clients": "Bot pour les clients",
+  "Answers WhatsApp and the chat on your website with your knowledge base, gives the booking link and hands over to a person when needed.":
+    "Répond sur WhatsApp et dans le chat de votre site avec votre base de connaissances, donne le lien de réservation et passe la main à une personne si besoin.",
+  "Knowledge base": "Base de connaissances",
+  "Questions clients often ask and your answers. Add the words clients use (French, Arabic, darija) so the bot recognises them.":
+    "Les questions fréquentes des clients et vos réponses. Ajoutez les mots qu'ils utilisent (français, arabe, darija) pour que le bot les reconnaisse.",
+  "Chat on your website": "Chat sur votre site",
+  "Paste this line before </body> on your website. A chat bubble appears; the visitor leaves a name and phone and the request arrives in the CRM.":
+    "Collez cette ligne avant </body> sur votre site. Une bulle de chat apparaît ; le visiteur laisse son nom et son numéro et la demande arrive dans le CRM.",
+  "First steps": "Premiers pas",
+  "Reviews: mood and topics": "Avis : humeur et sujets",
+  "Read from the comments of your clients, inside the CRM.":
+    "Lu dans les commentaires de vos clients, dans le CRM.",
+  "Who has not paid?": "Qui n'a pas payé ?",
+  "My appointments today": "Mes rendez-vous aujourd'hui",
+  "Free slots on Thursday": "Créneaux libres jeudi",
+  "How many new clients from Instagram this month?":
+    "Combien de nouveaux clients d'Instagram ce mois ?",
+  "How do I create a scenario?": "Comment créer un scénario ?",
+  "Absence model": "Modèle des absences",
+  "Request model": "Modèle des demandes",
+  "The bot only sorts messages.": "Le bot trie seulement les messages.",
+  "Drafts (recommended)": "Brouillons (conseillé)",
+  "The bot prepares the answer, a person sends it.":
+    "Le bot prépare la réponse, une personne l'envoie.",
+  Automatic: "Automatique",
+  "Sure answers are sent at once, the others wait for a person.":
+    "Les réponses sûres partent tout de suite, les autres attendent une personne.",
+  "Can be sent automatically": "Peut partir automatiquement",
+  "Waits for a person": "Attend une personne",
+  Handled: "Traité",
+  Ignore: "Ignorer",
+  "The free reader could not be loaded. Check the internet connection.":
+    "Le lecteur gratuit n'a pas pu être chargé. Vérifiez la connexion internet.",
+  "Your home": "Votre accueil",
+  "The month at a glance: new clients, money, requests and alerts.":
+    "Le mois d'un coup d'œil : nouveaux clients, argent, demandes et alertes.",
+  "All conversations": "Toutes les conversations",
+  "WhatsApp, calls and notes of each client in one place. The bot prepares answers.":
+    "WhatsApp, appels et notes de chaque client au même endroit. Le bot prépare les réponses.",
+  "Each person who contacts you. Move the cards from one step to the next.":
+    "Chaque personne qui vous contacte. Faites glisser les cartes d'une étape à l'autre.",
+  Money: "Argent",
+  "Amounts due, payments, receipts, analytics and loyalty.":
+    "Montants dus, paiements, reçus, analyses et fidélité.",
+  "Who may not come, who may leave, which requests to answer first.":
+    "Qui risque de ne pas venir, qui risque de partir, à quelles demandes répondre d'abord.",
+  "Team, scenarios, forms, documents, bot and the system status.":
+    "Équipe, scénarios, formulaires, documents, bot et état du système.",
+  "Your dashboard": "Votre tableau de bord",
+  "The numbers of the academy and the goals of the month.":
+    "Les chiffres de l'académie et les objectifs du mois.",
+  "WhatsApp, calls and notes of each client in one place.":
+    "WhatsApp, appels et notes de chaque client au même endroit.",
+  "Who arrives, who has to pay, the requests waiting for an answer.":
+    "Qui arrive, qui doit payer, les demandes en attente de réponse.",
+  "Answer clients; use the answer suggested by the bot after checking it.":
+    "Répondez aux clients ; utilisez la réponse proposée par le bot après l'avoir vérifiée.",
+  Agenda: "Agenda",
+  "Click a free slot to book. Mark “Arrived” when the client comes.":
+    "Cliquez sur un créneau libre pour réserver. Marquez « Arrivé » quand le client vient.",
+  "Record a payment and print the receipt. “Scan a receipt” reads a CCP photo.":
+    "Enregistrez un paiement et imprimez le reçu. « Scanner un reçu » lit une photo CCP.",
+  "Your appointments and groups, and the notes still to write.":
+    "Vos rendez-vous et groupes, et les notes à écrire.",
+  "Take the roll call of your groups in a few taps.":
+    "Faites l'appel de vos groupes en quelques gestes.",
+  "Conversations of your students.": "Conversations de vos élèves.",
+  "Add your team": "Ajouter votre équipe",
+  "Enter your programs and prices": "Saisir vos programmes et prix",
+  "Fill in the working hours": "Remplir les horaires de travail",
+  "Turn on a scenario": "Activer un scénario",
+  "Create a form for Instagram": "Créer un formulaire pour Instagram",
+  "Write the bot answers (address, hours)":
+    "Écrire les réponses du bot (adresse, horaires)",
+  "Assistant & bot": "Assistant et bot",
+  "Prepare your contract template": "Préparer votre modèle de contrat",
+  "Waiting time": "Attente",
+  Price: "Prix",
+  "Specialists and welcome": "Spécialistes et accueil",
+  "Rooms and place": "Salles et lieu",
+  "Progress and results": "Progrès et résultats",
+  "Ask your question: we answer right away, or a person calls you back.":
+    "Posez votre question : nous répondons tout de suite, ou une personne vous rappelle.",
+  "Leave your name and number, we call you back:":
+    "Laissez votre nom et votre numéro, nous vous rappelons :",
+  "Call me back": "Rappelez-moi",
+  "Write your message…": "Écrivez votre message…",
+  "reason:past_no_show": "déjà absent(e) plusieurs fois",
+  "reason:visits": "peu de visites",
+  "reason:lead_days": "réservé longtemps à l'avance",
+  "reason:hour": "heure de la séance",
+  "reason:weekend": "week-end",
+  "reason:not_confirmed": "pas encore confirmé",
+  "reason:first_visit": "première visite",
+  "reason:has_debt": "paiement en retard",
+  "reason:online": "réservé en ligne",
+  "reason:fast_answer": "réponse rapide",
+  "reason:slow_answer": "réponse lente",
+  "reason:good_source": "bonne source",
+  "reason:long_gap": "longue absence",
+  "reason:absences": "absences en groupe",
+  "reason:low_rating": "note basse",
+  "reason:response_hours": "temps de réponse",
+  "reason:has_email": "a un e-mail",
+  "reason:has_phone": "a un téléphone",
+  "reason:psychology": "psychologie",
+  "reason:language": "langues",
+  "reason:source_instagram": "vient d'Instagram",
+  "reason:source_facebook": "vient de Facebook",
+  "reason:source_whatsapp": "vient de WhatsApp",
+  "reason:source_website": "vient du site",
+  "reason:source_referral": "recommandé par un client",
+  "reason:source_formulaire": "vient d'un formulaire",
+  "reason:source_phone": "appel téléphonique",
+  "reason:source_api": "vient du site (API)",
+  "intent:urgent": "Urgent",
+  "intent:complaint": "Réclamation",
+  "intent:booking": "Rendez-vous",
+  "intent:reschedule": "Déplacer / annuler",
+  "intent:price": "Prix",
+  "intent:info": "Question",
+  "intent:confirm": "Confirmation",
+  "intent:bot": "Bot",
+});
+
+// Platform round: inbox, scenarios, forms, documents, reports.
+Object.assign(french, {
+  "Free assistant · your data and the help":
+    "Assistant gratuit · vos données et l'aide",
+  "Claude AI · reads, never changes anything by itself":
+    "IA Claude · lit, ne change jamais rien seule",
+  "Go to": "Aller à",
+});

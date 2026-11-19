@@ -9,10 +9,12 @@ import {
   Plus,
   Trash2,
   Wallet,
+  Printer,
 } from "lucide-react";
 import { useApp } from "./context";
 import { localDate, type Row } from "./types";
 import { Badge, Button, DataTable, Panel } from "./ui";
+import { printDocument } from "./tools";
 
 // Validated pair (light and dark): teal = money in, amber = money out.
 const IN = "#00897a";
@@ -175,6 +177,67 @@ export function FinanceDashboard() {
           .includes(query.toLowerCase())),
   );
 
+  /** One page for the accountant: money in by method, money out by
+   *  category, result, salaries and what clients still owe. */
+  function printForAccountant() {
+    const esc = (v: any) =>
+      String(v ?? "").replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+    const period = scope === "month" ? month : year;
+    const rows = movements.filter((m) => m.day.startsWith(period));
+    const group = (dir: "in" | "out", key: "method" | "category") => {
+      const map = new Map<string, number>();
+      for (const m of rows.filter((x) => x.direction === dir))
+        map.set(m[key] || "—", (map.get(m[key] || "—") || 0) + m.amount);
+      return Array.from(map).sort((a, b) => b[1] - a[1]);
+    };
+    const table = (title: string, items: [string, number][]) =>
+      `<h3>${esc(title)}</h3><table>${items
+        .map(
+          ([k, v]) =>
+            `<tr><td>${esc(k)}</td><td>${esc(money(v, currency))}</td></tr>`,
+        )
+        .join("")}</table>`;
+    const totalIn = rows
+      .filter((m) => m.direction === "in")
+      .reduce((a, m) => a + m.amount, 0);
+    const totalOut = rows
+      .filter((m) => m.direction === "out")
+      .reduce((a, m) => a + m.amount, 0);
+    const debts = data.charges
+      .filter((c) => c.balance > 0 && c.currency === currency)
+      .sort((a, b) => a.due_date.localeCompare(b.due_date));
+    printDocument(
+      `${t("Monthly report for the accountant")} ${period}`,
+      `<div class="brand"><h1>${esc(data.settings.legal_name || data.settings.academy)}</h1><div class="muted">${esc(t("Monthly report for the accountant"))}<br><b>${esc(period)}</b></div></div>
+      <table>
+        <tr><td>${esc(t("Money in"))}</td><td>${esc(money(totalIn, currency))}</td></tr>
+        <tr><td>${esc(t("Money out"))}</td><td>${esc(money(totalOut, currency))}</td></tr>
+        <tr><td><b>${esc(t("Result"))}</b></td><td class="total">${esc(money(totalIn - totalOut, currency))}</td></tr>
+      </table>
+      ${table(t("Money in by payment method"), group("in", "method"))}
+      ${table(t("Money out by category"), group("out", "category"))}
+      <h3>${esc(t("Still to collect"))} — ${esc(
+        money(
+          debts.reduce((a, c) => a + c.balance, 0),
+          currency,
+        ),
+      )}</h3>
+      <table>${debts
+        .slice(0, 40)
+        .map(
+          (c) =>
+            `<tr><td>${esc(person(c.contact_id).name)} · ${esc(c.label)}</td><td>${esc(money(c.balance, c.currency))} · ${esc(c.due_date)}</td></tr>`,
+        )
+        .join("")}</table>
+      <h3>${esc(t("All money movements"))} (${rows.length})</h3>
+      <table>${rows
+        .map(
+          (m) =>
+            `<tr><td>${esc(m.day)} · ${esc(m.category)} · ${esc(m.party)} ${esc(m.label)}</td><td>${m.direction === "in" ? "+" : "−"}${esc(money(m.amount, m.currency))} · ${esc(m.method)}</td></tr>`,
+        )
+        .join("")}</table>`,
+    );
+  }
   function exportCsv() {
     const head = [
       "Date",
@@ -253,6 +316,9 @@ export function FinanceDashboard() {
           </select>
         )}
         <div className="row-actions finance-add">
+          <Button icon={<Printer size={15} />} onClick={printForAccountant}>
+            {t("Report for the accountant")}
+          </Button>
           <Button
             icon={<ArrowDownLeft size={15} />}
             onClick={() =>

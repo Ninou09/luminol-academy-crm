@@ -15,6 +15,15 @@ import {
   chargeRows,
 } from "./db.mjs";
 import { sendMail, mailConfigured } from "./security.mjs";
+import {
+  logIncoming,
+  billSubscriptions,
+  runFlows,
+  dailyDigest,
+  pumpEvents,
+} from "./platform.mjs";
+import { handleIncoming } from "./smart.mjs";
+import { trainIfOld } from "./ml.mjs";
 
 const fail = (message, status = 400, extra = {}) => {
   throw Object.assign(new Error(message), { status, extra });
@@ -397,8 +406,14 @@ export function installPublicIntegrations(app, { isHosted }) {
       if (!secret || req.headers.authorization !== `Bearer ${secret}`)
         return res.status(401).json({ error: "Unauthorized." });
       const messages = await runDailyMessages(null);
+      transaction(() => runRules(null));
+      const billed = billSubscriptions();
+      const flows = await runFlows();
+      const digest = transaction(() => dailyDigest());
+      const ml = transaction(() => trainIfOld());
+      await pumpEvents();
       const weekly = await sendWeeklyReport();
-      res.json({ ...messages, weekly });
+      res.json({ ...messages, weekly, billed, flows, digest, ml });
     } catch (e) {
       next(e);
     }
@@ -442,6 +457,15 @@ export function installPublicIntegrations(app, { isHosted }) {
             room: e.room,
             materials: all(
               "SELECT title, url FROM cohort_materials WHERE cohort_id=? ORDER BY id",
+              e.cohort_id,
+            ),
+            // For parents: how many classes attended, late, missed.
+            attendance: one(
+              `SELECT SUM(a.status='Present') present, SUM(a.status='Late') late,
+                      SUM(a.status='Absent') absent, SUM(a.status='Excused') excused
+               FROM attendance a JOIN sessions s ON s.id=a.session_id
+               WHERE a.contact_id=? AND s.cohort_id=?`,
+              c.id,
               e.cohort_id,
             ),
             sessions: all(
@@ -763,7 +787,7 @@ export function installWhatsAppWebhook(app) {
     res.status(403).json({ error: "Forbidden." });
   });
   // Incoming messages, signed by Meta with the app secret.
-  app.post("/api/integrations/whatsapp/webhook", (req, res) => {
+  app.post("/api/integrations/whatsapp/webhook", async (req, res) => {
     const secret = process.env.WHATSAPP_APP_SECRET || "";
     const given = String(req.headers["x-hub-signature-256"] || "");
     const expected =
@@ -780,9 +804,283 @@ export function installWhatsAppWebhook(app) {
     const results = [];
     for (const entry of req.body?.entry || [])
       for (const change of entry.changes || [])
-        for (const m of change.value?.messages || [])
-          if (m.type === "text")
-            results.push(whatsappReply(m.from, m.text?.body));
+        for (const m of change.value?.messages || []) {
+          const name = (change.value?.contacts || []).find(
+            (x) => x.wa_id === m.from,
+          )?.profile?.name;
+          const body =
+            m.type === "text"
+              ? m.text?.body
+              : m.type === "audio" || m.type === "voice"
+                ? "🎤 Message vocal (à écouter dans WhatsApp)"
+                : m.type === "image"
+                  ? `🖼️ Photo${m.image?.caption ? " : " + m.image.caption : ""}`
+                  : `[${m.type}]`;
+          let saved = null;
+          try {
+            saved = transaction(() =>
+              logIncoming(m.from, body, name, m.id || ""),
+            );
+          } catch (e) {
+            console.error("Inbox:", e?.message);
+          }
+          let handled = { handled: false };
+          if (m.type === "text") {
+            handled = whatsappReply(m.from, m.text?.body);
+            results.push(handled);
+          }
+          // The bot answers or prepares an answer (never for "1"/"2" replies).
+          if (saved && m.type === "text" && !handled.handled)
+            try {
+              await handleIncoming(saved.contactId, body, saved.messageId);
+            } catch (e) {
+              console.error("Bot:", e?.message);
+            }
+        }
     res.json({ ok: true, results });
   });
+}
+
+/** Questionnaire filled in by the client before the first consultation. */
+export function installIntakeLinks(app) {
+  const find = (token) => {
+    const l = one(
+      "SELECT * FROM intake_links WHERE token_hash=?",
+      tokenHash(String(token || "")),
+    );
+    if (!l) fail("This link is not valid. Ask the academy for a new one.", 404);
+    return l;
+  };
+  const questions = () => {
+    try {
+      return JSON.parse(
+        one("SELECT intake_questions q FROM settings WHERE id=1").q,
+      );
+    } catch {
+      return [];
+    }
+  };
+  app.get("/api/public/intake/:token", (req, res, next) => {
+    try {
+      const l = find(req.params.token);
+      const c = one("SELECT name FROM contacts WHERE id=?", l.contact_id);
+      res.json({
+        academy: academy(),
+        name: String(c?.name || "").split(" ")[0],
+        questions: questions(),
+        answered: !!l.answered_at,
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+  app.post("/api/public/intake/:token", (req, res, next) => {
+    try {
+      const l = find(req.params.token);
+      if (l.answered_at)
+        fail("Thank you, your answers were already sent.", 409);
+      const given = req.body?.answers;
+      if (!given || typeof given !== "object" || Array.isArray(given))
+        fail("Answer at least one question.");
+      const answers = {};
+      for (const q of questions())
+        answers[q] = String(given[q] ?? "")
+          .trim()
+          .slice(0, 4000);
+      if (!Object.values(answers).some(Boolean))
+        fail("Answer at least one question.");
+      // The answers go to the specialist of the next appointment.
+      const next = one(
+        "SELECT staff_id FROM appointments WHERE contact_id=? AND staff_id IS NOT NULL AND status IN ('Scheduled','Pending') AND starts_at>? ORDER BY starts_at LIMIT 1",
+        l.contact_id,
+        new Date().toISOString(),
+      );
+      const owner = next?.staff_id || firstAdmin();
+      transaction(() => {
+        const existing = one(
+          "SELECT id FROM intake_forms WHERE contact_id=? AND user_id=?",
+          l.contact_id,
+          owner,
+        );
+        if (existing)
+          run(
+            "UPDATE intake_forms SET answers=?, updated_at=? WHERE id=?",
+            JSON.stringify(answers),
+            now(),
+            existing.id,
+          );
+        else
+          insert("intake_forms", {
+            contact_id: l.contact_id,
+            user_id: owner,
+            answers: JSON.stringify(answers),
+            created_at: now(),
+            updated_at: now(),
+          });
+        run("UPDATE intake_links SET answered_at=? WHERE id=?", now(), l.id);
+        audit(
+          owner,
+          l.contact_id,
+          "Questionnaire filled in by the client.",
+          "consultation",
+          "private",
+        );
+        insert("tasks", {
+          contact_id: l.contact_id,
+          owner_id: owner,
+          title:
+            "Questionnaire rempli par le client — à lire avant la consultation",
+          due_at: now(),
+          priority: "Normal",
+          status: "Open",
+          created_at: now(),
+        });
+      });
+      res.json({ ok: true });
+    } catch (e) {
+      next(e);
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Automatic rules: each one creates a task once (never sends anything alone)
+// ---------------------------------------------------------------------------
+export const ruleCatalog = [
+  ["noShow", "Missed appointment → call the client back"],
+  ["debt30", "Payment 30 days late → follow-up task"],
+  ["request48", "Request without answer for 48 h → reminder to its advisor"],
+  ["packageEnd", "Last session of a package → offer a new one"],
+  ["courseEnd", "Group just finished → ask the students for feedback"],
+  ["absences", "Two absences in a month → contact the student"],
+];
+export function ruleSettings() {
+  let saved = {};
+  try {
+    saved = JSON.parse(
+      one("SELECT value FROM meta WHERE key='automation_rules'")?.value || "{}",
+    );
+  } catch {
+    saved = {};
+  }
+  return Object.fromEntries(ruleCatalog.map(([k]) => [k, saved[k] !== false]));
+}
+export function runRules(userId = null) {
+  const on = ruleSettings();
+  const desk =
+    one(
+      "SELECT id FROM users WHERE role='admissions' AND active=1 ORDER BY id LIMIT 1",
+    )?.id ||
+    userId ||
+    firstAdmin();
+  const today = now().slice(0, 10);
+  const nowIso = now();
+  const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+  let count = 0;
+  const once = (key, rule, owner, contactId, title, priority = "Normal") => {
+    if (one("SELECT id FROM automation_runs WHERE event_key=?", key)) return;
+    insert("tasks", {
+      contact_id: contactId,
+      owner_id: owner,
+      title: title.slice(0, 500),
+      due_at: nowIso,
+      priority,
+      status: "Open",
+      created_at: nowIso,
+    });
+    insert("automation_runs", {
+      event_key: key,
+      rule,
+      status: "Success",
+      detail: title.slice(0, 300),
+      created_at: nowIso,
+    });
+    count++;
+  };
+  const label = Object.fromEntries(ruleCatalog);
+  const name = (id) =>
+    one("SELECT name FROM contacts WHERE id=?", id)?.name || "";
+  if (on.noShow)
+    for (const a of all(
+      "SELECT * FROM appointments WHERE status='No-show' AND contact_id IS NOT NULL AND starts_at>? AND starts_at<?",
+      day(7),
+      nowIso,
+    ))
+      once(
+        `noshow:${a.id}`,
+        label.noShow,
+        desk,
+        a.contact_id,
+        `Rappeler ${name(a.contact_id)} : absent(e) au rendez-vous du ${a.starts_at.slice(0, 10)} — proposer une nouvelle date`,
+        "High",
+      );
+  if (on.debt30)
+    for (const ch of chargeRows().filter(
+      (c) =>
+        c.balance > 0 &&
+        c.due_date <
+          new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+    ))
+      once(
+        `debt30:${ch.id}`,
+        label.debt30,
+        desk,
+        ch.contact_id,
+        `Relancer ${name(ch.contact_id)} : ${ch.label}, ${Math.round(ch.balance / 100)} ${ch.currency} en retard depuis plus de 30 jours`,
+        "High",
+      );
+  if (on.request48)
+    for (const o of all(
+      "SELECT * FROM opportunities WHERE stage='New inquiry' AND created_at<?",
+      day(2),
+    ))
+      once(
+        `req48:${o.id}`,
+        label.request48,
+        o.owner_id || desk,
+        o.contact_id,
+        `Répondre à ${name(o.contact_id)} : demande « ${o.interest || o.service_type} » sans réponse depuis 48 h`,
+        "High",
+      );
+  if (on.packageEnd)
+    for (const p of all(
+      `SELECT p.*, (SELECT COUNT(*) FROM appointments a WHERE a.package_id=p.id AND a.status IN ('Done','No-show')) used
+       FROM packages p WHERE p.status='Active'`,
+    ))
+      if (p.used >= p.sessions_total - 1)
+        once(
+          `pack:${p.id}`,
+          label.packageEnd,
+          desk,
+          p.contact_id,
+          `Proposer un nouveau forfait à ${name(p.contact_id)} : « ${p.title} » ${p.used}/${p.sessions_total} séances`,
+        );
+  if (on.courseEnd)
+    for (const h of all(
+      "SELECT * FROM cohorts WHERE end_date<=? AND end_date>=?",
+      today,
+      day(14).slice(0, 10),
+    ))
+      once(
+        `course:${h.id}`,
+        label.courseEnd,
+        desk,
+        null,
+        `Demander un avis aux élèves de « ${h.name} » (groupe terminé le ${h.end_date})`,
+      );
+  if (on.absences)
+    for (const r of all(
+      `SELECT a.contact_id, COUNT(*) n FROM attendance a JOIN sessions s ON s.id=a.session_id
+       WHERE a.status='Absent' AND s.starts_at>? GROUP BY a.contact_id HAVING n>=2`,
+      day(30),
+    ))
+      once(
+        `absence:${r.contact_id}:${today.slice(0, 7)}`,
+        label.absences,
+        desk,
+        r.contact_id,
+        `Contacter ${name(r.contact_id)} : ${r.n} absences ce mois-ci`,
+        "High",
+      );
+  return { count };
 }

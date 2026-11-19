@@ -15,6 +15,12 @@ import {
 import { useApp, type ModalData } from "./context";
 import { api, ApiError, toInstant, type Row } from "./types";
 import { roleNames } from "./i18n";
+import {
+  SignatureDialog,
+  IntakeLinkDialog,
+  DuplicatesDialog,
+  StatementImportDialog,
+} from "./reception";
 import { Dialog, Button, Badge, Avatar, Empty, DataTable } from "./ui";
 import { WhatsAppDialog, ImportDialog, WorkbookImportDialog } from "./tools";
 import { HoursDialog } from "./schedule";
@@ -154,6 +160,7 @@ export default function Forms({
           name: "",
           phone: "",
           email: "",
+          birth_date: "",
           language: "العربية",
           guardian: "",
           notes: "",
@@ -273,6 +280,7 @@ export default function Forms({
       case "contact":
         return {
           ...r,
+          birth_date: r.birth_date || "",
           notes: r.notes || "",
           level: r.level || "",
           consent: !!r.consent,
@@ -286,6 +294,7 @@ export default function Forms({
               plan: r.plan || "",
             }
           : {
+              contact_id: "",
               title: "",
               sessions_total: 5,
               price: "",
@@ -332,11 +341,14 @@ export default function Forms({
               )?.id ||
               "new",
           ),
-          payer: c?.name || "",
-          label: "",
-          amount: r.balance ? (r.balance / 100).toFixed(2) : "",
-          method: "Cash",
-          reference: "",
+          payer: c?.name || modal.extra?.payer || "",
+          label: modal.extra?.label || "",
+          amount:
+            modal.extra?.amount ||
+            (r.balance ? (r.balance / 100).toFixed(2) : ""),
+          method: modal.extra?.method || "Cash",
+          reference: modal.extra?.reference || "",
+          ...(modal.extra?.paid_on ? { paid_on: modal.extra.paid_on } : {}),
         };
       case "charge":
         if (r.id)
@@ -676,6 +688,10 @@ export default function Forms({
           hint: "Phone or email is enough",
         }),
         textField("email", "Email", { type: "email", required: false }),
+        textField("birth_date", "Birth date", {
+          type: "date",
+          required: false,
+        }),
         combo("language", "Preferred language", suggestions.language),
         textField("guardian", "Guardian or sponsor", { required: false }),
         textField("notes", "Notes", {
@@ -791,7 +807,13 @@ export default function Forms({
         select(
           "role",
           "Role",
-          Object.entries(roleNames).map(([key, value]) => [key, t(value)]),
+          Object.entries(roleNames)
+            .filter(
+              ([key]) =>
+                data.user.role !== "manager" ||
+                ["admissions", "instructor"].includes(key),
+            )
+            .map(([key, value]) => [key, t(value)]),
         ),
         textField("email", "Email", {
           type: "email",
@@ -956,6 +978,10 @@ export default function Forms({
         textField("name", "Full name"),
         textField("phone", "Phone", { required: false }),
         textField("email", "Email", { type: "email", required: false }),
+        textField("birth_date", "Birth date", {
+          type: "date",
+          required: false,
+        }),
         combo("language", "Preferred language", suggestions.language),
         combo(
           "level",
@@ -1252,6 +1278,12 @@ export default function Forms({
             hint: "Useful on the reception computer: the CRM closes itself when nobody uses it.",
           },
         ),
+        textField("rooms", "Rooms of the academy", {
+          type: "textarea",
+          required: false,
+          full: true,
+          hint: "One room per line (Salle 1, Cabinet psy…). Used by the room board and the booking forms.",
+        }),
       ];
       break;
     case "flag":
@@ -1284,6 +1316,9 @@ export default function Forms({
     case "package":
       title = r.id ? "Edit package" : "New session package";
       fields = [
+        ...(!r.id && !c
+          ? [select("contact_id", "Client", contacts, { full: true })]
+          : []),
         combo(
           "title",
           "Package name",
@@ -1919,7 +1954,7 @@ export default function Forms({
             ? { ...values, sessions_total: Number(values.sessions_total) }
             : {
                 ...values,
-                contact_id: c?.id,
+                contact_id: c?.id || Number(values.contact_id),
                 sessions_total: Number(values.sessions_total),
                 price: values.price ? cents(values.price) : 0,
               };
@@ -2362,6 +2397,14 @@ export default function Forms({
   if (modal.type === "import") return <ImportDialog onClose={onClose} />;
   if (modal.type === "workbook")
     return <WorkbookImportDialog onClose={onClose} />;
+  if (modal.type === "signature" && modal.contact)
+    return <SignatureDialog contact={modal.contact} onClose={onClose} />;
+  if (modal.type === "intakeLink" && modal.contact)
+    return <IntakeLinkDialog contact={modal.contact} onClose={onClose} />;
+  if (modal.type === "duplicates")
+    return <DuplicatesDialog onClose={onClose} />;
+  if (modal.type === "statement")
+    return <StatementImportDialog onClose={onClose} />;
   if (modal.type === "intake")
     return <IntakeDialog contact={modal.contact!} onClose={onClose} />;
   if (modal.type === "intakeQuestions")

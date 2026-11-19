@@ -557,6 +557,7 @@ export function CampaignsPage() {
     level: "",
     language: "",
     students: "",
+    segment: "",
   });
   const [name, setName] = useState("");
   const [message, setMessage] = useState("Bonjour {name}, ");
@@ -565,6 +566,13 @@ export function CampaignsPage() {
     () =>
       data.contacts.filter((c) => {
         if (!c.consent || !c.phone) return false;
+        if (
+          f.segment &&
+          !(data.segments || [])
+            .find((x) => String(x.id) === f.segment)
+            ?.contact_ids.includes(c.id)
+        )
+          return false;
         const opps = data.opportunities.filter((o) => o.contact_id === c.id);
         const enr = data.enrollments.filter((e) => e.contact_id === c.id);
         if (f.service && !opps.some((o) => o.service_type === f.service))
@@ -654,6 +662,15 @@ export function CampaignsPage() {
           subtitle="Only clients who agreed to be contacted and have a phone number."
         >
           <div className="form-grid padded-grid">
+            {(data.segments || []).length > 0 &&
+              select(
+                "segment",
+                "Saved segment",
+                (data.segments || []).map((x) => [
+                  String(x.id),
+                  `${x.name} (${x.contact_ids.length})`,
+                ]),
+              )}
             {select(
               "service",
               "Request type",

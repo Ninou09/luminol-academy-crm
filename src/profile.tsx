@@ -21,8 +21,22 @@ import {
   UserRound,
   Star,
   CreditCard,
+  PenLine,
+  ClipboardList,
+  Cake,
+  FileDown,
 } from "lucide-react";
 import { useApp } from "./context";
+import {
+  ClientCardTools,
+  TagsAndFields,
+  Comments,
+  AiSummary,
+  ReferralField,
+  TagChips,
+  ClientConversation,
+} from "./platform";
+import { printDocument } from "./tools";
 import { Dialog, Button, Badge, Avatar, Tabs, Empty, TaskRows } from "./ui";
 import { useRequestLabel, serviceTone, useRemove } from "./pages";
 import { LanguageSection, PsychologySection } from "./academy";
@@ -56,6 +70,79 @@ export default function Profile({
     toast,
   } = useApp();
   const contact = person(id);
+  /** Everything kept about this person, for a request under law 18-07. */
+  function exportFile() {
+    const esc = (v: any) =>
+      String(v ?? "").replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+    const mine = (rows: any[]) =>
+      rows.filter((r) => r.contact_id === contact.id);
+    const rows = (title: string, list: string[]) =>
+      list.length
+        ? `<h3>${esc(title)}</h3><table>${list.map((l) => `<tr><td>${l}</td></tr>`).join("")}</table>`
+        : "";
+    printDocument(
+      `${t("Personal data file")} — ${contact.name}`,
+      `<div class="brand"><h1>${esc(data.settings.academy)}</h1><div class="muted">${esc(t("Personal data file"))}<br><b>${esc(date(new Date().toISOString()))}</b></div></div>
+      <table>
+        ${[
+          ["Full name", contact.name],
+          ["Phone", contact.phone],
+          ["Email", contact.email],
+          ["Birth date", contact.birth_date],
+          ["Preferred language", contact.language],
+          ["Guardian or sponsor", contact.guardian],
+          ["Emergency contact", contact.emergency_contact],
+          ["Consent to be contacted", contact.consent ? t("Yes") : t("No")],
+          [
+            "Consent signed",
+            contact.consent_signed_at ? date(contact.consent_signed_at) : "—",
+          ],
+          ["Added on", date(contact.created_at)],
+        ]
+          .map(
+            ([k, v]) =>
+              `<tr><td>${esc(t(k))}</td><td>${esc(v || "—")}</td></tr>`,
+          )
+          .join("")}
+      </table>
+      ${rows(
+        t("Requests"),
+        mine(data.opportunities).map(
+          (o) =>
+            `${esc(date(o.created_at))} · ${esc(t(o.service_type))} · ${esc(o.interest)} · ${esc(t(o.stage))}`,
+        ),
+      )}
+      ${rows(
+        t("Appointments"),
+        mine(data.appointments).map(
+          (a) =>
+            `${esc(date(a.starts_at))} ${esc(time(a.starts_at))} · ${esc(t(a.kind))} · ${esc(t(a.status))}`,
+        ),
+      )}
+      ${rows(
+        t("Registrations"),
+        mine(data.enrollments).map(
+          (e) => `${esc(cohort(e.cohort_id).name)} · ${esc(t(e.status))}`,
+        ),
+      )}
+      ${rows(
+        t("Payments"),
+        data.payments
+          .filter((p) => p.contact_id === contact.id)
+          .map(
+            (p) =>
+              `${esc(date(p.created_at))} · ${esc(money(p.amount, p.currency))} · ${esc(t(p.method))}`,
+          ),
+      )}
+      ${rows(
+        t("Documents"),
+        mine(data.documents).map(
+          (d) => `${esc(d.name)} · ${esc(date(d.created_at))}`,
+        ),
+      )}
+      <p class="muted">${esc(t("Private session notes of the psychologist are not included; they can be given only by the psychologist."))}</p>`,
+    );
+  }
   const label = useRequestLabel();
   const remove = useRemove();
   const certificate = useCertificate();
@@ -78,6 +165,7 @@ export default function Profile({
     "Enrollments",
     "Attendance",
     ...(data.permissions.finance ? ["Payments"] : []),
+    "Conversation",
     "Activity",
     "Documents",
   ];
@@ -86,7 +174,9 @@ export default function Profile({
       <div className="profile-hero">
         <Avatar name={contact.name} size="large" />
         <div>
-          <h2>{contact.name}</h2>
+          <h2>
+            {contact.name} <TagChips contactId={contact.id} />
+          </h2>
           <p>
             {enrollments.length ? t("Student") : t("Client")} <span>·</span> LA-
             {String(id).padStart(4, "0")}
@@ -118,6 +208,12 @@ export default function Profile({
             <Mail size={14} />
             <bdi>{contact.email}</bdi>
           </a>
+        )}
+        {contact.birth_date && (
+          <span>
+            <Cake size={14} />
+            {date(contact.birth_date + "T12:00:00Z")}
+          </span>
         )}
       </div>
       <div className="profile-actions">
@@ -165,6 +261,33 @@ export default function Profile({
             {t("Client space")}
           </Button>
         )}
+        {["admin", "admissions", "academic", "manager"].includes(
+          data.user.role,
+        ) && (
+          <Button
+            icon={<PenLine size={15} />}
+            onClick={() => open({ type: "signature", contact })}
+          >
+            {contact.consent_signed_at
+              ? `${t("Consent signed")} ✓`
+              : t("Sign the consent")}
+          </Button>
+        )}
+        {data.permissions.admin && (
+          <Button icon={<FileDown size={15} />} onClick={exportFile}>
+            {t("Personal data file")}
+          </Button>
+        )}
+        {["admin", "admissions", "academic", "manager"].includes(
+          data.user.role,
+        ) && (
+          <Button
+            icon={<ClipboardList size={15} />}
+            onClick={() => open({ type: "intakeLink", contact })}
+          >
+            {t("Questionnaire before the consultation")}
+          </Button>
+        )}
         {["admin", "admissions", "academic", "instructor", "manager"].includes(
           data.user.role,
         ) && (
@@ -182,6 +305,7 @@ export default function Profile({
             {t("Ask for feedback")}
           </Button>
         )}
+        <ClientCardTools contact={contact} />
         {data.permissions.editAdmissions && (
           <Button
             variant="primary"
@@ -194,8 +318,12 @@ export default function Profile({
       </div>
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
       <div className="profile-content">
+        {tab === "Conversation" && <ClientConversation contact={contact} />}
         {tab === "Overview" && (
           <>
+            <AiSummary contact={contact} />
+            <TagsAndFields contact={contact} />
+
             {data.flags
               .filter((f) => f.contact_id === id)
               .map((f) => (
@@ -422,6 +550,8 @@ export default function Profile({
                 </p>
               </div>
             )}
+            <ReferralField contact={contact} />
+            <Comments contact={contact} />
           </>
         )}
         {tab === "Enrollments" && (

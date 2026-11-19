@@ -13,6 +13,7 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/noto-sans-arabic": "^5.3.0",
     "@vercel/blob": "^2.8.2",

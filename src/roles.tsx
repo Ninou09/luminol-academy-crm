@@ -19,11 +19,22 @@ import {
   UserPlus,
   Wallet,
   X,
+  Package,
+  Tv,
 } from "lucide-react";
 import { useApp } from "./context";
 import { ApiError, localDate, toInstant, type Row } from "./types";
 import { Badge, Button, DataTable, Dialog, Empty, PageHead, Panel } from "./ui";
 import { PendingBookings, RemindersPanel } from "./schedule";
+import { printDocument } from "./tools";
+import {
+  BirthdaysPanel,
+  RoomBoard,
+  UnansweredPanel,
+  WaitingScreen,
+  LowStockPanel,
+  roomList,
+} from "./reception";
 
 // Validated colours (light and dark): teal = money in / main series,
 // amber = money out / second series.
@@ -85,6 +96,7 @@ export function SecretaryHome() {
   const today = data.today;
   const tomorrow = addDays(today, 1);
   const [quick, setQuick] = useState(false);
+  const [screen, setScreen] = useState(false);
   const next = useNextSession();
   const dayOf = (a: Row) => localDate(new Date(a.starts_at), zone);
   const upcoming = data.appointments
@@ -152,9 +164,25 @@ export function SecretaryHome() {
         </Badge>
         {a.status === "Scheduled" || a.status === "Pending" ? (
           <>
-            <Button variant="small" onClick={() => setStatus(a, "Done")}>
-              {t("Arrived")}
-            </Button>
+            {a.checked_in_at ? (
+              <>
+                <Badge tone="teal">{t("In the waiting room")}</Badge>
+                <Button variant="small" onClick={() => setStatus(a, "Done")}>
+                  {t("Finished")}
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="small"
+                onClick={() =>
+                  perform(`/appointments/${a.id}/checkin`, {}).catch((e: any) =>
+                    toast(e.message),
+                  )
+                }
+              >
+                {t("Arrived")}
+              </Button>
+            )}
             <Button variant="small" onClick={() => setStatus(a, "No-show")}>
               {t("No-show")}
             </Button>
@@ -202,7 +230,12 @@ export function SecretaryHome() {
       <PageHead
         title="Today at the academy"
         subtitle="Appointments, phone bookings, new requests and payments."
-      />
+      >
+        <Button icon={<Tv size={16} />} onClick={() => setScreen(true)}>
+          {t("Waiting-room screen")}
+        </Button>
+      </PageHead>
+      {screen && <WaitingScreen onClose={() => setScreen(false)} />}
       <div className="quick-actions">
         <button className="quick-action" onClick={() => setQuick(true)}>
           <Phone size={22} />
@@ -222,11 +255,19 @@ export function SecretaryHome() {
           <Wallet size={22} />
           <span>{t("Take a payment")}</span>
         </button>
+        <button
+          className="quick-action"
+          onClick={() => open({ type: "package" })}
+        >
+          <Package size={22} />
+          <span>{t("Sell a package")}</span>
+        </button>
         <button className="quick-action" onClick={() => go("Admissions")}>
           <Badge tone={newRequests ? "amber" : "neutral"}>{newRequests}</Badge>
           <span>{t("New requests")}</span>
         </button>
       </div>
+      <UnansweredPanel />
       <PendingBookings />
       <Panel
         title="Today and tomorrow"
@@ -273,6 +314,10 @@ export function SecretaryHome() {
           </div>
         </Panel>
       )}
+      <RoomBoard />
+      <CashClosing />
+      <BirthdaysPanel />
+      <LowStockPanel />
       <WaitlistPanel />
       <RemindersPanel />
       {quick && <QuickBookingDialog onClose={() => setQuick(false)} />}
@@ -282,7 +327,7 @@ export function SecretaryHome() {
 
 /** One form for a call: client (found or created) and the appointment. */
 export function QuickBookingDialog({ onClose }: { onClose: () => void }) {
-  const { data, t, perform, toast } = useApp();
+  const { data, t, perform, toast, money } = useApp();
   const zone = data.settings.timezone;
   const staff = data.users.filter(
     (u) =>
@@ -301,7 +346,9 @@ export function QuickBookingDialog({ onClose }: { onClose: () => void }) {
     name: "",
     phone: "",
     kind: "Psychology consultation",
-    staff_id: String(staff[0]?.id || ""),
+    staff_id: String(
+      (staff.find((u) => u.role === "instructor") || staff[0])?.id || "",
+    ),
     day: data.today,
     time: "10:00",
     minutes: "60",
@@ -383,112 +430,139 @@ export function QuickBookingDialog({ onClose }: { onClose: () => void }) {
           submit();
         }}
       >
-        <div className="form-grid">
-          {field(
-            "Phone",
-            <input
-              value={v.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              inputMode="tel"
-              required
-              autoFocus
-            />,
-          )}
-          {field(
-            "Name",
-            <input
-              value={known ? known.name : v.name}
-              disabled={!!known}
-              onChange={(e) => set("name", e.target.value)}
-              required={!known}
-            />,
-          )}
-          {known && (
-            <p className="form-hint full">
-              {t("Client already in the CRM:")} <strong>{known.name}</strong>
-            </p>
-          )}
-          {field(
-            "Service",
-            <>
+        <div className="form-body">
+          <div className="form-grid">
+            {field(
+              "Phone",
               <input
-                list="quick-kinds"
-                value={v.kind}
-                onChange={(e) => set("kind", e.target.value)}
+                value={v.phone}
+                onChange={(e) => set("phone", e.target.value)}
+                inputMode="tel"
                 required
-              />
-              <datalist id="quick-kinds">
-                {kinds.map((k) => (
-                  <option key={k} value={k}>
-                    {t(k)}
+                autoFocus
+              />,
+            )}
+            {field(
+              "Name",
+              <input
+                value={known ? known.name : v.name}
+                disabled={!!known}
+                onChange={(e) => set("name", e.target.value)}
+                required={!known}
+              />,
+            )}
+            {known && (
+              <p className="form-hint full">
+                {t("Client already in the CRM:")} <strong>{known.name}</strong>
+              </p>
+            )}
+            {known &&
+              (() => {
+                const owes = data.charges
+                  .filter((c) => c.contact_id === known.id && c.balance > 0)
+                  .reduce((sum, c) => sum + c.balance, 0);
+                const missed = data.appointments.filter(
+                  (a) => a.contact_id === known.id && a.status === "No-show",
+                ).length;
+                return owes || missed >= 2 ? (
+                  <p className="form-warning full">
+                    {owes > 0 &&
+                      `${t("Still owes")} ${money(owes, data.settings.currency)}. `}
+                    {missed >= 2 &&
+                      `${missed} ${t("missed appointments before — confirm the day before.")}`}
+                  </p>
+                ) : null;
+              })()}
+            {field(
+              "Service",
+              <>
+                <input
+                  list="quick-kinds"
+                  value={v.kind}
+                  onChange={(e) => set("kind", e.target.value)}
+                  required
+                />
+                <datalist id="quick-kinds">
+                  {kinds.map((k) => (
+                    <option key={k} value={k}>
+                      {t(k)}
+                    </option>
+                  ))}
+                </datalist>
+              </>,
+            )}
+            {field(
+              "Specialist",
+              <select
+                value={v.staff_id}
+                onChange={(e) => set("staff_id", e.target.value)}
+              >
+                <option value="">{t("Anyone")}</option>
+                {staff.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
                   </option>
                 ))}
-              </datalist>
-            </>,
-          )}
-          {field(
-            "Specialist",
-            <select
-              value={v.staff_id}
-              onChange={(e) => set("staff_id", e.target.value)}
-            >
-              <option value="">{t("Anyone")}</option>
-              {staff.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>,
-          )}
-          {field(
-            "Date",
-            <input
-              type="date"
-              value={v.day}
-              onChange={(e) => set("day", e.target.value)}
-              required
-            />,
-          )}
-          {field(
-            "Time",
-            <input
-              type="time"
-              value={v.time}
-              onChange={(e) => set("time", e.target.value)}
-              required
-            />,
-          )}
-          {field(
-            "Duration (minutes)",
-            <input
-              type="number"
-              min="10"
-              step="5"
-              value={v.minutes}
-              onChange={(e) => set("minutes", e.target.value)}
-            />,
-          )}
-          {field(
-            "Room or place",
-            <input
-              value={v.location}
-              onChange={(e) => set("location", e.target.value)}
-            />,
-          )}
-          <label className="check-field full">
-            <input
-              type="checkbox"
-              checked={v.waitlist}
-              onChange={(e) => set("waitlist", e.target.checked)}
-            />
-            <span>
-              {t(
-                "No free slot: put the client on the waiting list instead (the first freed slot will be offered).",
-              )}
-            </span>
-          </label>
+              </select>,
+            )}
+            {field(
+              "Date",
+              <input
+                type="date"
+                value={v.day}
+                onChange={(e) => set("day", e.target.value)}
+                required
+              />,
+            )}
+            {field(
+              "Time",
+              <input
+                type="time"
+                value={v.time}
+                onChange={(e) => set("time", e.target.value)}
+                required
+              />,
+            )}
+            {field(
+              "Duration (minutes)",
+              <input
+                type="number"
+                min="10"
+                step="5"
+                value={v.minutes}
+                onChange={(e) => set("minutes", e.target.value)}
+              />,
+            )}
+            {field(
+              "Room or place",
+              <>
+                <input
+                  list="quick-rooms"
+                  value={v.location}
+                  onChange={(e) => set("location", e.target.value)}
+                />
+                <datalist id="quick-rooms">
+                  {roomList(data).map((r) => (
+                    <option key={r} value={r} />
+                  ))}
+                </datalist>
+              </>,
+            )}
+            <label className="check-field full">
+              <input
+                type="checkbox"
+                checked={v.waitlist}
+                onChange={(e) => set("waitlist", e.target.checked)}
+              />
+              <span>
+                {t(
+                  "No free slot: put the client on the waiting list instead (the first freed slot will be offered).",
+                )}
+              </span>
+            </label>
+          </div>
+          {error && <p className="form-error">{error}</p>}
         </div>
-        {error && <p className="form-error">{error}</p>}
         <div className="dialog-footer">
           <Button type="button" onClick={onClose} disabled={busy}>
             {t("Cancel")}
@@ -766,6 +840,43 @@ export function TeacherHome() {
           ))
         )}
       </Panel>
+      {(() => {
+        const toWrite = data.appointments.filter(
+          (a) =>
+            a.staff_id === me &&
+            a.status === "Done" &&
+            a.contact_id &&
+            dayOf(a.starts_at) >= addDays(data.today, -14) &&
+            !(data.sessionNotes || []).some((n) => n.appointment_id === a.id),
+        );
+        return toWrite.length ? (
+          <Panel
+            title="Notes to write"
+            subtitle="Consultations finished in the last 2 weeks without a session note. Only you can read your notes."
+          >
+            <div className="today-list">
+              {toWrite.map((a) => (
+                <div key={a.id} className="today-row">
+                  <div className="today-time">
+                    <strong>{date(a.starts_at)}</strong>
+                    <small>{time(a.starts_at)}</small>
+                  </div>
+                  <div className="today-main">
+                    <strong>{person(a.contact_id).name}</strong>
+                    <small>{t(a.kind)}</small>
+                  </div>
+                  <Button
+                    variant="small"
+                    onClick={() => open({ type: "appointment", record: a })}
+                  >
+                    {t("Write the note")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        ) : null;
+      })()}
       {groups.map((g) => (
         <GroupCard key={g.id} group={g} />
       ))}
@@ -1359,7 +1470,108 @@ export function Dashboard() {
     const att = Array.from({ length: 6 }, (_, i) =>
       shiftMonth(data.today.slice(0, 7), i - 5),
     );
+    // Previous period of the same length, for the arrows on each number.
+    const span = Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
+    const pFrom = addDays(from, -span),
+      pTo = addDays(from, -1);
+    const inPrev = (d: string) => d >= pFrom && d <= pTo;
+    const prevFinished = data.appointments.filter(
+      (a) =>
+        inPrev(day(a.starts_at)) &&
+        ["Done", "No-show", "Cancelled"].includes(a.status),
+    );
+    const prevPays = pays.filter((p) => inPrev(day(p.created_at)));
+    const prevRevenue = moneyIn(pFrom, pTo);
+    const prevSpent = moneyOut(pFrom, pTo);
+    const prev: Record<string, number> = {
+      revenue: prevRevenue,
+      spent: prevSpent,
+      result: prevRevenue - prevSpent,
+      newClients: data.contacts.filter((c) => inPrev(day(c.created_at))).length,
+      noShowRate: prevFinished.length
+        ? prevFinished.filter((a) => a.status === "No-show").length /
+          prevFinished.length
+        : 0,
+      cancelRate: prevFinished.length
+        ? prevFinished.filter((a) => a.status === "Cancelled").length /
+          prevFinished.length
+        : 0,
+      avgTicket: prevPays.length
+        ? prevPays.reduce((s2, p) => s2 + p.amount, 0) / prevPays.length
+        : 0,
+    };
+    // Busiest times over the last 90 days (Saturday first, 8:00–20:00).
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      weekday: "short",
+      hour: "2-digit",
+      hourCycle: "h23",
+    });
+    const order = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+    const heat = order.map(() => Array(13).fill(0) as number[]);
+    const since = addDays(data.today, -89);
+    const mark = (iso: string) => {
+      const p = parts.formatToParts(new Date(iso));
+      const wd = order.indexOf(p.find((x) => x.type === "weekday")!.value);
+      const h = Number(p.find((x) => x.type === "hour")!.value);
+      if (wd >= 0 && h >= 8 && h <= 20) heat[wd][h - 8]++;
+    };
+    for (const a of data.appointments)
+      if (
+        a.status !== "Cancelled" &&
+        day(a.starts_at) >= since &&
+        day(a.starts_at) <= data.today
+      )
+        mark(a.starts_at);
+    for (const x of data.sessions)
+      if (
+        x.status !== "Cancelled" &&
+        day(x.starts_at) >= since &&
+        day(x.starts_at) <= data.today
+      )
+        mark(x.starts_at);
+    // Loyalty: clients who paid on two different days or more.
+    const paidDays = new Map<number, Set<string>>();
+    for (const p of pays) {
+      if (!p.contact_id) continue;
+      const set = paidDays.get(p.contact_id) || new Set<string>();
+      set.add(day(p.created_at));
+      paidDays.set(p.contact_id, set);
+    }
+    const repeatRate = paidDays.size
+      ? Array.from(paidDays.values()).filter((x) => x.size >= 2).length /
+        paidDays.size
+      : 0;
+    const byClient = new Map<number, number>();
+    for (const p of periodPays)
+      if (p.contact_id)
+        byClient.set(
+          p.contact_id,
+          (byClient.get(p.contact_id) || 0) + p.amount,
+        );
+    const topClients = Array.from(byClient, ([id, value]) => ({
+      name: person(id).name,
+      value,
+    }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+    const answered = (data.feedback || []).filter(
+      (f) => f.answered_at && f.rating && inRange(day(f.answered_at)),
+    );
+    const limit = new Date(Date.now() - 24 * 3600000).toISOString();
     return {
+      rated: answered.length,
+      avgRating: answered.length
+        ? answered.reduce((s2, f) => s2 + f.rating, 0) / answered.length
+        : 0,
+      unanswered: data.opportunities.filter(
+        (o) => o.stage === "New inquiry" && o.created_at < limit,
+      ).length,
+      prev,
+      heat,
+      repeatRate,
+      payers: paidDays.size,
+      topClients,
       revenue,
       spent,
       result: revenue - spent,
@@ -1433,22 +1645,59 @@ export function Dashboard() {
       timeZone: "UTC",
     }).format(new Date(mm + "-15T12:00:00Z"));
   const pct = (n: number) => `${Math.round(n * 100)} %`;
-  const tiles: [string, string, string?][] = [
-    ["Money in", fmt(m.revenue)],
-    ["Money out", fmt(m.spent)],
+  // [label, value, class, metric key, is a higher value good?]
+  const tiles: [string, string, string?, string?, boolean?][] = [
+    ["Money in", fmt(m.revenue), "", "revenue", true],
+    ["Money out", fmt(m.spent), "", "spent", false],
     [
       m.result < 0 ? "Loss" : "Profit",
       fmt(m.result),
       m.result < 0 ? "is-loss" : "is-gain",
+      "result",
+      true,
     ],
-    ["New clients", count(m.newClients)],
+    ["New clients", count(m.newClients), "", "newClients", true],
     ["Requests that paid", pct(m.conversion)],
-    ["No-shows", pct(m.noShowRate)],
-    ["Cancellations", pct(m.cancelRate)],
-    ["Average payment", fmt(m.avgTicket)],
+    ["No-shows", pct(m.noShowRate), "", "noShowRate", false],
+    ["Cancellations", pct(m.cancelRate), "", "cancelRate", false],
+    [
+      "Average payment",
+      fmt(Math.round(m.avgTicket / 100) * 100),
+      "",
+      "avgTicket",
+      true,
+    ],
     ["Still to collect", fmt(m.outstanding)],
     ["Forecast for this month", fmt(m.forecast)],
+    ["Loyal clients", pct(m.repeatRate)],
+    ["Satisfaction", m.rated ? `${m.avgRating.toFixed(1)} / 5 ★` : "—", ""],
+    [
+      "Requests waiting > 24 h",
+      count(m.unanswered),
+      m.unanswered ? "is-loss" : "",
+    ],
   ];
+  const delta = (key?: string, good?: boolean) => {
+    if (!key) return null;
+    const now = (m as any)[key] as number;
+    const before = m.prev[key];
+    if (!before) return null;
+    const rate = key.endsWith("Rate");
+    const change = rate
+      ? Math.round((now - before) * 100)
+      : before
+        ? Math.round(((now - before) / Math.abs(before)) * 100)
+        : null;
+    if (change === null || change === 0)
+      return <small className="kpi-delta">= {t("same as before")}</small>;
+    const up = change > 0;
+    return (
+      <small className={`kpi-delta ${up === good ? "is-good" : "is-bad"}`}>
+        {up ? "▲" : "▼"} {Math.abs(change)}
+        {rate ? " pts" : " %"} {t("vs previous period")}
+      </small>
+    );
+  };
   function exportCsv() {
     const lines = [
       [t("Indicator"), t("Value")],
@@ -1536,10 +1785,11 @@ export function Dashboard() {
         )}
       </div>
       <div className="finance-kpis dashboard-kpis">
-        {tiles.map(([k, v, cls]) => (
+        {tiles.map(([k, v, cls, key, good]) => (
           <div key={k} className={`finance-kpi ${cls || ""}`}>
             <span>{t(k)}</span>
             <strong>{v}</strong>
+            {delta(key, good)}
           </div>
         ))}
       </div>
@@ -1704,6 +1954,39 @@ export function Dashboard() {
           />
         </Panel>
       </div>
+      <Panel
+        title="Busiest times"
+        subtitle="Appointments and classes over the last 90 days, by day and hour. Darker = busier."
+      >
+        <Heatmap rows={m.heat} />
+      </Panel>
+      <Panel
+        title="Loyal clients"
+        subtitle="Share of paying clients who paid on two different days or more, and the 10 clients who paid the most in the period."
+      >
+        <div className="goal loyal-goal">
+          <div>
+            <span>
+              {Math.round(m.repeatRate * m.payers)} / {m.payers}{" "}
+              {t("paying clients came back")}
+            </span>
+            <strong>{pct(m.repeatRate)}</strong>
+          </div>
+          <div className="finance-track goal-track">
+            <i
+              style={{
+                width: `${Math.max(2, m.repeatRate * 100)}%`,
+                background: TEAL,
+              }}
+            />
+          </div>
+        </div>
+        <h3 className="panel-subtitle">{t("Top 10 clients")}</h3>
+        <div className="two-columns">
+          <BarList items={m.topClients.slice(0, 5)} format={fmt} />
+          <BarList items={m.topClients.slice(5)} format={fmt} empty=" " />
+        </div>
+      </Panel>
       <Panel
         title="Where clients come from and what advertising brings"
         subtitle="Advertising spent = expenses in the “Advertising” category whose “Paid to” or description names the source (e.g. Instagram)."
@@ -1916,4 +2199,151 @@ export function useIdleLogout(minutes: number, onLogout: () => void) {
       window.clearInterval(timer);
     };
   }, [minutes]);
+}
+
+/** Days × hours grid; one hue, light to dark (sequential). */
+function Heatmap({ rows }: { rows: number[][] }) {
+  const { t } = useApp();
+  const days = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+  const names: Record<string, string> = {
+    Sat: "Saturday",
+    Sun: "Sunday",
+    Mon: "Monday",
+    Tue: "Tuesday",
+    Wed: "Wednesday",
+    Thu: "Thursday",
+    Fri: "Friday",
+  };
+  const peak = Math.max(1, ...rows.flat());
+  const steps = [
+    "#eef7f4",
+    "#c6e7de",
+    "#8fcfbf",
+    "#4fae99",
+    "#1f8a76",
+    "#0b5e50",
+  ];
+  const color = (n: number) =>
+    n === 0 ? steps[0] : steps[Math.min(5, 1 + Math.floor((n / peak) * 4.999))];
+  return (
+    <div className="heatmap-wrap">
+      <table className="heatmap">
+        <thead>
+          <tr>
+            <th />
+            {rows[0].map((_, h) => (
+              <th key={h}>{h + 8}h</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, d) => (
+            <tr key={d}>
+              <th>{t(names[days[d]]).slice(0, 3)}</th>
+              {r.map((n, h) => (
+                <td
+                  key={h}
+                  style={{
+                    background: color(n),
+                    color: n / peak > 0.55 ? "#fff" : "#17302b",
+                  }}
+                  title={`${t(names[days[d]])} ${h + 8}:00 — ${n}`}
+                >
+                  {n || ""}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="heatmap-legend" aria-hidden="true">
+        <span>{t("Quiet")}</span>
+        {steps.map((c) => (
+          <i key={c} style={{ background: c }} />
+        ))}
+        <span>{t("Busy")}</span>
+      </div>
+    </div>
+  );
+}
+
+/** End of the day: what was received today, by method, ready to print. */
+export function CashClosing() {
+  const { data, t, money, person, time, user } = useApp();
+  const zone = data.settings.timezone;
+  const today = data.today;
+  const pays = data.payments.filter(
+    (p) => localDate(new Date(p.created_at), zone) === today,
+  );
+  const refunds = data.refunds.filter(
+    (r) => localDate(new Date(r.created_at), zone) === today,
+  );
+  if (!data.permissions.editFinance) return null;
+  const currency = data.settings.currency;
+  const byMethod = new Map<string, number>();
+  for (const p of pays)
+    byMethod.set(p.method, (byMethod.get(p.method) || 0) + p.amount);
+  const total =
+    pays.reduce((s, p) => s + p.amount, 0) -
+    refunds.reduce((s, r) => s + r.amount, 0);
+  function print() {
+    const esc = (v: string) =>
+      String(v).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+    printDocument(
+      `${t("Cash closing")} ${today}`,
+      `<div class="brand"><h1>${esc(data.settings.academy)}</h1><div class="muted">${esc(t("Cash closing"))}<br><b>${esc(today)}</b></div></div>
+      <table>${Array.from(byMethod)
+        .map(
+          ([m, v]) =>
+            `<tr><td>${esc(t(m))}</td><td>${esc(money(v, currency))}</td></tr>`,
+        )
+        .join("")}
+      ${
+        refunds.length
+          ? `<tr><td>${esc(t("Refunds"))}</td><td>− ${esc(
+              money(
+                refunds.reduce((s, r) => s + r.amount, 0),
+                currency,
+              ),
+            )}</td></tr>`
+          : ""
+      }
+      <tr><td><b>${esc(t("Total of the day"))}</b></td><td class="total">${esc(money(total, currency))}</td></tr></table>
+      <table>${pays
+        .map(
+          (p) =>
+            `<tr><td>${esc(time(p.created_at))} · ${esc(person(p.contact_id).name || "")}</td><td>${esc(money(p.amount, p.currency))} · ${esc(t(p.method))}</td></tr>`,
+        )
+        .join("")}</table>
+      <div class="sign"><div>${esc(t("Counted by"))} : ${esc(user(data.user.id).name || data.user.name)}</div><div>${esc(t("Checked by"))}</div></div>`,
+    );
+  }
+  return (
+    <Panel
+      title="Cash desk of the day"
+      subtitle="Everything received today, by payment method. Print it when you close."
+      action={
+        <Button icon={<Printer size={15} />} onClick={print}>
+          {t("Close the cash desk")}
+        </Button>
+      }
+    >
+      <div className="cash-totals">
+        <div>
+          <small>{t("Total of the day")}</small>
+          <strong>{money(total, currency)}</strong>
+        </div>
+        {Array.from(byMethod).map(([m, v]) => (
+          <div key={m}>
+            <small>{t(m)}</small>
+            <strong>{money(v, currency)}</strong>
+          </div>
+        ))}
+        <div>
+          <small>{t("Payments")}</small>
+          <strong>{pays.length}</strong>
+        </div>
+      </div>
+    </Panel>
+  );
 }

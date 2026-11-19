@@ -32,9 +32,29 @@ import {
   ChartPie,
   CalendarCheck,
   CalendarRange,
+  MessagesSquare,
+  LayoutGrid,
+  BrainCircuit,
 } from "lucide-react";
-import { Dashboard, SecretaryHome, TeacherHome, useIdleLogout } from "./roles";
-import { api, ApiError, matchesPerson, type State, type Row } from "./types";
+import { AssistantBubble, PredictionsPage, Tour } from "./smart";
+import { MessagesPage, NotificationList } from "./platform";
+import { CustomDashboard } from "./insights";
+import {
+  Dashboard,
+  SecretaryHome,
+  TeacherHome,
+  QuickBookingDialog,
+  useIdleLogout,
+} from "./roles";
+import { RoomBoard } from "./reception";
+import {
+  api,
+  ApiError,
+  matchesPerson,
+  smartMatch,
+  type State,
+  type Row,
+} from "./types";
 import { arabic, roleNames } from "./i18n";
 import { french } from "./french";
 
@@ -100,6 +120,8 @@ const nav = [
   ["My week", CalendarRange],
   ["Overview", LayoutDashboard],
   ["Dashboard", ChartPie],
+  ["My dashboard", LayoutGrid],
+  ["Messages", MessagesSquare],
   ["Admissions", Kanban],
   ["Students", Users],
   ["Calendar", CalendarDays],
@@ -108,12 +130,15 @@ const nav = [
   ["Payments", Wallet],
   ["Campaigns", Megaphone],
   ["Reports", ChartNoAxesCombined],
+  ["Predictions", BrainCircuit],
 ] as const;
 /** Menu of each sign-in (Director, Administrator, Secretary, Teacher). */
 const navByRole: Record<string, string[]> = {
   director: [
     "Overview",
     "Dashboard",
+    "My dashboard",
+    "Messages",
     "Admissions",
     "Students",
     "Calendar",
@@ -122,9 +147,12 @@ const navByRole: Record<string, string[]> = {
     "Payments",
     "Campaigns",
     "Reports",
+    "Predictions",
   ],
   administrator: [
     "Dashboard",
+    "My dashboard",
+    "Messages",
     "Admissions",
     "Students",
     "Calendar",
@@ -132,9 +160,26 @@ const navByRole: Record<string, string[]> = {
     "Programs & Cohorts",
     "Payments",
     "Reports",
+    "Predictions",
   ],
-  secretary: ["Today", "Calendar", "Admissions", "Students", "Payments"],
-  teacher: ["My week", "Calendar", "Attendance", "Programs & Cohorts"],
+  secretary: [
+    "Today",
+    "Messages",
+    "Calendar",
+    "Admissions",
+    "Students",
+    "Payments",
+    "Predictions",
+    "My dashboard",
+  ],
+  teacher: [
+    "My week",
+    "Messages",
+    "Calendar",
+    "Attendance",
+    "Programs & Cohorts",
+    "My dashboard",
+  ],
 };
 const homeFor = (role: string) =>
   role === "administrator"
@@ -184,6 +229,7 @@ export default function App() {
     [search, setSearch] = useState(""),
     [showSearch, setShowSearch] = useState(false),
     [quick, setQuick] = useState(false),
+    [phoneBooking, setPhoneBooking] = useState(false),
     [mobile, setMobile] = useState(false),
     [panel, setPanel] = useState("");
   const [notice, setNotice] = useState<{
@@ -298,7 +344,29 @@ export default function App() {
       data && search.trim()
         ? [
             ...data.contacts
-              .filter((c) => matchesPerson(c, search))
+              .filter(
+                (c) =>
+                  matchesPerson(c, search) ||
+                  smartMatch(
+                    c,
+                    search,
+                    [
+                      ...data.opportunities
+                        .filter((o) => o.contact_id === c.id)
+                        .map((o) => `${o.interest} ${o.source}`),
+                      ...(data.customValues || [])
+                        .filter((v) => v.record_id === c.id)
+                        .map((v) => v.value),
+                      ...(data.contactTags || [])
+                        .filter((x) => x.contact_id === c.id)
+                        .map(
+                          (x) =>
+                            (data.tags || []).find((g) => g.id === x.tag_id)
+                              ?.name || "",
+                        ),
+                    ].join(" "),
+                  ),
+              )
               .map((c) => ({ ...c, kind: "Contact" })),
             ...data.programs
               .filter(
@@ -369,12 +437,20 @@ export default function App() {
   const views: Record<string, ReactNode> = {
     Overview: <Overview period={period} setPeriod={setPeriod} />,
     Dashboard: <Dashboard />,
+    "My dashboard": <CustomDashboard />,
+    Messages: <MessagesPage />,
+    Predictions: <PredictionsPage />,
     Today: <SecretaryHome />,
     "My week": <TeacherHome />,
     Admissions: <Admissions />,
     Students: <Students />,
     "Programs & Cohorts": <Programs />,
-    Calendar: <Calendar />,
+    Calendar: (
+      <>
+        <Calendar />
+        {data.permissions.editAdmissions && <RoomBoard />}
+      </>
+    ),
     Payments: <Payments />,
     Reports: <Reports period={period} setPeriod={setPeriod} />,
     Settings: <SettingsPage />,
@@ -435,6 +511,9 @@ export default function App() {
                         ).length + (data.incoming || []).length}
                       </span>
                     )}
+                  {name === "Messages" && (data.inboxUnread || 0) > 0 && (
+                    <span className="nav-count">{data.inboxUnread}</span>
+                  )}
                 </button>
               ))}
             </nav>
@@ -539,11 +618,21 @@ export default function App() {
                   }
                 >
                   <Bell size={19} />
-                  {data.flags.length + taskCount > 0 && <i />}
+                  {(data.notifications || []).some((n) => !n.read_at) ? (
+                    <b className="bell-count">
+                      {
+                        (data.notifications || []).filter((n) => !n.read_at)
+                          .length
+                      }
+                    </b>
+                  ) : (
+                    data.flags.length + taskCount > 0 && <i />
+                  )}
                 </button>
                 {panel === "notifications" && (
                   <div className="popover notifications">
                     <h3>{t("Notifications")}</h3>
+                    <NotificationList onDone={() => setPanel("")} />
                     {data.flags.slice(0, 3).map((f) => (
                       <button
                         key={`${f.contact_id}${f.kind}`}
@@ -576,9 +665,11 @@ export default function App() {
                           </span>
                         </button>
                       ))}
-                    {!taskCount && !data.flags.length && (
-                      <p>{t("No notifications")}</p>
-                    )}
+                    {!taskCount &&
+                      !data.flags.length &&
+                      !(data.notifications || []).length && (
+                        <p>{t("No notifications")}</p>
+                      )}
                     <Button variant="ghost full" onClick={() => go("My tasks")}>
                       {t("My tasks")}
                     </Button>
@@ -623,6 +714,17 @@ export default function App() {
           {quick && (
             <div className="quick-menu">
               {data.permissions.editAdmissions && (
+                <button
+                  onClick={() => {
+                    setQuick(false);
+                    setPhoneBooking(true);
+                  }}
+                >
+                  <CalendarCheck size={17} />
+                  {t("Phone booking")}
+                </button>
+              )}
+              {data.permissions.editAdmissions && (
                 <button onClick={() => open({ type: "inquiry" })}>
                   <Kanban size={17} />
                   {t("New client request")}
@@ -663,6 +765,9 @@ export default function App() {
             </div>
           )}
         </div>
+        {phoneBooking && (
+          <QuickBookingDialog onClose={() => setPhoneBooking(false)} />
+        )}
         {contactId && (
           <div inert={!!modal || showSearch}>
             <Profile
@@ -750,6 +855,8 @@ export default function App() {
           </div>
         )}
       </div>
+      <AssistantBubble />
+      <Tour />
     </AppContext.Provider>
   );
 }
