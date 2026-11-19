@@ -801,7 +801,9 @@ export function IntakeQuestionsDialog({ onClose }: { onClose: () => void }) {
 export function PsychologySection({ contact }: { contact: Row }) {
   const { data, t, open, date } = useApp();
   if (
-    !["admin", "academic", "instructor", "admissions"].includes(data.user.role)
+    !["admin", "academic", "instructor", "admissions", "manager"].includes(
+      data.user.role,
+    )
   )
     return null;
   const mine = (data.intake || []).filter((x) => x.contact_id === contact.id);
@@ -875,9 +877,13 @@ export function PsychologySection({ contact }: { contact: Row }) {
 // ---------------------------------------------------------------------------
 export function LanguageSection({ contact }: { contact: Row }) {
   const { data, t, open, date, cohort, perform, toast } = useApp();
-  const canTeach = ["admin", "academic", "instructor", "admissions"].includes(
-    data.user.role,
-  );
+  const canTeach = [
+    "admin",
+    "academic",
+    "instructor",
+    "admissions",
+    "manager",
+  ].includes(data.user.role);
   const tests = (data.placements || []).filter(
     (p) => p.contact_id === contact.id,
   );
@@ -969,7 +975,7 @@ export function LanguageSection({ contact }: { contact: Row }) {
                   {t("Add a mark")}
                 </Button>
                 {e.status === "Active" &&
-                  ["admin", "academic", "admissions"].includes(
+                  ["admin", "academic", "admissions", "manager"].includes(
                     data.user.role,
                   ) && (
                     <Button

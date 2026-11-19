@@ -316,6 +316,18 @@ export function PortalPage() {
                   </span>
                 </div>
               ))}
+              {(g.materials || []).length > 0 && (
+                <>
+                  <h3 className="portal-sub">{t("Lesson materials")}</h3>
+                  {g.materials.map((m: any, i: number) => (
+                    <div key={i} className="portal-row">
+                      <a href={m.url} target="_blank" rel="noreferrer">
+                        {m.title}
+                      </a>
+                    </div>
+                  ))}
+                </>
+              )}
             </section>
           ))}
           {d.packages.length > 0 && (

@@ -400,13 +400,12 @@ export const arabic: Record<string, string> = {
   Language: "اللغة",
   "Local workspace": "مساحة محلية",
 };
+/** The four sign-ins (older academic/finance accounts are migrated). */
 export const roleNames: Record<string, string> = {
-  admin: "Administrator",
-  admissions: "Admissions advisor",
-  academic: "Academic coordinator",
-  instructor: "Instructor",
-  finance: "Finance",
-  manager: "Read-only manager",
+  admin: "Director",
+  manager: "Administrator",
+  admissions: "Secretary",
+  instructor: "Teacher / Specialist",
 };
 Object.assign(arabic, {
   Opportunities: "فرص التسجيل",
@@ -1051,4 +1050,372 @@ Object.assign(arabic, {
   "Copy the script": "نسخ النص",
   Copied: "تم النسخ",
   "Select the text and copy it.": "حدد النص وانسخه.",
+});
+
+// Roles, home screens, dashboard and earlier untranslated texts
+Object.assign(arabic, {
+  "Language / Langue / اللغة": "اللغة / Langue / Language",
+  "Luminol Academy": "أكاديمية لومينول",
+  "Choose an attendance status for every student.":
+    "اختر حالة الحضور لكل طالب.",
+  "What was received each day, by payment method.":
+    "ما تم تحصيله كل يوم حسب طريقة الدفع.",
+  Total: "المجموع",
+  "Open balances per client, the oldest first.":
+    "الأرصدة المفتوحة لكل عميل، الأقدم أولًا.",
+  "Pay for teachers and psychologists": "أجور المعلمين والأخصائيين",
+  "Group class hours taught and consultations done in the month, times each person's rate.":
+    "ساعات الحصص الجماعية والاستشارات المنجزة في الشهر مضروبة في أجر كل شخص.",
+  "Not set": "غير محدد",
+  "Only classes already finished and consultations marked “Done” are counted.":
+    "تُحتسب فقط الحصص المنتهية والاستشارات المعلَّمة «تمت».",
+  "One question per line. Psychologists answer them in each client's private file.":
+    "سؤال في كل سطر. يجيب عنها الأخصائي في الملف الخاص بكل عميل.",
+  "Session notes you write in each appointment appear here. Only you can see them.":
+    "ملاحظات الجلسات التي تكتبها في كل موعد تظهر هنا. أنت فقط تراها.",
+  "Delete this result?": "حذف هذه النتيجة؟",
+  "marks saved": "علامات محفوظة",
+  "New assessment": "تقييم جديد",
+  "Example: Test 1 · Oral": "مثال: اختبار 1 · شفهي",
+  Mark: "العلامة",
+  Consultations: "الاستشارات",
+  "Everything the team added, changed or deleted, newest first.":
+    "كل ما أضافه الفريق أو غيّره أو حذفه، الأحدث أولًا.",
+  From: "من",
+  To: "إلى",
+  "Two-step sign-in is on": "تسجيل الدخول بخطوتين مفعّل",
+  "Two-step sign-in is off": "تسجيل الدخول بخطوتين غير مفعّل",
+  "1. Open your authenticator app and scan this QR code.":
+    "1. افتح تطبيق المصادقة وامسح رمز QR هذا.",
+  "Or type this key:": "أو اكتب هذا المفتاح:",
+  "2. Type the 6-digit code shown in the app:":
+    "2. اكتب الرمز المكوّن من 6 أرقام الظاهر في التطبيق:",
+  "Choose another date, or add classes in Calendar.":
+    "اختر تاريخًا آخر أو أضف حصصًا في الرزنامة.",
+  "Due since": "مستحق منذ",
+  For: "مقابل",
+  "Payments received in the period, by type of activity.":
+    "المدفوعات المستلمة في الفترة حسب نوع النشاط.",
+  "Consultations done, missed, and classes taught in the period.":
+    "الاستشارات المنجزة والفائتة والحصص المقدَّمة في الفترة.",
+  "After the password, a 6-digit code from an app on your phone (Google Authenticator, Microsoft Authenticator…).":
+    "بعد كلمة السر، رمز من 6 أرقام من تطبيق على هاتفك (Google Authenticator أو Microsoft Authenticator…).",
+  "Langue / اللغة / Language": "اللغة / Langue / Language",
+  "Create a group first": "أنشئ مجموعة أولًا",
+  Never: "أبدًا",
+  "minutes without activity": "دقيقة دون نشاط",
+  "Per hour of group class": "لكل ساعة حصة جماعية",
+  "Per consultation done": "لكل استشارة منجزة",
+  "Not paid through the CRM": "لا يُدفع عبر النظام",
+  "Choose the group; its program and price are used.":
+    "اختر المجموعة؛ تُستخدم دورتها وسعرها.",
+  "This deletes every client, request, program, group, session, payment, task and staff account except yours. Leads received from the website / Google stay and return to the inbox so you can import them.":
+    "يحذف هذا كل العملاء والطلبات والدورات والمجموعات والحصص والمدفوعات والمهام وحسابات الفريق ما عدا حسابك. تبقى جهات الاتصال الواردة من الموقع / Google وتعود إلى صندوق الوارد لاستيرادها.",
+  "A free video room is created (Jitsi Meet). You can paste a Google Meet or Zoom link below instead.":
+    "تُنشأ غرفة فيديو مجانية (Jitsi Meet). يمكنك لصق رابط Google Meet أو Zoom أدناه بدلًا منها.",
+  "Leave empty to create one automatically": "اتركه فارغًا لإنشائه تلقائيًا",
+  "Needed only if this person signs in": "مطلوب فقط إذا كان الشخص يسجل الدخول",
+  "At least 10 characters. Leave empty if they do not sign in.":
+    "10 أحرف على الأقل. اتركه فارغًا إذا لم يكن يسجل الدخول.",
+  "At least 10 characters. Share it privately with the person.":
+    "10 أحرف على الأقل. شاركها مع الشخص بشكل خاص.",
+  "Leave empty to keep your password. At least 10 characters.":
+    "اتركه فارغًا للاحتفاظ بكلمة السر. 10 أحرف على الأقل.",
+  "Name and phone of someone to call if needed":
+    "اسم وهاتف شخص يُتصل به عند الحاجة",
+  "Example: English A1 · Evening": "مثال: إنجليزية A1 · مساءً",
+  "Example: Lesson 3 · Grammar": "مثال: الدرس 3 · القواعد",
+  "Useful on the reception computer: the CRM closes itself when nobody uses it.":
+    "مفيد على حاسوب الاستقبال: يُغلق النظام نفسه عندما لا يستخدمه أحد.",
+  "Goals and steps planned for these sessions":
+    "الأهداف والخطوات المخططة لهذه الجلسات",
+  "Creates a charge in Payments. Leave empty if free or paid per session.":
+    "ينشئ مبلغًا مستحقًا في المدفوعات. اتركه فارغًا إذا كان مجانيًا أو يُدفع لكل جلسة.",
+  "Shown to clients. Example: Individual consultation (60 min)":
+    "يظهر للعملاء. مثال: استشارة فردية (60 دقيقة)",
+  "Online (a video link is created for each booking)":
+    "عن بُعد (يُنشأ رابط فيديو لكل حجز)",
+  "Open for booking": "متاح للحجز",
+  "Printed on the certificate of the level just finished":
+    "يُطبع على شهادة المستوى المنتهي",
+  "Add the tuition of the new group to Payments":
+    "إضافة رسوم المجموعة الجديدة إلى المدفوعات",
+  "Example: SARL Luminol Academy": "مثال: SARL Luminol Academy",
+  "You can use {name} {date} {time} {course} {amount} {due} {academy}":
+    "يمكنك استخدام {name} {date} {time} {course} {amount} {due} {academy}",
+  "Only you can read it. It also appears in the client's psychology file.":
+    "أنت فقط من يقرؤها. تظهر أيضًا في الملف النفسي للعميل.",
+  "Online card payment (CIB / Edahabia) is ready but not switched on. Add the Chargily key in Vercel (see Settings → Integrations).":
+    "الدفع الإلكتروني بالبطاقة (CIB / الذهبية) جاهز لكنه غير مفعّل. أضف مفتاح Chargily في Vercel (انظر الإعدادات ← الربط).",
+  "The client pays by CIB or Edahabia card. The payment is recorded automatically in the CRM.":
+    "يدفع العميل ببطاقة CIB أو الذهبية. يُسجَّل الدفع تلقائيًا في النظام.",
+  "test mode": "وضع الاختبار",
+  "The link no longer works": "الرابط لم يعد يعمل",
+  "A private page for the client: upcoming appointments and classes, video links, marks, certificates, balance and online payment. No password needed.":
+    "صفحة خاصة بالعميل: المواعيد والحصص القادمة، روابط الفيديو، العلامات، الشهادات، الرصيد والدفع الإلكتروني. دون كلمة سر.",
+  "A link already exists. Creating a new one stops the old one.":
+    "يوجد رابط بالفعل. إنشاء رابط جديد يوقف القديم.",
+  "Stop the link": "إيقاف الرابط",
+  "surveys waiting for an answer": "استبيانات بانتظار الإجابة",
+  "Delete this expense?": "حذف هذا المصروف؟",
+  "Salaries count only once you record them as an expense.":
+    "تُحتسب الرواتب فقط بعد تسجيلها كمصروف.",
+  recipients: "مستلمين",
+  "Example: English": "مثال: الإنجليزية",
+  "Current students": "الطلاب الحاليون",
+  "Former students": "الطلاب السابقون",
+  "Never enrolled": "لم يسجلوا أبدًا",
+  "Campaign name": "اسم الحملة",
+  "Example: Registrations September": "مثال: تسجيلات سبتمبر",
+  sent: "أُرسلت",
+  failed: "فشلت",
+  "Delete this campaign?": "حذف هذه الحملة؟",
+  "Send today's reminders now": "إرسال تذكيرات اليوم الآن",
+  "Addresses to give to the services": "العناوين التي تُعطى للخدمات",
+  "Forms (Google Forms, Tally, n8n)": "النماذج (Google Forms وTally وn8n)",
+  "WhatsApp replies (Meta webhook)": "ردود واتساب (Webhook من Meta)",
+  "Online payments (Chargily webhook)":
+    "الدفع الإلكتروني (Webhook من Chargily)",
+  "Answers to the surveys sent after a course or consultations.":
+    "إجابات الاستبيانات المرسلة بعد دورة أو استشارات.",
+  "No answers yet": "لا إجابات بعد",
+  "Ask for feedback from a client's card (button “Ask for feedback”).":
+    "اطلب رأيًا من بطاقة العميل (زر «طلب رأي»).",
+  "Money received minus expenses, month by month.":
+    "الأموال المستلمة ناقص المصاريف، شهرًا بشهر.",
+  "Send one message to a group of clients: new term, new course, event…":
+    "أرسل رسالة واحدة لمجموعة من العملاء: دخول جديد، دورة جديدة، فعالية…",
+  "Only clients who agreed to be contacted and have a phone number.":
+    "فقط العملاء الذين وافقوا على التواصل ولديهم رقم هاتف.",
+  "Previous campaigns": "الحملات السابقة",
+  "Each service works as soon as its key is added in Vercel → Settings → Environment Variables, then redeployed.":
+    "تعمل كل خدمة بمجرد إضافة مفتاحها في Vercel ← Settings ← Environment Variables ثم إعادة النشر.",
+  WhatsApp: "واتساب",
+  "Add every waiting lead to the requests board? You can edit each one afterwards.":
+    "إضافة كل جهات الاتصال المنتظرة إلى لوحة الطلبات؟ يمكنك تعديل كل واحدة بعد ذلك.",
+  "need a manual review": "تحتاج مراجعة يدوية",
+  "Dismiss this lead (spam, duplicate or test)?":
+    "استبعاد جهة الاتصال هذه (مزعج أو مكرر أو تجربة)؟",
+  Refresh: "تحديث",
+  "Read only": "قراءة فقط",
+  "Optional. Existing contact details and consent are preserved when a match is found.":
+    "اختياري. تُحفظ بيانات الاتصال والموافقة الموجودة عند العثور على تطابق.",
+  "Add a program first": "أضف دورة أولًا",
+  "Add advisors, teachers and psychologists. Teachers do not need a login.":
+    "أضف السكرتارية والمعلمين والأخصائيين. لا يحتاج المعلمون إلى حساب.",
+  "Turn off two-step sign-in for this person (lost phone)?":
+    "إيقاف تسجيل الدخول بخطوتين لهذا الشخص (هاتف مفقود)؟",
+  "Name, phone, email, course, level, notes…":
+    "الاسم، الهاتف، البريد، الدورة، المستوى، ملاحظات…",
+  "File type: SQLite database (keep it private).":
+    "نوع الملف: قاعدة بيانات SQLite (احتفظ بها خاصة).",
+  "No activity yet": "لا نشاط بعد",
+  "Add your first program in Programs & Groups.":
+    "أضف أول دورة في الدورات والمجموعات.",
+  "Add each course you sell (for example English A1, Applied Psychology) with its real price.":
+    "أضف كل دورة تبيعها (مثل الإنجليزية A1، علم النفس التطبيقي) بسعرها الحقيقي.",
+  "New clients, sources, revenue and team activity for the chosen period.":
+    "العملاء الجدد والمصادر والمداخيل ونشاط الفريق في الفترة المختارة.",
+  "Your academy, your team, your account and your data.":
+    "أكاديميتك وفريقك وحسابك وبياناتك.",
+  "New requests from your form arrive automatically through n8n.":
+    "تصل الطلبات الجديدة من نموذجك تلقائيًا عبر n8n.",
+  "Upload your existing list of clients or students (.xlsx or .csv). Duplicates are skipped.":
+    "ارفع قائمة العملاء أو الطلاب (.xlsx أو .csv). يتم تجاهل المكررات.",
+  "A copy of the whole database is saved automatically every day and kept 30 days. You can also download one now.":
+    "تُحفظ نسخة من القاعدة كاملة تلقائيًا كل يوم وتُحتفظ 30 يومًا. يمكنك أيضًا تحميل نسخة الآن.",
+  "Download your data as spreadsheets (CSV, opens in Excel).":
+    "حمّل بياناتك كجداول (CSV، تفتح في Excel).",
+  "Remove all example records (fake students, teachers, prices) and keep only your account and real leads.":
+    "حذف كل البيانات التجريبية (طلاب ومعلمون وأسعار وهمية) والإبقاء فقط على حسابك وجهات الاتصال الحقيقية.",
+  "Your experience": "تجربتك",
+  "Delete note": "حذف الملاحظة",
+  "The two passwords are different.": "كلمتا السر مختلفتان.",
+  "You can now sign in with your new password.":
+    "يمكنك الآن الدخول بكلمة السر الجديدة.",
+  "At least 10 characters.": "10 أحرف على الأقل.",
+  "This code does not match any certificate issued by the academy.":
+    "هذا الرمز لا يطابق أي شهادة صادرة عن الأكاديمية.",
+  "No upcoming appointment.": "لا مواعيد قادمة.",
+  "No upcoming class.": "لا حصص قادمة.",
+  "Lesson materials": "مواد الدروس",
+  Check: "تحقق",
+  "Nothing to pay. Thank you!": "لا شيء للدفع. شكرًا!",
+  Rating: "التقييم",
+  "A comment? (optional)": "تعليق؟ (اختياري)",
+  "Confirmed by the client": "أكده العميل",
+  Arrived: "حضر",
+  "Cancel this appointment?": "إلغاء هذا الموعد؟",
+  "Next session": "الجلسة القادمة",
+  "Phone booking": "حجز عبر الهاتف",
+  "New client": "عميل جديد",
+  "Take a payment": "تحصيل دفعة",
+  "New requests": "طلبات جديدة",
+  "Open the calendar": "فتح الرزنامة",
+  "Added to the waiting list": "أُضيف إلى قائمة الانتظار",
+  "Booked by phone": "حُجز عبر الهاتف",
+  "Appointment booked": "تم حجز الموعد",
+  "Client already in the CRM:": "العميل موجود في النظام:",
+  Anyone: "أي شخص",
+  "No free slot: put the client on the waiting list instead (the first freed slot will be offered).":
+    "لا يوجد موعد شاغر: ضع العميل في قائمة الانتظار (يُعرض عليه أول موعد يتحرر).",
+  "Nobody is waiting. Tick “waiting list” in a phone booking to add someone.":
+    "لا أحد ينتظر. اختر «قائمة الانتظار» في حجز هاتفي لإضافة شخص.",
+  Offered: "عُرض",
+  "Offer a slot": "عرض موعد",
+  Book: "حجز",
+  Remove: "إزالة",
+  "Consultations done this month": "الاستشارات المنجزة هذا الشهر",
+  "Class hours this month": "ساعات الحصص هذا الشهر",
+  "Active groups": "المجموعات النشطة",
+  "Join online": "الانضمام عن بُعد",
+  "Take attendance": "تسجيل الحضور",
+  "Saved. Appointments already booked those days:":
+    "تم الحفظ. مواعيد محجوزة في تلك الأيام:",
+  Reason: "السبب",
+  Add: "إضافة",
+  "No students yet.": "لا طلاب بعد.",
+  "Students see these links in their client space.":
+    "يرى الطلاب هذه الروابط في فضائهم الخاص.",
+  "Material added": "تمت إضافة المادة",
+  "Lesson 3 — PDF": "الدرس 3 — PDF",
+  "Link (Google Drive, PDF, video…)": "رابط (Google Drive، PDF، فيديو…)",
+  Unknown: "غير معروف",
+  consultations: "استشارات",
+  Indicator: "المؤشر",
+  Value: "القيمة",
+  "Paying clients": "عملاء دافعون",
+  "Advertising spent": "مصاريف الإشهار",
+  "Money in goal": "هدف المداخيل",
+  "New clients goal": "هدف العملاء الجدد",
+  "No goal yet. Example: 300 000 DA and 20 new clients this month.":
+    "لا هدف بعد. مثال: 300 000 دج و20 عميلًا جديدًا هذا الشهر.",
+  "Goal reached": "تم بلوغ الهدف",
+  Copy: "نسخ",
+  "Send on WhatsApp": "إرسال عبر واتساب",
+  "E-mail is not connected yet.": "البريد الإلكتروني غير مربوط بعد.",
+  "e-mails sent": "رسائل بريد أُرسلت",
+  "Send by e-mail now": "إرسال بالبريد الآن",
+  "Loading…": "جارٍ التحميل…",
+  "Signed in": "دخل",
+  "Wrong password": "كلمة سر خاطئة",
+  "Today at the academy": "اليوم في الأكاديمية",
+  "Appointments, phone bookings, new requests and payments.":
+    "المواعيد والحجوزات الهاتفية والطلبات الجديدة والمدفوعات.",
+  "Today and tomorrow": "اليوم وغدًا",
+  "Mark arrivals and no-shows; a cancelled slot is offered to the waiting list.":
+    "سجّل الحضور والغياب؛ الموعد الملغى يُعرض على قائمة الانتظار.",
+  "No appointments today or tomorrow": "لا مواعيد اليوم أو غدًا",
+  "Use “Phone booking” to add one.": "استخدم «حجز عبر الهاتف» لإضافة موعد.",
+  "Book the next session": "حجز الجلسة القادمة",
+  "Consultations done in the last 3 weeks with no next appointment.":
+    "استشارات أُنجزت في آخر 3 أسابيع دون موعد لاحق.",
+  "Waiting list for appointments": "قائمة انتظار المواعيد",
+  "When an appointment is cancelled, a task tells you who to call first.":
+    "عند إلغاء موعد، تخبرك مهمة بمن تتصل أولًا.",
+  "My week": "أسبوعي",
+  "Your consultations and classes, your groups and your days off.":
+    "استشاراتك وحصصك ومجموعاتك وأيام عطلتك.",
+  "My schedule": "جدولي",
+  "Nothing planned": "لا شيء مخطط",
+  "Enjoy the free time.": "استمتع بوقت الفراغ.",
+  "My days off": "أيام عطلتي",
+  "The secretary sees them in the calendar and cannot book you then.":
+    "تراها السكرتارية في الرزنامة ولا يمكنها حجزك فيها.",
+  Dashboard: "لوحة القيادة",
+  "Money, clients, requests and the team, in charts.":
+    "المال والعملاء والطلبات والفريق في رسوم بيانية.",
+  "Goals for this month": "أهداف هذا الشهر",
+  "Money by activity": "المال حسب النشاط",
+  "Top 5 programmes": "أفضل 5 دورات",
+  "New clients per week": "العملاء الجدد أسبوعيًا",
+  "The last 12 weeks.": "آخر 12 أسبوعًا.",
+  "From request to payment": "من الطلب إلى الدفع",
+  "Requests received in the period and how far they went.":
+    "الطلبات الواردة في الفترة وإلى أين وصلت.",
+  "Team workload": "عبء عمل الفريق",
+  "Consultations done and class hours in the period.":
+    "الاستشارات المنجزة وساعات الحصص في الفترة.",
+  "No consultations or classes in this period.":
+    "لا استشارات ولا حصص في هذه الفترة.",
+  "Group fill rate": "نسبة امتلاء المجموعات",
+  "No active group.": "لا مجموعة نشطة.",
+  "Present or late, out of all attendance marks.":
+    "حاضر أو متأخر من مجموع تسجيلات الحضور.",
+  "Where clients come from and what advertising brings":
+    "من أين يأتي العملاء وما يجلبه الإشهار",
+  "Advertising spent = expenses in the “Advertising” category whose “Paid to” or description names the source (e.g. Instagram).":
+    "مصاريف الإشهار = مصاريف من فئة «الإشهار» يذكر حقل «مدفوع إلى» أو الوصف فيها المصدر (مثل Instagram).",
+  "Cost per client": "التكلفة لكل عميل",
+  "Report of the week": "تقرير الأسبوع",
+  "Sent automatically by e-mail every Sunday to the director and the administrators (when e-mail is connected).":
+    "يُرسل تلقائيًا بالبريد كل أحد إلى المدير والمسؤولين (عند ربط البريد).",
+  "Sign-ins": "عمليات الدخول",
+  "Who signed in, when and from which device. Failed attempts are shown in red.":
+    "من دخل ومتى ومن أي جهاز. المحاولات الفاشلة بالأحمر.",
+  Person: "الشخص",
+  Device: "الجهاز",
+  "Used for online booking and to warn when someone is booked outside their hours. Leave all days off if this person has no fixed hours.":
+    "يُستخدم للحجز الإلكتروني وللتنبيه عند الحجز خارج الساعات. اترك كل الأيام مغلقة إذا لم يكن للشخص ساعات ثابتة.",
+  "Example: Clinical psychologist": "مثال: أخصائية نفسانية عيادية",
+  "Reason (holiday, sick…)": "السبب (عطلة، مرض…)",
+  "Put this link in your Instagram bio, WhatsApp status or website.":
+    "ضع هذا الرابط في وصف Instagram أو حالة واتساب أو موقعك.",
+  "Welcome text on the page": "نص الترحيب في الصفحة",
+  "Example: Consultations in French and Arabic, at the academy or online.":
+    "مثال: استشارات بالفرنسية والعربية، في الأكاديمية أو عن بُعد.",
+  "Minimum notice (hours)": "أقل مهلة (ساعات)",
+  "No working hours yet for:": "لا ساعات عمل بعد لـ:",
+  "Clients cannot book them until hours are set (Settings → Team).":
+    "لا يمكن للعملاء حجزهم حتى تُحدد الساعات (الإعدادات ← الفريق).",
+  "Place available": "المكان المتاح",
+  "Clients choose a service, a person and a free time themselves. You confirm each request.":
+    "يختار العملاء بأنفسهم الخدمة والشخص والوقت الشاغر. وأنت تؤكد كل طلب.",
+  "Each service has a duration and the people who provide it.":
+    "لكل خدمة مدة والأشخاص الذين يقدمونها.",
+  "Clients booked these times on the public page.":
+    "حجز العملاء هذه الأوقات من الصفحة العامة.",
+  "Tomorrow's appointments and payments due within 3 days. One tap opens WhatsApp with the message ready.":
+    "مواعيد الغد والمدفوعات المستحقة خلال 3 أيام. نقرة واحدة تفتح واتساب والرسالة جاهزة.",
+  "No appointments tomorrow and no payment due soon.":
+    "لا مواعيد غدًا ولا مدفوعات مستحقة قريبًا.",
+  "Message sent": "أُرسلت الرسالة",
+  "Communication consent is not recorded for this client.":
+    "موافقة التواصل غير مسجلة لهذا العميل.",
+  "Delete forever? This cannot be undone.": "حذف نهائي؟ لا يمكن التراجع.",
+  "Use an Excel (.xlsx) or CSV file. Old .xls files: open them in Excel and save as .xlsx.":
+    "استخدم ملف Excel ‏(.xlsx) أو CSV. ملفات .xls القديمة: افتحها في Excel واحفظها بصيغة .xlsx.",
+  "The file has no rows under the header.":
+    "لا توجد صفوف تحت العنوان في الملف.",
+  "First row = column names (Name, Phone, Email, Course…). Up to 2000 rows.":
+    "الصف الأول = أسماء الأعمدة (الاسم، الهاتف، البريد، الدورة…). حتى 2000 صف.",
+  Column: "العمود",
+  "Also create a request for rows with a course or request type":
+    "إنشاء طلب أيضًا للصفوف التي فيها دورة أو نوع طلب",
+  "They appear in Requests as “New inquiry”.": "تظهر في الطلبات كـ«طلب جديد».",
+  requests: "طلبات",
+  "rows skipped:": "صفوف متجاهلة:",
+  Row: "الصف",
+  "No templates yet": "لا قوالب بعد",
+  Director: "المدير",
+  Secretary: "السكرتارية",
+  "Teacher / Specialist": "المعلم / الأخصائي",
+  "Automatic sign-out": "الخروج التلقائي",
+  "7 days": "7 أيام",
+  "This quarter": "هذا الربع",
+  "This year": "هذه السنة",
+  Custom: "مخصص",
+  "Requests that paid": "طلبات تحولت إلى دفع",
+  "No-shows": "الغيابات",
+  Cancellations: "الإلغاءات",
+  "Average payment": "متوسط الدفعة",
+  "Forecast for this month": "توقع هذا الشهر",
+  "Set the goals": "تحديد الأهداف",
+  "Change the goals": "تعديل الأهداف",
+  Service: "الخدمة",
+  Specialist: "الأخصائي",
+  "Room or place": "القاعة أو المكان",
+  "Add to the waiting list": "إضافة إلى قائمة الانتظار",
+  "Client answers “1” to confirm or “2” to cancel: in Meta → WhatsApp → Configuration, set the webhook address to the one below, and add WHATSAPP_VERIFY_TOKEN (any secret word, the same in Meta) and WHATSAPP_APP_SECRET (Meta app secret) in Vercel. A cancelled slot is then offered to the waiting list automatically.":
+    "يرد العميل بـ«1» للتأكيد أو «2» للإلغاء: في Meta ← WhatsApp ← Configuration ضع عنوان الـWebhook أعلاه، وأضف WHATSAPP_VERIFY_TOKEN (كلمة سرية تختارها، نفسها في Meta) وWHATSAPP_APP_SECRET (سر تطبيق Meta) في Vercel. عندها يُعرض الموعد الملغى تلقائيًا على قائمة الانتظار.",
 });

@@ -29,7 +29,11 @@ import {
   CircleHelp,
   Moon,
   Sun,
+  ChartPie,
+  CalendarCheck,
+  CalendarRange,
 } from "lucide-react";
+import { Dashboard, SecretaryHome, TeacherHome, useIdleLogout } from "./roles";
 import { api, ApiError, matchesPerson, type State, type Row } from "./types";
 import { arabic, roleNames } from "./i18n";
 import { french } from "./french";
@@ -92,7 +96,10 @@ import { CampaignsPage } from "./growth";
 import Profile from "./profile";
 
 const nav = [
+  ["Today", CalendarCheck],
+  ["My week", CalendarRange],
   ["Overview", LayoutDashboard],
+  ["Dashboard", ChartPie],
   ["Admissions", Kanban],
   ["Students", Users],
   ["Calendar", CalendarDays],
@@ -102,6 +109,41 @@ const nav = [
   ["Campaigns", Megaphone],
   ["Reports", ChartNoAxesCombined],
 ] as const;
+/** Menu of each sign-in (Director, Administrator, Secretary, Teacher). */
+const navByRole: Record<string, string[]> = {
+  director: [
+    "Overview",
+    "Dashboard",
+    "Admissions",
+    "Students",
+    "Calendar",
+    "Attendance",
+    "Programs & Cohorts",
+    "Payments",
+    "Campaigns",
+    "Reports",
+  ],
+  administrator: [
+    "Dashboard",
+    "Admissions",
+    "Students",
+    "Calendar",
+    "Attendance",
+    "Programs & Cohorts",
+    "Payments",
+    "Reports",
+  ],
+  secretary: ["Today", "Calendar", "Admissions", "Students", "Payments"],
+  teacher: ["My week", "Calendar", "Attendance", "Programs & Cohorts"],
+};
+const homeFor = (role: string) =>
+  role === "administrator"
+    ? "Dashboard"
+    : role === "secretary"
+      ? "Today"
+      : role === "teacher"
+        ? "My week"
+        : "Overview";
 /** Plain names shown in the menu; page keys stay stable. */
 const navLabels: Record<string, string> = {
   Attendance: "Attendance",
@@ -166,6 +208,18 @@ export default function App() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+  const roleKind = (data?.permissions as any)?.role || "director";
+  useEffect(() => {
+    if (data) setPage(homeFor(roleKind));
+  }, [data?.user.id]);
+  useIdleLogout(Number(data?.settings.idle_minutes || 0), () => {
+    api("/logout", {})
+      .catch(() => {})
+      .finally(() => {
+        setData(null);
+        setContactId(null);
+      });
+  });
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
@@ -302,16 +356,21 @@ export default function App() {
     user,
   };
   const taskCount = data.tasks.filter((t) => t.status === "Open").length;
+  const allowed = navByRole[roleKind] || navByRole.director;
   const visibleNav = nav.filter(
     ([name]) =>
+      allowed.includes(name) &&
       !(name === "Admissions" && !data.permissions.admissions) &&
-      !(name === "Payments" && !data.permissions.finance) &&
+      !(name === "Payments" && !data.permissions.editFinance) &&
       !(name === "Attendance" && !data.permissions.attendance) &&
       !(name === "Campaigns" && !data.permissions.editAdmissions),
   );
   const title = navLabels[page] || page;
   const views: Record<string, ReactNode> = {
     Overview: <Overview period={period} setPeriod={setPeriod} />,
+    Dashboard: <Dashboard />,
+    Today: <SecretaryHome />,
+    "My week": <TeacherHome />,
     Admissions: <Admissions />,
     Students: <Students />,
     "Programs & Cohorts": <Programs />,
@@ -338,7 +397,7 @@ export default function App() {
         >
           <button
             className="brand"
-            onClick={() => go("Overview")}
+            onClick={() => go(homeFor(roleKind))}
             aria-label="Luminol Academy"
           >
             <img src="/logo-mark.png" alt="" />
@@ -417,7 +476,6 @@ export default function App() {
                 onClick={async () => {
                   await api("/logout", {});
                   setData(null);
-                  setPage("Overview");
                   setContactId(null);
                 }}
               >
@@ -456,7 +514,7 @@ export default function App() {
                 </kbd>
               </button>
               <button
-                className="icon-button"
+                className="icon-button help-button"
                 aria-label={t("How this page works")}
                 title={t("How this page works")}
                 onClick={() => open({ type: "help", extra: page })}
@@ -570,15 +628,21 @@ export default function App() {
                   {t("New client request")}
                 </button>
               )}
-              {["admin", "admissions", "academic"].includes(data.user.role) && (
+              {["admin", "admissions", "academic", "manager"].includes(
+                data.user.role,
+              ) && (
                 <button onClick={() => open({ type: "client" })}>
                   <Users size={17} />
                   {t("Add client")}
                 </button>
               )}
-              {["admin", "admissions", "academic", "instructor"].includes(
-                data.user.role,
-              ) && (
+              {[
+                "admin",
+                "admissions",
+                "academic",
+                "instructor",
+                "manager",
+              ].includes(data.user.role) && (
                 <button onClick={() => open({ type: "appointment" })}>
                   <CalendarDays size={17} />
                   {t("Add to calendar")}

@@ -1471,3 +1471,158 @@ Object.assign(french, {
   Copied: "Copié",
   "Select the text and copy it.": "Sélectionnez le texte et copiez-le.",
 });
+
+// Roles, home screens, dashboard and earlier untranslated texts
+Object.assign(french, {
+  "Language / Langue / اللغة": "Langue / اللغة / Language",
+  "Luminol Academy": "Luminol Academy",
+  To: "Au",
+  "Langue / اللغة / Language": "Langue / اللغة / Language",
+  Never: "Jamais",
+  "minutes without activity": "minutes sans activité",
+  "n8n sends new inquiries to the CRM intake endpoint. Configure the same dedicated token in Vercel and the n8n Bearer Auth credential. Incoming inquiries create review tasks; choose their program and advisor in Admissions.":
+    "n8n envoie les nouvelles demandes à l’adresse de réception de la CRM. Mettez le même jeton dans Vercel et dans l’identifiant Bearer Auth de n8n. Chaque demande reçue crée une tâche de vérification ; choisissez la formation et le conseiller dans Demandes.",
+  "Useful on the reception computer: the CRM closes itself when nobody uses it.":
+    "Utile sur l’ordinateur de l’accueil : la CRM se ferme seule quand personne ne l’utilise.",
+  "Example: SARL Luminol Academy": "Exemple : SARL Luminol Academy",
+  "Addresses to give to the services": "Adresses à donner aux services",
+  "Forms (Google Forms, Tally, n8n)": "Formulaires (Google Forms, Tally, n8n)",
+  "WhatsApp replies (Meta webhook)": "Réponses WhatsApp (webhook Meta)",
+  "Online payments (Chargily webhook)": "Paiements en ligne (webhook Chargily)",
+  "Lesson materials": "Supports de cours",
+  "Confirmed by the client": "Confirmé par le client",
+  Arrived: "Arrivé",
+  "Cancel this appointment?": "Annuler ce rendez-vous ?",
+  "Next session": "Prochaine séance",
+  "Phone booking": "Rendez-vous par téléphone",
+  "New client": "Nouveau client",
+  "Take a payment": "Encaisser un paiement",
+  "New requests": "Nouvelles demandes",
+  "Open the calendar": "Ouvrir l’agenda",
+  "Added to the waiting list": "Ajouté à la liste d’attente",
+  "Booked by phone": "Réservé par téléphone",
+  "Appointment booked": "Rendez-vous enregistré",
+  "Client already in the CRM:": "Client déjà dans la CRM :",
+  Anyone: "N’importe qui",
+  "No free slot: put the client on the waiting list instead (the first freed slot will be offered).":
+    "Pas de créneau libre : mettre le client sur la liste d’attente (le premier créneau libéré lui sera proposé).",
+  "Nobody is waiting. Tick “waiting list” in a phone booking to add someone.":
+    "Personne n’attend. Cochez « liste d’attente » dans un rendez-vous par téléphone pour ajouter quelqu’un.",
+  Offered: "Proposé",
+  "Offer a slot": "Proposer un créneau",
+  Book: "Réserver",
+  Remove: "Retirer",
+  "Consultations done this month": "Consultations faites ce mois-ci",
+  "Class hours this month": "Heures de cours ce mois-ci",
+  "Active groups": "Groupes actifs",
+  "Join online": "Rejoindre en ligne",
+  "Take attendance": "Faire l’appel",
+  "Saved. Appointments already booked those days:":
+    "Enregistré. Rendez-vous déjà prévus ces jours-là :",
+  Reason: "Motif",
+  Add: "Ajouter",
+  "No students yet.": "Pas encore d’élèves.",
+  "Students see these links in their client space.":
+    "Les élèves voient ces liens dans leur espace client.",
+  "Material added": "Support ajouté",
+  "Lesson 3 — PDF": "Leçon 3 — PDF",
+  "Link (Google Drive, PDF, video…)": "Lien (Google Drive, PDF, vidéo…)",
+  Unknown: "Inconnu",
+  consultations: "consultations",
+  Indicator: "Indicateur",
+  Value: "Valeur",
+  "Paying clients": "Clients payants",
+  "Advertising spent": "Dépense publicitaire",
+  "Money in goal": "Objectif d’entrées",
+  "New clients goal": "Objectif de nouveaux clients",
+  "No goal yet. Example: 300 000 DA and 20 new clients this month.":
+    "Pas encore d’objectif. Exemple : 300 000 DA et 20 nouveaux clients ce mois-ci.",
+  "Goal reached": "Objectif atteint",
+  Copy: "Copier",
+  "Send on WhatsApp": "Envoyer sur WhatsApp",
+  "E-mail is not connected yet.": "L’e-mail n’est pas encore connecté.",
+  "e-mails sent": "e-mails envoyés",
+  "Send by e-mail now": "Envoyer par e-mail maintenant",
+  "Loading…": "Chargement…",
+  "Signed in": "Connecté",
+  "Wrong password": "Mauvais mot de passe",
+  "Today at the academy": "Aujourd’hui à l’académie",
+  "Appointments, phone bookings, new requests and payments.":
+    "Rendez-vous, réservations par téléphone, nouvelles demandes et paiements.",
+  "Today and tomorrow": "Aujourd’hui et demain",
+  "Mark arrivals and no-shows; a cancelled slot is offered to the waiting list.":
+    "Notez les arrivées et les absences ; un créneau annulé est proposé à la liste d’attente.",
+  "No appointments today or tomorrow":
+    "Aucun rendez-vous aujourd’hui ni demain",
+  "Use “Phone booking” to add one.":
+    "Utilisez « Rendez-vous par téléphone » pour en ajouter un.",
+  "Book the next session": "Planifier la prochaine séance",
+  "Consultations done in the last 3 weeks with no next appointment.":
+    "Consultations faites ces 3 dernières semaines sans rendez-vous suivant.",
+  "Waiting list for appointments": "Liste d’attente des rendez-vous",
+  "When an appointment is cancelled, a task tells you who to call first.":
+    "Quand un rendez-vous est annulé, une tâche vous dit qui appeler en premier.",
+  "My week": "Ma semaine",
+  "Your consultations and classes, your groups and your days off.":
+    "Vos consultations et cours, vos groupes et vos congés.",
+  "My schedule": "Mon planning",
+  "Nothing planned": "Rien de prévu",
+  "Enjoy the free time.": "Profitez du temps libre.",
+  "My days off": "Mes congés",
+  "The secretary sees them in the calendar and cannot book you then.":
+    "La secrétaire les voit dans l’agenda et ne peut pas vous réserver ces jours-là.",
+  Dashboard: "Tableau de bord",
+  "Money, clients, requests and the team, in charts.":
+    "L’argent, les clients, les demandes et l’équipe, en graphiques.",
+  "Goals for this month": "Objectifs du mois",
+  "Money by activity": "Argent par activité",
+  "Top 5 programmes": "Top 5 des formations",
+  "New clients per week": "Nouveaux clients par semaine",
+  "The last 12 weeks.": "Les 12 dernières semaines.",
+  "From request to payment": "De la demande au paiement",
+  "Requests received in the period and how far they went.":
+    "Demandes reçues sur la période et jusqu’où elles sont allées.",
+  "Team workload": "Charge de l’équipe",
+  "Consultations done and class hours in the period.":
+    "Consultations faites et heures de cours sur la période.",
+  "No consultations or classes in this period.":
+    "Aucune consultation ni cours sur cette période.",
+  "Group fill rate": "Remplissage des groupes",
+  "No active group.": "Aucun groupe actif.",
+  "Present or late, out of all attendance marks.":
+    "Présents ou en retard, sur toutes les présences notées.",
+  "Where clients come from and what advertising brings":
+    "D’où viennent les clients et ce que rapporte la publicité",
+  "Advertising spent = expenses in the “Advertising” category whose “Paid to” or description names the source (e.g. Instagram).":
+    "Dépense publicitaire = dépenses de catégorie « Publicité » dont « Payé à » ou la description cite la source (ex. Instagram).",
+  "Cost per client": "Coût par client",
+  "Report of the week": "Rapport de la semaine",
+  "Sent automatically by e-mail every Sunday to the director and the administrators (when e-mail is connected).":
+    "Envoyé automatiquement par e-mail chaque dimanche au directeur et aux administrateurs (quand l’e-mail est connecté).",
+  "Sign-ins": "Connexions",
+  "Who signed in, when and from which device. Failed attempts are shown in red.":
+    "Qui s’est connecté, quand et depuis quel appareil. Les échecs sont en rouge.",
+  Person: "Personne",
+  Device: "Appareil",
+  Director: "Directeur",
+  Secretary: "Secrétaire",
+  "Teacher / Specialist": "Enseignant / Spécialiste",
+  "Automatic sign-out": "Déconnexion automatique",
+  "7 days": "7 jours",
+  "This quarter": "Ce trimestre",
+  "This year": "Cette année",
+  Custom: "Personnalisé",
+  "Requests that paid": "Demandes devenues payantes",
+  "No-shows": "Absences",
+  Cancellations: "Annulations",
+  "Average payment": "Paiement moyen",
+  "Forecast for this month": "Prévision du mois",
+  "Set the goals": "Définir les objectifs",
+  "Change the goals": "Modifier les objectifs",
+  Service: "Service",
+  Specialist: "Spécialiste",
+  "Room or place": "Salle ou lieu",
+  "Add to the waiting list": "Ajouter à la liste d’attente",
+  "Client answers “1” to confirm or “2” to cancel: in Meta → WhatsApp → Configuration, set the webhook address to the one below, and add WHATSAPP_VERIFY_TOKEN (any secret word, the same in Meta) and WHATSAPP_APP_SECRET (Meta app secret) in Vercel. A cancelled slot is then offered to the waiting list automatically.":
+    "Le client répond « 1 » pour confirmer ou « 2 » pour annuler : dans Meta → WhatsApp → Configuration, mettez l’adresse webhook ci-dessus, et ajoutez WHATSAPP_VERIFY_TOKEN (un mot secret au choix, le même dans Meta) et WHATSAPP_APP_SECRET (secret de l’application Meta) dans Vercel. Un créneau annulé est alors proposé automatiquement à la liste d’attente.",
+});

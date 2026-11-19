@@ -137,7 +137,7 @@ export default function Profile({
             </Button>
           </>
         )}
-        {["admin", "admissions", "academic", "instructor"].includes(
+        {["admin", "admissions", "academic", "instructor", "manager"].includes(
           data.user.role,
         ) && (
           <Button
@@ -155,7 +155,9 @@ export default function Profile({
             {t("WhatsApp message")}
           </Button>
         )}
-        {["admin", "admissions", "academic"].includes(data.user.role) && (
+        {["admin", "admissions", "academic", "manager"].includes(
+          data.user.role,
+        ) && (
           <Button
             icon={<UserRound size={15} />}
             onClick={() => open({ type: "portal", contact })}
@@ -163,7 +165,7 @@ export default function Profile({
             {t("Client space")}
           </Button>
         )}
-        {["admin", "admissions", "academic", "instructor"].includes(
+        {["admin", "admissions", "academic", "instructor", "manager"].includes(
           data.user.role,
         ) && (
           <Button
@@ -213,9 +215,13 @@ export default function Profile({
                         : t("Outstanding balance")}
                     </p>
                   </div>
-                  {["admin", "academic", "instructor", "finance"].includes(
-                    data.user.role,
-                  ) && (
+                  {[
+                    "admin",
+                    "academic",
+                    "instructor",
+                    "finance",
+                    "manager",
+                  ].includes(data.user.role) && (
                     <Button
                       variant="small"
                       onClick={() => open({ type: "flag", contact, extra: f })}
@@ -228,7 +234,7 @@ export default function Profile({
             <div className="profile-section">
               <div className="section-label">
                 <h3>{t("Contact details")}</h3>
-                {["admin", "admissions", "academic"].includes(
+                {["admin", "admissions", "academic", "manager"].includes(
                   data.user.role,
                 ) && (
                   <button
@@ -691,7 +697,9 @@ export default function Profile({
           <>
             <div className="section-label">
               <h3>{t("Documents")}</h3>
-              {["admin", "admissions", "academic"].includes(data.user.role) && (
+              {["admin", "admissions", "academic", "manager"].includes(
+                data.user.role,
+              ) && (
                 <Button
                   variant="small"
                   icon={<Upload size={15} />}
@@ -725,7 +733,7 @@ export default function Profile({
                     </small>
                   </span>
                   <Download size={18} />
-                  {["admin", "admissions", "academic"].includes(
+                  {["admin", "admissions", "academic", "manager"].includes(
                     data.user.role,
                   ) && (
                     <button

@@ -14,6 +14,7 @@ import {
   now,
   chargeRows,
 } from "./db.mjs";
+import { sendMail, mailConfigured } from "./security.mjs";
 
 const fail = (message, status = 400, extra = {}) => {
   throw Object.assign(new Error(message), { status, extra });
@@ -395,7 +396,9 @@ export function installPublicIntegrations(app, { isHosted }) {
       const secret = process.env.CRON_SECRET;
       if (!secret || req.headers.authorization !== `Bearer ${secret}`)
         return res.status(401).json({ error: "Unauthorized." });
-      res.json(await runDailyMessages(null));
+      const messages = await runDailyMessages(null);
+      const weekly = await sendWeeklyReport();
+      res.json({ ...messages, weekly });
     } catch (e) {
       next(e);
     }
@@ -437,6 +440,10 @@ export function installPublicIntegrations(app, { isHosted }) {
             cohort: e.cohort,
             program: e.program,
             room: e.room,
+            materials: all(
+              "SELECT title, url FROM cohort_materials WHERE cohort_id=? ORDER BY id",
+              e.cohort_id,
+            ),
             sessions: all(
               "SELECT title,starts_at,ends_at,room FROM sessions WHERE cohort_id=? AND status='Scheduled' AND ends_at>? ORDER BY starts_at LIMIT 8",
               e.cohort_id,
@@ -544,5 +551,238 @@ export function installPublicIntegrations(app, { isHosted }) {
     } catch (e) {
       next(e);
     }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Freed slots, weekly report and WhatsApp replies ("1" confirm / "2" cancel)
+// ---------------------------------------------------------------------------
+const firstAdmin = () =>
+  one(
+    "SELECT id FROM users WHERE role='admin' AND active=1 ORDER BY id LIMIT 1",
+  )?.id;
+
+/** When an appointment is cancelled, offer the slot to the waiting list. */
+export function slotFreed(appointment, userId) {
+  const waiting = all(
+    `SELECT w.*, c.name FROM appointment_waitlist w JOIN contacts c ON c.id=w.contact_id
+     WHERE w.status='Waiting' AND (w.staff_id IS NULL OR w.staff_id=?)
+     ORDER BY w.created_at LIMIT 3`,
+    appointment.staff_id ?? 0,
+  );
+  if (!waiting.length) return 0;
+  const owner =
+    one(
+      "SELECT id FROM users WHERE role='admissions' AND active=1 ORDER BY id LIMIT 1",
+    )?.id ||
+    userId ||
+    firstAdmin();
+  const when = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: one("SELECT timezone FROM settings WHERE id=1").timezone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(appointment.starts_at));
+  insert("tasks", {
+    contact_id: waiting[0].contact_id,
+    owner_id: owner,
+    title:
+      `Créneau libéré (${when}, ${appointment.title}) : proposer à ${waiting
+        .map((w) => w.name)
+        .join(", ")} — liste d'attente`.slice(0, 500),
+    due_at: now(),
+    priority: "High",
+    status: "Open",
+    created_at: now(),
+  });
+  return waiting.length;
+}
+
+/** Figures of the last 7 days (academy time zone), as text and numbers. */
+export function weeklyReport() {
+  const settings = one("SELECT * FROM settings WHERE id=1");
+  const end = new Date();
+  const start = new Date(end.getTime() - 7 * 86400000).toISOString();
+  const sum = (sql, ...p) => one(sql, ...p).n || 0;
+  const received =
+    sum(
+      "SELECT COALESCE(SUM(p.amount),0) n FROM payments p JOIN charges c ON c.id=p.charge_id WHERE p.created_at>=? AND c.currency=?",
+      start,
+      settings.currency,
+    ) +
+    sum(
+      "SELECT COALESCE(SUM(amount),0) n FROM expenses WHERE direction='in' AND spent_on>=? AND currency=?",
+      start.slice(0, 10),
+      settings.currency,
+    ) -
+    sum(
+      "SELECT COALESCE(SUM(r.amount),0) n FROM refunds r WHERE r.created_at>=?",
+      start,
+    );
+  const spent = sum(
+    "SELECT COALESCE(SUM(amount),0) n FROM expenses WHERE direction<>'in' AND spent_on>=? AND currency=?",
+    start.slice(0, 10),
+    settings.currency,
+  );
+  const count = (sql, ...p) => one(sql, ...p).n;
+  const figures = {
+    received,
+    spent,
+    result: received - spent,
+    newClients: count(
+      "SELECT COUNT(*) n FROM contacts WHERE created_at>=?",
+      start,
+    ),
+    newRequests: count(
+      "SELECT COUNT(*) n FROM opportunities WHERE created_at>=?",
+      start,
+    ),
+    done: count(
+      "SELECT COUNT(*) n FROM appointments WHERE status='Done' AND starts_at>=? AND starts_at<?",
+      start,
+      end.toISOString(),
+    ),
+    noShow: count(
+      "SELECT COUNT(*) n FROM appointments WHERE status='No-show' AND starts_at>=? AND starts_at<?",
+      start,
+      end.toISOString(),
+    ),
+    cancelled: count(
+      "SELECT COUNT(*) n FROM appointments WHERE status='Cancelled' AND starts_at>=? AND starts_at<?",
+      start,
+      end.toISOString(),
+    ),
+  };
+  const money = (v) =>
+    `${new Intl.NumberFormat("fr-FR").format(Math.round(v / 100))} ${settings.currency === "DZD" ? "DA" : settings.currency}`;
+  const text = [
+    `${settings.academy} — semaine du ${start.slice(0, 10)} au ${end.toISOString().slice(0, 10)}`,
+    `Encaissé : ${money(figures.received)}`,
+    `Dépensé : ${money(figures.spent)}`,
+    `Résultat : ${money(figures.result)}`,
+    `Nouveaux clients : ${figures.newClients} · Nouvelles demandes : ${figures.newRequests}`,
+    `Rendez-vous faits : ${figures.done} · Absents : ${figures.noShow} · Annulés : ${figures.cancelled}`,
+  ].join("\n");
+  return { figures, text };
+}
+
+/** On Sundays, e-mail the weekly report to the director and administrators. */
+export async function sendWeeklyReport(force = false) {
+  const zone = one("SELECT timezone FROM settings WHERE id=1").timezone;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(
+    new Date(),
+  );
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    weekday: "short",
+  }).format(new Date());
+  const last = one(
+    "SELECT value FROM meta WHERE key='weekly_report_last'",
+  )?.value;
+  if (!force && (weekday !== "Sun" || last === today))
+    return { sent: 0, skipped: true };
+  if (!mailConfigured()) return { sent: 0, configured: false };
+  const { text } = weeklyReport();
+  let sent = 0;
+  for (const u of all(
+    "SELECT email FROM users WHERE active=1 AND role IN ('admin','manager') AND email NOT LIKE '%.local'",
+  )) {
+    try {
+      await sendMail(u.email, "Rapport de la semaine — Luminol Academy", text);
+      sent++;
+    } catch {
+      /* one failed address does not stop the others */
+    }
+  }
+  run(
+    "INSERT INTO meta (key,value) VALUES ('weekly_report_last',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+    today,
+  );
+  return { sent };
+}
+
+/** A client answered a reminder on WhatsApp: "1" confirms, "2" cancels. */
+export function whatsappReply(from, body) {
+  const answer = String(body || "").trim();
+  if (!/^[12]\b/.test(answer)) return { handled: false };
+  const digits = String(from || "").replace(/\D/g, "");
+  if (digits.length < 8) return { handled: false };
+  const tail = digits.slice(-9);
+  const contact = all(
+    "SELECT id, phone, name FROM contacts WHERE phone<>''",
+  ).find((c) => c.phone.replace(/\D/g, "").endsWith(tail));
+  if (!contact) return { handled: false };
+  const nowIso = new Date().toISOString();
+  const week = new Date(Date.now() + 7 * 86400000).toISOString();
+  const a = one(
+    `SELECT * FROM appointments WHERE contact_id=? AND status IN ('Scheduled','Pending')
+     AND starts_at>? AND starts_at<? ORDER BY starts_at LIMIT 1`,
+    contact.id,
+    nowIso,
+    week,
+  );
+  if (!a) return { handled: false };
+  const by = firstAdmin();
+  return transaction(() => {
+    if (answer.startsWith("1")) {
+      run("UPDATE appointments SET confirmed_at=? WHERE id=?", nowIso, a.id);
+      audit(
+        by,
+        contact.id,
+        `Rendez-vous confirmé par WhatsApp : ${a.title}.`,
+        "appointment",
+      );
+      return { handled: true, confirmed: a.id };
+    }
+    run("UPDATE appointments SET status='Cancelled' WHERE id=?", a.id);
+    audit(
+      by,
+      contact.id,
+      `Rendez-vous annulé par le client sur WhatsApp : ${a.title}.`,
+      "appointment",
+    );
+    slotFreed(a, null);
+    return { handled: true, cancelled: a.id };
+  });
+}
+
+export function installWhatsAppWebhook(app) {
+  // Meta checks the address once with a verify token.
+  app.get("/api/integrations/whatsapp/webhook", (req, res) => {
+    const token = process.env.WHATSAPP_VERIFY_TOKEN || "";
+    if (
+      token &&
+      req.query["hub.mode"] === "subscribe" &&
+      req.query["hub.verify_token"] === token
+    )
+      return res
+        .type("text/plain")
+        .send(String(req.query["hub.challenge"] || ""));
+    res.status(403).json({ error: "Forbidden." });
+  });
+  // Incoming messages, signed by Meta with the app secret.
+  app.post("/api/integrations/whatsapp/webhook", (req, res) => {
+    const secret = process.env.WHATSAPP_APP_SECRET || "";
+    const given = String(req.headers["x-hub-signature-256"] || "");
+    const expected =
+      "sha256=" +
+      createHmac("sha256", secret)
+        .update(req.rawBody || "")
+        .digest("hex");
+    if (
+      !secret ||
+      given.length !== expected.length ||
+      !timingSafeEqual(Buffer.from(given), Buffer.from(expected))
+    )
+      return res.status(403).json({ error: "Invalid signature." });
+    const results = [];
+    for (const entry of req.body?.entry || [])
+      for (const change of entry.changes || [])
+        for (const m of change.value?.messages || [])
+          if (m.type === "text")
+            results.push(whatsappReply(m.from, m.text?.body));
+    res.json({ ok: true, results });
   });
 }

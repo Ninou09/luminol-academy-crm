@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { useApp } from "./context";
 import { FinanceDashboard } from "./finance";
+import { LoginJournal } from "./roles";
 import {
   Button,
   Badge,
@@ -902,7 +903,9 @@ export function Admissions() {
           >
             <option value="">{t("All advisors")}</option>
             {data.users
-              .filter((u) => ["admin", "admissions"].includes(u.role))
+              .filter((u) =>
+                ["admin", "admissions", "manager"].includes(u.role),
+              )
               .map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -1310,7 +1313,9 @@ export function Students() {
         >
           {t("Export CSV")}
         </Button>
-        {["admin", "admissions", "academic"].includes(data.user.role) && (
+        {["admin", "admissions", "academic", "manager"].includes(
+          data.user.role,
+        ) && (
           <Button
             variant="primary"
             icon={<UserPlus size={17} />}
@@ -1855,15 +1860,19 @@ export function Payments() {
       </div>
       <div className="page-tabs">
         <Tabs
-          tabs={[
-            "Financial analytics",
-            "All charges",
-            "Payment history",
-            "Cash book",
-            "Expenses",
-            "Who owes what",
-            "Pay",
-          ]}
+          tabs={
+            data.permissions.expenses
+              ? [
+                  "Financial analytics",
+                  "All charges",
+                  "Payment history",
+                  "Cash book",
+                  "Expenses",
+                  "Who owes what",
+                  "Pay",
+                ]
+              : ["All charges", "Payment history", "Cash book", "Who owes what"]
+          }
           value={tab}
           onChange={setTab}
         />
@@ -2376,6 +2385,12 @@ export function SettingsPage() {
                     data.settings.language
                   ] || "English",
                 ],
+                [
+                  "Automatic sign-out",
+                  data.settings.idle_minutes
+                    ? `${data.settings.idle_minutes} ${t("minutes without activity")}`
+                    : t("Never"),
+                ],
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt>{t(label)}</dt>
@@ -2708,7 +2723,10 @@ export function SettingsPage() {
           </Panel>
         </div>
       ) : tab === "Journal" ? (
-        <JournalPanel />
+        <>
+          <JournalPanel />
+          {data.permissions.admin && <LoginJournal />}
+        </>
       ) : tab === "Online booking" ? (
         <BookingSettingsPanel />
       ) : tab === "Message templates" ? (

@@ -1019,6 +1019,7 @@ export function IntegrationGuide() {
         "Create a message template and wait for Meta's approval.",
         "Add WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and WHATSAPP_TEMPLATE in Vercel, plus CRON_SECRET for the daily reminders. Redeploy.",
         "Meta charges a small fee per conversation.",
+        "Client answers “1” to confirm or “2” to cancel: in Meta → WhatsApp → Configuration, set the webhook address to the one below, and add WHATSAPP_VERIFY_TOKEN (any secret word, the same in Meta) and WHATSAPP_APP_SECRET (Meta app secret) in Vercel. A cancelled slot is then offered to the waiting list automatically.",
       ],
     },
     {
@@ -1041,8 +1042,28 @@ export function IntegrationGuide() {
       ],
     },
   ];
+  const hook = `${origin}/api/integrations/whatsapp/webhook`;
   return (
     <div className="integration-guide">
+      <div className="panel integration-how">
+        <div className="integration-how-head">
+          <h2>{t("Addresses to give to the services")}</h2>
+        </div>
+        <ul className="integration-urls">
+          <li>
+            <span>{t("Forms (Google Forms, Tally, n8n)")}</span>
+            <code>{origin}/api/integrations/n8n/inquiries</code>
+          </li>
+          <li>
+            <span>{t("WhatsApp replies (Meta webhook)")}</span>
+            <code>{hook}</code>
+          </li>
+          <li>
+            <span>{t("Online payments (Chargily webhook)")}</span>
+            <code>{origin}/api/integrations/chargily/webhook</code>
+          </li>
+        </ul>
+      </div>
       {cards.map((c) => (
         <div key={c.title} className="panel integration-how">
           <div className="integration-how-head">

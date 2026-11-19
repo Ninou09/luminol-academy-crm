@@ -57,7 +57,7 @@ before(async () => {
       "",
     )
   ).cookie;
-  psy = (await request("/users", { name: "Dr. Booking", role: "academic" }))
+  psy = (await request("/users", { name: "Dr. Booking", role: "instructor" }))
     .json.id;
   const ranges = [0, 1, 2, 3, 4, 5, 6].flatMap((weekday) => [
     { weekday, start_min: 9 * 60, end_min: 12 * 60 },

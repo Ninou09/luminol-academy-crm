@@ -194,7 +194,10 @@ export default function Forms({
               const day = modal.extra?.day || data.today;
               const start = modal.extra?.time || "10:00";
               const [h, m] = start.split(":").map(Number);
-              const endMin = Math.min(h * 60 + m + 60, 23 * 60 + 59);
+              const endMin = Math.min(
+                h * 60 + m + Number(modal.extra?.minutes || 60),
+                23 * 60 + 59,
+              );
               const end = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
               const pack = c
                 ? (data.packages || []).find(
@@ -208,11 +211,11 @@ export default function Forms({
                 kind: modal.extra?.kind || "Psychology consultation",
                 title: modal.extra?.title || (pack ? pack.title : ""),
                 contact_id: c?.id || "",
-                staff_id: data.user.id,
+                staff_id: modal.extra?.staff_id || data.user.id,
                 package_id: pack?.id || "",
                 starts_at: `${day}T${start}`,
                 ends_at: `${day}T${end}`,
-                location: "",
+                location: modal.extra?.location || "",
                 notes: "",
                 status: "Scheduled",
                 repeat: 1,
@@ -427,7 +430,7 @@ export default function Forms({
           vat_rate: String(data.settings.vat_rate ?? 0),
         };
       case "settings":
-        return { ...r };
+        return { ...r, idle_minutes: String(r.idle_minutes ?? 0) };
       case "flag":
         return { reason: "" };
       case "draft":
@@ -484,7 +487,7 @@ export default function Forms({
   };
   const activeUsers = data.users.filter((u) => u.active !== 0);
   const staffOptions = activeUsers
-    .filter((u) => ["admin", "admissions"].includes(u.role))
+    .filter((u) => ["admin", "admissions", "manager"].includes(u.role))
     .map((u) => [u.id, u.name] as [number, string]);
   const suggestions = {
     service: unique([
@@ -693,7 +696,7 @@ export default function Forms({
       sessionNoteField =
         !!r.id &&
         !!r.contact_id &&
-        ["admin", "academic", "instructor", "admissions"].includes(
+        ["admin", "academic", "instructor", "admissions", "manager"].includes(
           data.user.role,
         );
       fields = [
@@ -1233,6 +1236,21 @@ export default function Forms({
             ["en", "English"],
           ],
           { full: true },
+        ),
+        select(
+          "idle_minutes",
+          "Automatic sign-out",
+          [
+            ["0", t("Never")],
+            ["15", `15 ${t("minutes without activity")}`],
+            ["30", `30 ${t("minutes without activity")}`],
+            ["60", `60 ${t("minutes without activity")}`],
+            ["120", `120 ${t("minutes without activity")}`],
+          ],
+          {
+            full: true,
+            hint: "Useful on the reception computer: the CRM closes itself when nobody uses it.",
+          },
         ),
       ];
       break;
@@ -1884,6 +1902,7 @@ export default function Forms({
           break;
         case "settings":
           path = "/settings";
+          body = { ...values, idle_minutes: Number(values.idle_minutes || 0) };
           break;
         case "flag":
           path = "/flags/resolve";
@@ -2194,7 +2213,9 @@ export default function Forms({
                 {t("Edit")}
               </Button>
             )}
-            {["admin", "academic", "instructor"].includes(data.user.role) && (
+            {["admin", "academic", "instructor", "manager"].includes(
+              data.user.role,
+            ) && (
               <Button
                 variant="small"
                 onClick={() => open({ type: "grades", record: r })}

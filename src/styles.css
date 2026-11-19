@@ -7254,3 +7254,295 @@ html[data-theme="dark"] .welcome-banner img {
   font-size: inherit;
   white-space: pre;
 }
+/* Role home screens ------------------------------------------------------ */
+.quick-actions {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  margin-bottom: 16px;
+}
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line, #e3e8e4);
+  background: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand-900, #0b3b34);
+  cursor: pointer;
+  text-align: start;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.quick-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px #0b3b3418;
+}
+.quick-action svg {
+  color: #00897a;
+  flex: none;
+}
+.today-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 4px 6px;
+}
+.today-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line, #e3e8e4);
+  border-radius: 12px;
+  background: #fff;
+}
+.today-time {
+  display: grid;
+  min-width: 64px;
+}
+.today-time strong {
+  font-size: 18px;
+}
+.today-time small,
+.today-main small {
+  color: var(--muted, #5f6f68);
+}
+.today-main {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.today-main strong {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.today-row .row-actions {
+  flex-wrap: wrap;
+}
+.teacher-stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  margin-bottom: 16px;
+}
+.week-day h3 {
+  font-size: 15px;
+  margin: 14px 4px 8px;
+  text-transform: capitalize;
+}
+.group-card {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  padding: 0 4px 6px;
+}
+.group-card h3 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+.student-list,
+.material-list,
+.integration-urls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.student-list li,
+.material-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f6f8f7;
+}
+.material-list a {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.integration-urls li {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.integration-urls code {
+  direction: ltr;
+  word-break: break-all;
+  background: #f1f5f3;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 0 4px 12px;
+}
+.inline-form .field {
+  flex: 1 1 170px;
+  margin: 0;
+}
+.check-field {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+}
+.check-field input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin-top: 2px;
+  flex: none;
+}
+.dashboard {
+  display: grid;
+  gap: 16px;
+}
+.dashboard > *,
+.dashboard .finance-split > * {
+  min-width: 0;
+}
+.dashboard .page-heading {
+  margin-bottom: 0;
+}
+.dashboard-kpis .finance-kpi strong {
+  font-size: 22px;
+}
+.goal-list {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  padding: 0 4px 8px;
+}
+.goal > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+}
+.goal-track {
+  height: 12px;
+  border-radius: 6px;
+}
+.goal-track i {
+  border-radius: 6px;
+}
+.weekly-report {
+  white-space: pre-wrap;
+  font-family: inherit;
+  background: #f6f8f7;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 0 4px 12px;
+  line-height: 1.6;
+}
+.mini-chart .finance-chart svg {
+  height: 190px;
+}
+.portal-sub {
+  font-size: 15px;
+  margin: 14px 0 6px;
+}
+@media print {
+  .sidebar,
+  .topbar,
+  .quick-create,
+  .finance-toolbar,
+  .heading-actions,
+  .mobile-menu {
+    display: none !important;
+  }
+  .main-shell {
+    margin: 0 !important;
+  }
+}
+.dashboard .segmented,
+.page .segmented,
+.panel .segmented {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dashboard .segmented button,
+.panel .segmented button {
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .dashboard-kpis,
+  .teacher-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-kpis .finance-kpi,
+  .teacher-stats .finance-kpi {
+    padding: 12px;
+  }
+  .dashboard-kpis .finance-kpi strong,
+  .teacher-stats .finance-kpi strong {
+    font-size: 18px;
+  }
+  .today-row .row-actions {
+    width: 100%;
+  }
+  .quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .quick-action {
+    font-size: 14px;
+    min-height: 56px;
+  }
+}
+@media (max-width: 760px) {
+  .finance-toolbar .segmented {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+/* Phone top bar: the title shrinks so every icon stays on screen. */
+@media (max-width: 760px) {
+  .topbar {
+    min-width: 0;
+    gap: 6px;
+  }
+  .topbar .breadcrumbs {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+  .topbar .breadcrumbs * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 2px;
+  }
+  .topbar-actions .icon-button {
+    width: 36px;
+    min-width: 36px;
+  }
+}
+@media (max-width: 420px) {
+  .topbar-actions > .icon-button[aria-label="Aide"],
+  .topbar-actions > .icon-button.help-button {
+    display: none;
+  }
+}

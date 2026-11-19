@@ -1,7 +1,7 @@
 export type Row = { id: number; [key: string]: any };
 export type State = {
   user: Row;
-  permissions: Record<string, boolean>;
+  permissions: Record<string, any>;
   settings: Row;
   stages: string[];
   contacts: Row[];
@@ -50,6 +50,10 @@ export type State = {
   drafts: Row[];
   automations: Row[];
   savedViews: Row[];
+  appointmentWaitlist?: Row[];
+  goals?: Row[];
+  materials?: Row[];
+  loginEvents?: Row[];
   flags: any[];
   demo: boolean;
   hosted?: boolean;

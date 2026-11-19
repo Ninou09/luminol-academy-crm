@@ -19,6 +19,10 @@ import {
   originOf,
   newToken,
   tokenHash,
+  installWhatsAppWebhook,
+  slotFreed,
+  weeklyReport,
+  sendWeeklyReport,
 } from "./integrations.mjs";
 import {
   installPasswordRecovery,
@@ -130,6 +134,9 @@ function instant(v, name) {
   return new Date(v).toISOString();
 }
 const canFinance = (u) => ["admin", "finance", "manager"].includes(u.role);
+// Payments and receipts: director, administrator and secretary.
+const canTakePayments = (u) =>
+  ["admin", "finance", "manager", "admissions"].includes(u.role);
 const canAdmissions = (u) =>
   ["admin", "admissions", "manager"].includes(u.role);
 const canAcademic = (u) =>
@@ -138,19 +145,35 @@ const permissions = (u) => ({
   admissions: canAdmissions(u),
   finance: canFinance(u),
   academic: canAcademic(u),
-  editAdmissions: ["admin", "admissions"].includes(u.role),
-  editAcademic: ["admin", "academic"].includes(u.role),
-  editFinance: ["admin", "finance"].includes(u.role),
-  attendance: ["admin", "academic", "instructor"].includes(u.role),
+  editAdmissions: ["admin", "admissions", "manager"].includes(u.role),
+  editAcademic: ["admin", "academic", "manager"].includes(u.role),
+  editFinance: canTakePayments(u),
+  expenses: ["admin", "finance", "manager"].includes(u.role),
+  attendance: ["admin", "academic", "instructor", "manager"].includes(u.role),
   admin: u.role === "admin",
-  write: u.role !== "manager",
+  write: true,
+  role: roleKind(u.role),
 });
+/** The four sign-ins shown in the interface. */
+function roleKind(role) {
+  return role === "admin" || role === "finance"
+    ? "director"
+    : role === "manager" || role === "academic"
+      ? "administrator"
+      : role === "admissions"
+        ? "secretary"
+        : "teacher";
+}
 function allow(req, roles) {
-  must(
-    roles.includes(req.user.role),
-    "Your role does not have access to this action.",
-    403,
-  );
+  const r = req.user.role;
+  // The administrator may do what the secretary, the academic coordinator and
+  // the accountant may do; settings, roles, imports and backups stay with the
+  // director ("admin"-only routes).
+  const ok =
+    roles.includes(r) ||
+    (r === "manager" &&
+      roles.some((x) => ["admissions", "academic", "finance"].includes(x)));
+  must(ok, "Your role does not have access to this action.", 403);
 }
 function cohortAccess(u, id) {
   const c = one("SELECT * FROM cohorts WHERE id=?", integer(id, "Cohort"));
@@ -242,6 +265,7 @@ installN8nIntake(app);
 installPublicBooking(app);
 installPasswordRecovery(app, { isHosted });
 installPublicIntegrations(app, { isHosted });
+installWhatsAppWebhook(app);
 app.get("/api/public/certificate/:code", (req, res, next) => {
   try {
     const c = one(
@@ -292,13 +316,23 @@ app.post("/api/login", (req, res) => {
           email.trim().toLowerCase(),
         )
       : null;
+  const device = String(req.headers["user-agent"] || "").slice(0, 200);
   if (
     !u ||
     typeof password !== "string" ||
     password.length > 200 ||
     !verifyPassword(password, u.password_hash)
-  )
+  ) {
+    if (typeof email === "string")
+      insert("login_events", {
+        user_id: u?.id ?? null,
+        email: email.trim().toLowerCase().slice(0, 254),
+        success: 0,
+        device,
+        created_at: now(),
+      });
     return res.status(401).json({ error: "Email or password is incorrect." });
+  }
   if (u.totp_enabled) {
     if (!req.body.code)
       return res.status(401).json({
@@ -311,6 +345,16 @@ app.post("/api/login", (req, res) => {
         .json({ error: "The code is not correct.", need_code: true });
   }
   run("DELETE FROM login_attempts WHERE ip_hash=?", key);
+  insert("login_events", {
+    user_id: u.id,
+    email: u.email,
+    success: 1,
+    device,
+    created_at: now(),
+  });
+  run(
+    "DELETE FROM login_events WHERE id NOT IN (SELECT id FROM login_events ORDER BY id DESC LIMIT 2000)",
+  );
   const token = randomBytes(32).toString("hex");
   run("DELETE FROM auth_sessions WHERE expires<?", Date.now());
   insert("auth_sessions", {
@@ -393,8 +437,8 @@ function state(u) {
       (a.visibility !== "private" || a.user_id === u.id) &&
       (a.visibility !== "internal" || canAdmissions(u)),
   );
-  const charges = canFinance(u) ? chargeRows() : [];
-  const payments = canFinance(u)
+  const charges = canTakePayments(u) ? chargeRows() : [];
+  const payments = canTakePayments(u)
     ? all(
         "SELECT p.*,ch.contact_id,ch.currency FROM payments p JOIN charges ch ON ch.id=p.charge_id",
       )
@@ -561,7 +605,7 @@ function state(u) {
     ),
     charges,
     payments,
-    refunds: canFinance(u) ? all("SELECT * FROM refunds") : [],
+    refunds: canTakePayments(u) ? all("SELECT * FROM refunds") : [],
     activities,
     documents: all(
       "SELECT id,contact_id,name,mime,size,user_id,created_at FROM documents",
@@ -570,6 +614,21 @@ function state(u) {
     automations:
       u.role === "admin"
         ? all("SELECT * FROM automation_runs ORDER BY id DESC LIMIT 100")
+        : [],
+    appointmentWaitlist: canAdmissions(u)
+      ? all(
+          "SELECT * FROM appointment_waitlist WHERE status IN ('Waiting','Offered') ORDER BY created_at",
+        )
+      : [],
+    goals: canFinance(u) ? all("SELECT * FROM goals") : [],
+    materials: all("SELECT * FROM cohort_materials ORDER BY id DESC").filter(
+      (m) => cohorts.some((c) => c.id === m.cohort_id),
+    ),
+    loginEvents:
+      u.role === "admin"
+        ? all(
+            "SELECT l.*, u.name FROM login_events l LEFT JOIN users u ON u.id=l.user_id ORDER BY l.id DESC LIMIT 300",
+          )
         : [],
     savedViews: all("SELECT * FROM saved_views WHERE user_id=?", u.id).map(
       (v) => ({ ...v, filters: JSON.parse(v.filters) }),
@@ -1258,7 +1317,7 @@ write(
   },
   "patch",
 );
-write("/api/charges", ["admin", "finance"], (req) => {
+write("/api/charges", ["admin", "finance", "admissions"], (req) => {
   const c = contactAccess(req.user, req.body.contact_id);
   const amount = integer(req.body.amount, "Amount");
   const discount = integer(req.body.discount || 0, "Discount", 0, amount - 1);
@@ -1294,7 +1353,7 @@ write("/api/charges", ["admin", "finance"], (req) => {
   );
   return { id };
 });
-write("/api/charges/:id/split", ["admin", "finance"], (req) => {
+write("/api/charges/:id/split", ["admin", "finance", "admissions"], (req) => {
   const ch = chargeRows().find((x) => x.id === Number(req.params.id));
   must(ch, "Charge not found.", 404);
   must(
@@ -1336,7 +1395,7 @@ write("/api/charges/:id/split", ["admin", "finance"], (req) => {
   );
   return { ok: true };
 });
-write("/api/payments", ["admin", "finance"], (req) => {
+write("/api/payments", ["admin", "finance", "admissions"], (req) => {
   const amount = integer(req.body.amount, "Payment");
   // Any method can be typed (cash, CCP, BaridiMob, cheque…).
   const method = text(req.body.method, "Payment method", 60);
@@ -1400,7 +1459,7 @@ write("/api/payments", ["admin", "finance"], (req) => {
   );
   return { id };
 });
-write("/api/refunds", ["admin", "finance"], (req) => {
+write("/api/refunds", ["admin", "finance", "admissions"], (req) => {
   const p = one(
     "SELECT p.*,c.contact_id,c.currency FROM payments p JOIN charges c ON c.id=p.charge_id WHERE p.id=?",
     integer(req.body.payment_id, "Payment"),
@@ -1548,17 +1607,7 @@ write(
     );
     must(u, "Staff member not found.", 404);
     const role = req.body.role;
-    must(
-      [
-        "admin",
-        "admissions",
-        "academic",
-        "instructor",
-        "finance",
-        "manager",
-      ].includes(role),
-      "Choose a valid staff role.",
-    );
+    must(assignableRoles.includes(role), "Choose a valid staff role.");
     if (u.role === "admin" && role !== "admin")
       must(
         one("SELECT COUNT(*) n FROM users WHERE role='admin'").n > 1,
@@ -1886,11 +1935,14 @@ write("/api/settings", ["admin"], (req) => {
     throw new ApiError(400, "Enter a valid IANA time zone.");
   }
   run(
-    "UPDATE settings SET academy=?,currency=?,timezone=?,language=? WHERE id=1",
+    "UPDATE settings SET academy=?,currency=?,timezone=?,language=?,idle_minutes=? WHERE id=1",
     text(b.academy, "Academy name", 80),
     currency,
     zone,
     ["ar", "fr"].includes(b.language) ? b.language : "en",
+    b.idle_minutes == null
+      ? one("SELECT idle_minutes FROM settings WHERE id=1").idle_minutes
+      : integer(b.idle_minutes, "Automatic sign-out", 0, 480),
   );
   audit(
     req.user.id,
@@ -1977,6 +2029,15 @@ const del = (path, roles, fn) =>
     path,
     roles,
     (req) => {
+      // The administrator does not delete records (except their own tasks,
+      // notes and saved views, which list "manager" or every role).
+      must(
+        req.user.role !== "manager" ||
+          roles.includes("manager") ||
+          roles.includes("instructor"),
+        "Only the director can delete this.",
+        403,
+      );
       bin = [];
       try {
         const result = fn(req) ?? { ok: true };
@@ -2296,7 +2357,42 @@ function meetingUrl(b, existing) {
 }
 /** The same person cannot be booked twice at the same time (unless forced). */
 function checkOverlap(values, ignoreId, force) {
-  if (force || !values.staff_id || values.status === "Cancelled") return;
+  if (force || values.status === "Cancelled") return;
+  if (values.contact_id) {
+    const busy = one(
+      "SELECT a.title FROM appointments a WHERE a.contact_id=? AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
+      values.contact_id,
+      ignoreId || 0,
+      values.ends_at,
+      values.starts_at,
+    );
+    must(
+      !busy,
+      `This client already has “${busy?.title}” at that time. Choose another time or confirm.`,
+      409,
+      { overlap: true },
+    );
+  }
+  const room = String(values.location || "").trim();
+  if (
+    room &&
+    !/zoom|meet|jitsi|online|en ligne|whatsapp|téléphone|phone/i.test(room)
+  ) {
+    const taken = one(
+      "SELECT a.title FROM appointments a WHERE lower(a.location)=lower(?) AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
+      room,
+      ignoreId || 0,
+      values.ends_at,
+      values.starts_at,
+    );
+    must(
+      !taken,
+      `The room “${room}” is already used by “${taken?.title}” at that time. Choose another room or confirm.`,
+      409,
+      { overlap: true },
+    );
+  }
+  if (!values.staff_id) return;
   const clash = one(
     "SELECT a.title, a.starts_at FROM appointments a WHERE a.staff_id=? AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
     values.staff_id,
@@ -2352,7 +2448,10 @@ write(
     if (
       values.starts_at !== a.starts_at ||
       values.ends_at !== a.ends_at ||
-      values.staff_id !== a.staff_id
+      values.staff_id !== a.staff_id ||
+      values.contact_id !== a.contact_id ||
+      values.location !== a.location ||
+      (values.status !== "Cancelled" && a.status === "Cancelled")
     )
       checkOverlap(values, a.id, req.body.allow_overlap);
     run(
@@ -2360,6 +2459,8 @@ write(
       ...Object.values(values),
       a.id,
     );
+    if (values.status === "Cancelled" && a.status !== "Cancelled")
+      slotFreed({ ...a, ...values }, req.user.id);
     audit(
       req.user.id,
       values.contact_id,
@@ -2427,7 +2528,7 @@ del("/api/tasks/:id", taskRoles, (req) => {
 // Money -------------------------------------------------------------------------
 write(
   "/api/charges/:id",
-  ["admin", "finance"],
+  ["admin", "finance", "admissions"],
   (req) => {
     const ch = chargeRows().find((x) => x.id === Number(req.params.id));
     must(ch, "Charge not found.", 404);
@@ -2456,7 +2557,7 @@ write(
   },
   "patch",
 );
-del("/api/charges/:id", ["admin", "finance"], (req) => {
+del("/api/charges/:id", ["admin", "finance", "admissions"], (req) => {
   const ch = found("charges", req.params.id, "Charge");
   must(
     !one("SELECT id FROM payments WHERE charge_id=?", ch.id),
@@ -2475,7 +2576,7 @@ del("/api/charges/:id", ["admin", "finance"], (req) => {
   );
   return { ok: true };
 });
-del("/api/payments/:id", ["admin", "finance"], (req) => {
+del("/api/payments/:id", ["admin", "finance", "admissions"], (req) => {
   const p = found("payments", req.params.id, "Payment");
   must(
     !one("SELECT id FROM refunds WHERE payment_id=?", p.id),
@@ -2530,6 +2631,8 @@ del("/api/saved-views/:id", ["admin", "admissions", "manager"], (req) => {
 });
 
 // Staff -------------------------------------------------------------------------
+// Director, Administrator, Secretary, Teacher / Specialist.
+const assignableRoles = ["admin", "manager", "admissions", "instructor"];
 const roles = [
   "admin",
   "admissions",
@@ -2561,7 +2664,7 @@ function strongPassword(value) {
 }
 write("/api/users", ["admin"], (req) => {
   const b = req.body;
-  must(roles.includes(b.role), "Choose a valid staff role.");
+  must(assignableRoles.includes(b.role), "Choose a valid staff role.");
   const email =
     staffEmail(b.email) ||
     `staff-${randomBytes(6).toString("hex")}@no-login.local`;
@@ -3995,6 +4098,107 @@ del("/api/campaigns/:id", ["admin", "admissions"], (req) => {
   drop("DELETE FROM campaign_recipients WHERE campaign_id=?", camp.id);
   drop("DELETE FROM campaigns WHERE id=?", camp.id);
   return { ok: true };
+});
+
+// ---------------------------------------------------------------------------
+// Team tools: appointment waiting list, monthly goals, lesson materials,
+// weekly report.
+// ---------------------------------------------------------------------------
+const deskRoles = ["admin", "admissions", "academic"];
+write("/api/appointment-waitlist", deskRoles, (req) => {
+  const b = req.body;
+  const c = contactAccess(req.user, b.contact_id);
+  const id = insert("appointment_waitlist", {
+    contact_id: c.id,
+    staff_id: b.staff_id ? found("users", b.staff_id, "Staff member").id : null,
+    kind: text(b.kind || "", "Service", 80, false),
+    notes: text(b.notes || "", "Notes", 300, false),
+    status: "Waiting",
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  audit(
+    req.user.id,
+    c.id,
+    "Added to the appointment waiting list.",
+    "appointment",
+  );
+  return { id };
+});
+write(
+  "/api/appointment-waitlist/:id",
+  deskRoles,
+  (req) => {
+    const w = found(
+      "appointment_waitlist",
+      req.params.id,
+      "Waiting list entry",
+    );
+    must(
+      ["Waiting", "Offered", "Booked", "Removed"].includes(req.body.status),
+      "Choose a valid status.",
+    );
+    run(
+      "UPDATE appointment_waitlist SET status=? WHERE id=?",
+      req.body.status,
+      w.id,
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+write("/api/goals", ["admin", "finance"], (req) => {
+  const month = text(req.body.month, "Month", 7);
+  must(/^\d{4}-\d{2}$/.test(month), "Choose a month.");
+  run(
+    "INSERT INTO goals (month,revenue,new_clients,updated_at) VALUES (?,?,?,?) ON CONFLICT(month) DO UPDATE SET revenue=excluded.revenue,new_clients=excluded.new_clients,updated_at=excluded.updated_at",
+    month,
+    integer(req.body.revenue || 0, "Revenue goal", 0),
+    integer(req.body.new_clients || 0, "New clients goal", 0, 100000),
+    now(),
+  );
+  audit(req.user.id, null, `Goals set for ${month}.`, "settings");
+  return { ok: true };
+});
+const materialRoles = ["admin", "academic", "instructor"];
+write("/api/cohorts/:id/materials", materialRoles, (req) => {
+  const c = cohortAccess(req.user, req.params.id);
+  const url = text(req.body.url, "Link", 600);
+  must(
+    /^https?:\/\//i.test(url),
+    "The link must start with http:// or https://.",
+  );
+  const id = insert("cohort_materials", {
+    cohort_id: c.id,
+    title: text(req.body.title, "Title", 150),
+    url,
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  audit(req.user.id, null, `Material added to ${c.name}.`, "academic");
+  return { id };
+});
+del("/api/materials/:id", materialRoles, (req) => {
+  const m = found("cohort_materials", req.params.id, "Material");
+  cohortAccess(req.user, m.cohort_id);
+  drop("DELETE FROM cohort_materials WHERE id=?", m.id);
+  return { ok: true };
+});
+app.get("/api/reports/weekly", (req, res, next) => {
+  try {
+    allow(req, ["admin", "finance"]);
+    res.json(weeklyReport());
+  } catch (e) {
+    next(e);
+  }
+});
+app.post("/api/reports/weekly/send", async (req, res, next) => {
+  try {
+    allow(req, ["admin", "finance"]);
+    res.json(await sendWeeklyReport(true));
+  } catch (e) {
+    next(e);
+  }
 });
 
 app.use("/api", (req, res) =>
