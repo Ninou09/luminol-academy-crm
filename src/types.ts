@@ -1,7 +1,7 @@
 export type Row = { id: number; [key: string]: any };
 export type State = {
   user: Row;
-  permissions: Record<string, boolean>;
+  permissions: Record<string, any>;
   settings: Row;
   stages: string[];
   contacts: Row[];
@@ -33,6 +33,7 @@ export type State = {
     whatsapp: boolean;
     chargilyMode: string;
     cron: boolean;
+    ai?: boolean;
   };
   expenses: Row[];
   feedback: Row[];
@@ -50,6 +51,39 @@ export type State = {
   drafts: Row[];
   automations: Row[];
   savedViews: Row[];
+  appointmentWaitlist?: Row[];
+  goals?: Row[];
+  materials?: Row[];
+  loginEvents?: Row[];
+  conversations?: Row[];
+  inboxUnread?: number;
+  flows?: Row[];
+  flowTriggers?: string[];
+  flowPresets?: Row[];
+  customFields?: Row[];
+  customValues?: Row[];
+  tags?: Row[];
+  contactTags?: Row[];
+  segments?: Row[];
+  forms?: Row[];
+  docTemplates?: Row[];
+  comments?: Row[];
+  notifications?: Row[];
+  dashboardLayout?: string[];
+  calendarFeed?: boolean;
+  subscriptions?: Row[];
+  promoCodes?: Row[];
+  giftCards?: Row[];
+  branches?: Row[];
+  apiKeys?: Row[];
+  webhooks?: Row[];
+  webhookEvents?: string[];
+  users_rights?: Row[];
+  predictions?: Record<string, any> | null;
+  kb?: Row[];
+  feedbackAnalysis?: Record<string, any>;
+  aiUsage?: { month: number; configured: boolean };
+  tourDone?: boolean;
   flags: any[];
   demo: boolean;
   hosted?: boolean;
@@ -165,5 +199,65 @@ export function matchesPerson(person: Row, query: string) {
   return (
     digits.length >= 3 &&
     phoneKey(person.phone || "").includes(digits.replace(/^0/, ""))
+  );
+}
+
+/** Lower case, no accents, Arabic letters unified. */
+export function normalizeText(s: string) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[ً-ٟـ]/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/[^\p{L}\p{N}\s@]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function oneTypo(a: string, b: string) {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0,
+    j = 0,
+    edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      i++;
+      j++;
+      continue;
+    }
+    if (++edits > 1) return false;
+    if (a.length > b.length) i++;
+    else if (b.length > a.length) j++;
+    else {
+      i++;
+      j++;
+    }
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
+}
+/**
+ * Smart search: every word of the query must be found (allowing one typo)
+ * in the name, phone, e-mail, notes or any extra text (requests, fields…).
+ */
+export function smartMatch(person: Row, query: string, extra = "") {
+  const words = normalizeText(query)
+    .split(" ")
+    .filter((w) => w.length > 1);
+  if (!words.length) return false;
+  const hay = normalizeText(
+    `${person.name} ${person.email} ${person.notes || ""} ${extra}`,
+  ).split(" ");
+  return words.every(
+    (w) =>
+      hay.some(
+        (h) =>
+          h.startsWith(w) ||
+          (w.length >= 4 &&
+            oneTypo(w, h.slice(0, Math.max(w.length, h.length)))),
+      ) ||
+      (/^\d+$/.test(w) &&
+        phoneKey(person.phone || "").includes(w.replace(/^0/, ""))),
   );
 }

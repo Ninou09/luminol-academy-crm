@@ -48,6 +48,21 @@ import {
 } from "lucide-react";
 import { useApp } from "./context";
 import { FinanceDashboard } from "./finance";
+import { LoginJournal } from "./roles";
+import { RulesPanel, HeatBadge, StockPanel } from "./reception";
+import {
+  FlowsPanel,
+  FieldsTagsPanel,
+  FormsPanel,
+  DocTemplatesPanel,
+  BranchesAccessPanel,
+  StatusPanel,
+  ApiPanel,
+  CalendarFeedPanel,
+} from "./admin-tools";
+import { InsightsTab, LoyaltyPanel } from "./insights";
+import { TagChips } from "./platform";
+import { ReceiptScanButton, SmartSettingsPanel } from "./smart";
 import {
   Button,
   Badge,
@@ -902,7 +917,9 @@ export function Admissions() {
           >
             <option value="">{t("All advisors")}</option>
             {data.users
-              .filter((u) => ["admin", "admissions"].includes(u.role))
+              .filter((u) =>
+                ["admin", "admissions", "manager"].includes(u.role),
+              )
               .map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -1071,6 +1088,7 @@ export function Admissions() {
                           <Badge tone={serviceTone(o.service_type)}>
                             {t(o.service_type)}
                           </Badge>
+                          <HeatBadge o={o} contact={person(o.contact_id)} />
                           <span>{label(o)}</span>
                         </div>
                         <div
@@ -1189,6 +1207,7 @@ export function Admissions() {
                     <Badge tone={serviceTone(o.service_type)}>
                       {t(o.service_type)}
                     </Badge>
+                    <HeatBadge o={o} contact={person(o.contact_id)} />
                     <small className="block">{label(o)}</small>
                   </span>
                 ),
@@ -1273,7 +1292,20 @@ export function Students() {
     ),
     [filter, setFilter] = useState(
       pageFilter.startsWith("program:") ? pageFilter.slice(8) : "",
-    );
+    ),
+    [group, setGroup] = useState("");
+  const groupIds = group.startsWith("tag:")
+    ? new Set(
+        (data.contactTags || [])
+          .filter((x) => x.tag_id === Number(group.slice(4)))
+          .map((x) => x.contact_id),
+      )
+    : group.startsWith("seg:")
+      ? new Set(
+          (data.segments || []).find((x) => x.id === Number(group.slice(4)))
+            ?.contact_ids || [],
+        )
+      : null;
   const enrolled = new Set(
     data.enrollments
       .filter(
@@ -1290,6 +1322,7 @@ export function Students() {
         (tab !== "Need attention" ||
           data.flags.some((f) => f.contact_id === c.id)) &&
         (!query || matchesPerson(c, query)) &&
+        (!groupIds || groupIds.has(c.id)) &&
         (!filter ||
           data.enrollments.some(
             (e) =>
@@ -1304,13 +1337,23 @@ export function Students() {
         title="Clients & students"
         subtitle="Everyone who contacted the academy, in one list."
       >
+        {data.permissions.admin && (
+          <Button
+            icon={<Users size={16} />}
+            onClick={() => open({ type: "duplicates" })}
+          >
+            {t("Duplicates")}
+          </Button>
+        )}
         <Button
           icon={<Download size={16} />}
           onClick={() => window.open("/api/export/contacts", "_self")}
         >
           {t("Export CSV")}
         </Button>
-        {["admin", "admissions", "academic"].includes(data.user.role) && (
+        {["admin", "admissions", "academic", "manager"].includes(
+          data.user.role,
+        ) && (
           <Button
             variant="primary"
             icon={<UserPlus size={17} />}
@@ -1336,6 +1379,26 @@ export function Students() {
               aria-label={t("Search by name, phone or email…")}
             />
           </div>
+          {((data.tags || []).length > 0 ||
+            (data.segments || []).length > 0) && (
+            <select
+              aria-label={t("Tag or segment")}
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+            >
+              <option value="">{t("All tags and segments")}</option>
+              {(data.tags || []).map((g) => (
+                <option key={g.id} value={`tag:${g.id}`}>
+                  # {g.name}
+                </option>
+              ))}
+              {(data.segments || []).map((g) => (
+                <option key={g.id} value={`seg:${g.id}`}>
+                  ◎ {g.name} ({g.contact_ids.length})
+                </option>
+              ))}
+            </select>
+          )}
           {tab === "Students" && (
             <select
               aria-label={t("Program")}
@@ -1362,7 +1425,9 @@ export function Students() {
                 <span className="person-cell">
                   <Avatar name={c.name} />
                   <span>
-                    <strong>{c.name}</strong>
+                    <strong>
+                      {c.name} <TagChips contactId={c.id} small />
+                    </strong>
                     <small>{c.phone || c.email || "—"}</small>
                   </span>
                 </span>
@@ -1761,7 +1826,11 @@ export function Payments() {
   const receipt = useReceipt();
   const remove = useRemove();
   const [tab, setTab] = useState(
-      pageFilter.startsWith("received:") ? "Payment history" : "All charges",
+      pageFilter.startsWith("received:")
+        ? "Payment history"
+        : pageFilter === "stock"
+          ? "Stock"
+          : "All charges",
     ),
     [filter, setFilter] = useState(
       pageFilter === "outstanding" ? "outstanding" : "",
@@ -1785,6 +1854,14 @@ export function Payments() {
         title="A clear picture of payments."
         subtitle="Track charges, installments, and recorded payments."
       >
+        {data.permissions.editFinance && (
+          <Button
+            icon={<FileSpreadsheet size={16} />}
+            onClick={() => open({ type: "statement" })}
+          >
+            {t("Import a bank statement")}
+          </Button>
+        )}
         <Button
           icon={<Download size={16} />}
           onClick={() => window.open("/api/export/charges", "_self")}
@@ -1793,6 +1870,7 @@ export function Payments() {
         </Button>
         {data.permissions.editFinance && (
           <>
+            <ReceiptScanButton />
             <Button
               icon={<Plus size={16} />}
               onClick={() => open({ type: "charge" })}
@@ -1855,21 +1933,38 @@ export function Payments() {
       </div>
       <div className="page-tabs">
         <Tabs
-          tabs={[
-            "Financial analytics",
-            "All charges",
-            "Payment history",
-            "Cash book",
-            "Expenses",
-            "Who owes what",
-            "Pay",
-          ]}
+          tabs={
+            data.permissions.expenses
+              ? [
+                  "Financial analytics",
+                  "All charges",
+                  "Payment history",
+                  "Cash book",
+                  "Expenses",
+                  "Who owes what",
+                  "Pay",
+                  "Stock",
+                  "Loyalty",
+                ]
+              : [
+                  "All charges",
+                  "Payment history",
+                  "Cash book",
+                  "Who owes what",
+                  "Stock",
+                  "Loyalty",
+                ]
+          }
           value={tab}
           onChange={setTab}
         />
       </div>
       {tab === "Financial analytics" ? (
         <FinanceDashboard />
+      ) : tab === "Stock" ? (
+        <StockPanel />
+      ) : tab === "Loyalty" ? (
+        <LoyaltyPanel />
       ) : tab === "Cash book" ? (
         <CashReport />
       ) : tab === "Who owes what" ? (
@@ -2088,6 +2183,18 @@ export function Payments() {
                   render: (p) => (
                     <div>
                       <PrintButton label="Receipt" onClick={() => receipt(p)} />
+                      {person(p.contact_id).phone && (
+                        <a
+                          className="button small"
+                          target="_blank"
+                          rel="noreferrer"
+                          href={`https://wa.me/${String(person(p.contact_id).phone).replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `${data.settings.academy} — ${t("Payment received")} : ${money(p.amount, p.currency)} (${t(p.method)}), ${date(p.created_at)}. ${t("Thank you!")}`,
+                          )}`}
+                        >
+                          {t("Receipt on WhatsApp")}
+                        </a>
+                      )}
                       <small className="block muted">
                         {money(
                           data.refunds
@@ -2155,6 +2262,7 @@ export function Reports({
         <PrintReportButton />
       </PageHead>
       <DirectorReport start={stats.start} />
+      <InsightsTab />
       <div className="reports-grid">
         {data.permissions.finance && <ProfitPanel />}
         <FeedbackPanel />
@@ -2309,6 +2417,19 @@ export function SettingsPage() {
     ...(data.permissions.editAdmissions ? ["Message templates"] : []),
     ...(data.permissions.admin ? ["Online booking"] : []),
     ...(data.permissions.admin ? ["Data & import", "Journal", "Trash"] : []),
+    ...(data.permissions.admin ? ["Scenarios"] : []),
+    ...(data.permissions.editAdmissions
+      ? ["Fields, tags & segments", "Forms"]
+      : []),
+    ...(["admin", "manager"].includes(data.user.role)
+      ? ["Document templates"]
+      : []),
+    ...(["admin", "manager"].includes(data.user.role)
+      ? ["Assistant & bot"]
+      : []),
+    ...(data.permissions.admin
+      ? ["Branches & access", "API & webhooks", "System status"]
+      : []),
     "Integrations",
     "Automation history",
   ];
@@ -2323,7 +2444,7 @@ export function SettingsPage() {
     setBusy(true);
     try {
       const r = await perform("/automations/run", {});
-      toast(`${r.count} ${t("Automation history")}`);
+      toast(`${r.count} ${t("tasks created")}`);
     } catch (e: any) {
       toast(e.message);
     } finally {
@@ -2353,6 +2474,8 @@ export function SettingsPage() {
     }
   }
   const noLogin = (u: Row) => u.email.endsWith("@no-login.local");
+  // The director manages everyone; the administrator manages secretaries and teachers.
+  const canManageStaff = data.permissions.admin || data.user.role === "manager";
   return (
     <>
       <PageHead
@@ -2375,6 +2498,12 @@ export function SettingsPage() {
                   ({ ar: "العربية", fr: "Français" } as Record<string, string>)[
                     data.settings.language
                   ] || "English",
+                ],
+                [
+                  "Automatic sign-out",
+                  data.settings.idle_minutes
+                    ? `${data.settings.idle_minutes} ${t("minutes without activity")}`
+                    : t("Never"),
                 ],
               ].map(([label, value]) => (
                 <div key={label}>
@@ -2439,7 +2568,7 @@ export function SettingsPage() {
                 )}
               </p>
             </div>
-            {data.permissions.admin && (
+            {canManageStaff && (
               <Button
                 variant="primary"
                 icon={<UserPlus size={16} />}
@@ -2493,7 +2622,9 @@ export function SettingsPage() {
                 key: "edit",
                 label: "",
                 render: (u) =>
-                  data.permissions.admin ? (
+                  data.permissions.admin ||
+                  (canManageStaff &&
+                    ["admissions", "instructor"].includes(u.role)) ? (
                     <div className="row-actions">
                       <Button
                         variant="small"
@@ -2523,26 +2654,29 @@ export function SettingsPage() {
                           {t("Set password")}
                         </Button>
                       )}
-                      {!!u.totp_enabled && u.id !== data.user.id && (
-                        <Button
-                          variant="small"
-                          onClick={async () => {
-                            if (
-                              !window.confirm(
-                                t(
-                                  "Turn off two-step sign-in for this person (lost phone)?",
-                                ),
+                      {!!u.totp_enabled &&
+                        u.id !== data.user.id &&
+                        data.permissions.admin && (
+                          <Button
+                            variant="small"
+                            onClick={async () => {
+                              if (
+                                !window.confirm(
+                                  t(
+                                    "Turn off two-step sign-in for this person (lost phone)?",
+                                  ),
+                                )
                               )
-                            )
-                              return;
-                            await perform(`/users/${u.id}/2fa/reset`, {}).catch(
-                              (e: any) => toast(e.message),
-                            );
-                          }}
-                        >
-                          {t("Reset 2-step")}
-                        </Button>
-                      )}
+                                return;
+                              await perform(
+                                `/users/${u.id}/2fa/reset`,
+                                {},
+                              ).catch((e: any) => toast(e.message));
+                            }}
+                          >
+                            {t("Reset 2-step")}
+                          </Button>
+                        )}
                       {u.active === 0 ? (
                         <Button
                           variant="small"
@@ -2570,6 +2704,7 @@ export function SettingsPage() {
         </div>
       ) : tab === "My account" ? (
         <div className="settings-grid">
+          <CalendarFeedPanel />
           <Panel title="My account">
             <dl className="settings-list">
               <div>
@@ -2708,13 +2843,32 @@ export function SettingsPage() {
           </Panel>
         </div>
       ) : tab === "Journal" ? (
-        <JournalPanel />
+        <>
+          <JournalPanel />
+          {data.permissions.admin && <LoginJournal />}
+        </>
       ) : tab === "Online booking" ? (
         <BookingSettingsPanel />
       ) : tab === "Message templates" ? (
         <TemplatesPanel />
       ) : tab === "Trash" ? (
         <TrashPanel />
+      ) : tab === "Scenarios" ? (
+        <FlowsPanel />
+      ) : tab === "Assistant & bot" ? (
+        <SmartSettingsPanel />
+      ) : tab === "Fields, tags & segments" ? (
+        <FieldsTagsPanel />
+      ) : tab === "Forms" ? (
+        <FormsPanel />
+      ) : tab === "Document templates" ? (
+        <DocTemplatesPanel />
+      ) : tab === "Branches & access" ? (
+        <BranchesAccessPanel />
+      ) : tab === "API & webhooks" ? (
+        <ApiPanel />
+      ) : tab === "System status" ? (
+        <StatusPanel />
       ) : tab === "Integrations" ? (
         <>
           <IntegrationStatus />
@@ -2756,52 +2910,56 @@ export function SettingsPage() {
           )}
         </>
       ) : (
-        <div className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>{t("Automation history")}</h2>
-              <p>{t("No external message has been sent.")}</p>
+        <>
+          <RulesPanel />
+          <div className="panel">
+            <div className="panel-heading">
+              <div>
+                <h2>{t("Automation history")}</h2>
+                <p>{t("No external message has been sent.")}</p>
+              </div>
+              {data.permissions.admin && (
+                <Button
+                  disabled={busy}
+                  icon={<RefreshCw size={16} className={busy ? "spin" : ""} />}
+                  onClick={runRules}
+                >
+                  {t("Run internal rules")}
+                </Button>
+              )}
             </div>
-            {data.permissions.admin && (
-              <Button
-                disabled={busy}
-                icon={<RefreshCw size={16} className={busy ? "spin" : ""} />}
-                onClick={runRules}
-              >
-                {t("Run internal rules")}
-              </Button>
-            )}
+            <DataTable
+              rows={data.automations}
+              columns={[
+                { key: "rule", label: "Rule", render: (r) => t(r.rule) },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (r) => (
+                    <Badge
+                      tone={
+                        r.status === "Success"
+                          ? "teal"
+                          : r.status === "Error"
+                            ? "red"
+                            : "amber"
+                      }
+                    >
+                      {t(r.status)}
+                    </Badge>
+                  ),
+                },
+                { key: "detail", label: "Detail" },
+                {
+                  key: "created_at",
+                  label: "Date",
+                  render: (r) =>
+                    `${date(r.created_at)} · ${time(r.created_at)}`,
+                },
+              ]}
+            />
           </div>
-          <DataTable
-            rows={data.automations}
-            columns={[
-              { key: "rule", label: "Rule" },
-              {
-                key: "status",
-                label: "Status",
-                render: (r) => (
-                  <Badge
-                    tone={
-                      r.status === "Success"
-                        ? "teal"
-                        : r.status === "Error"
-                          ? "red"
-                          : "amber"
-                    }
-                  >
-                    {t(r.status)}
-                  </Badge>
-                ),
-              },
-              { key: "detail", label: "Detail" },
-              {
-                key: "created_at",
-                label: "Date",
-                render: (r) => `${date(r.created_at)} · ${time(r.created_at)}`,
-              },
-            ]}
-          />
-        </div>
+        </>
       )}
     </>
   );

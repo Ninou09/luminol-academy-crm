@@ -24,7 +24,8 @@ export function N8nInbox() {
   const rows = data.incoming || [];
   const editable = data.permissions.editAdmissions;
   const advisors = data.users.filter(
-    (u) => u.active !== 0 && ["admin", "admissions"].includes(u.role),
+    (u) =>
+      u.active !== 0 && ["admin", "admissions", "manager"].includes(u.role),
   );
   function open(row: Row) {
     setReview(row);

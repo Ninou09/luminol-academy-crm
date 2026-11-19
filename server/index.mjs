@@ -19,6 +19,14 @@ import {
   originOf,
   newToken,
   tokenHash,
+  installWhatsAppWebhook,
+  installIntakeLinks,
+  runRules,
+  ruleSettings,
+  ruleCatalog,
+  slotFreed,
+  weeklyReport,
+  sendWeeklyReport,
 } from "./integrations.mjs";
 import {
   installPasswordRecovery,
@@ -53,6 +61,23 @@ import {
   isHosted,
 } from "./db.mjs";
 import { importWorkbook } from "./workbook-import.mjs";
+import {
+  installPlatform,
+  installPlatformPublic,
+  platformState,
+  pumpEvents,
+  tick,
+  remember,
+  logMessage,
+} from "./platform.mjs";
+import { installAi, aiConfigured } from "./ai.mjs";
+import {
+  installSmart,
+  installPublicBot,
+  analyseFeedback,
+  monthTokens,
+} from "./smart.mjs";
+import { predictions, trainAll, trainIfOld } from "./ml.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const app = express();
@@ -69,14 +94,18 @@ app.use(
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  // Public forms may be embedded on the academy website.
+  if (!req.path.startsWith("/f/") && !req.path.startsWith("/chat"))
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
   if (req.path.startsWith("/api")) res.setHeader("Cache-Control", "no-store");
   if (!isHosted && !["127.0.0.1", "localhost", "[::1]"].includes(req.hostname))
     return res
       .status(403)
       .json({ error: "This workspace only accepts local connections." });
+  // The key-based API uses no cookie, so other sites may call it.
   if (
     !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
+    !req.path.startsWith("/api/v1/") &&
     req.headers.origin &&
     req.headers.origin !==
       `${isHosted ? "https" : "http"}://${req.headers.host}`
@@ -129,7 +158,18 @@ function instant(v, name) {
   );
   return new Date(v).toISOString();
 }
-const canFinance = (u) => ["admin", "finance", "manager"].includes(u.role);
+const rightOf = (u, k) => (u.rights || {})[k];
+const canFinance = (u) =>
+  rightOf(u, "finance") === false
+    ? false
+    : ["admin", "finance", "manager"].includes(u.role) ||
+      rightOf(u, "finance") === true;
+// Payments and receipts: director, administrator and secretary.
+const canTakePayments = (u) =>
+  rightOf(u, "finance") === false
+    ? false
+    : ["admin", "finance", "manager", "admissions"].includes(u.role) ||
+      rightOf(u, "finance") === true;
 const canAdmissions = (u) =>
   ["admin", "admissions", "manager"].includes(u.role);
 const canAcademic = (u) =>
@@ -138,19 +178,38 @@ const permissions = (u) => ({
   admissions: canAdmissions(u),
   finance: canFinance(u),
   academic: canAcademic(u),
-  editAdmissions: ["admin", "admissions"].includes(u.role),
-  editAcademic: ["admin", "academic"].includes(u.role),
-  editFinance: ["admin", "finance"].includes(u.role),
-  attendance: ["admin", "academic", "instructor"].includes(u.role),
+  editAdmissions: ["admin", "admissions", "manager"].includes(u.role),
+  editAcademic: ["admin", "academic", "manager"].includes(u.role),
+  editFinance: canTakePayments(u),
+  expenses: ["admin", "finance", "manager"].includes(u.role),
+  attendance: ["admin", "academic", "instructor", "manager"].includes(u.role),
   admin: u.role === "admin",
-  write: u.role !== "manager",
+  write: true,
+  canDelete: rightOf(u, "delete") !== false,
+  canExport: rightOf(u, "export") !== false,
+  seePhones: rightOf(u, "phones") !== false,
+  role: roleKind(u.role),
 });
+/** The four sign-ins shown in the interface. */
+function roleKind(role) {
+  return role === "admin" || role === "finance"
+    ? "director"
+    : role === "manager" || role === "academic"
+      ? "administrator"
+      : role === "admissions"
+        ? "secretary"
+        : "teacher";
+}
 function allow(req, roles) {
-  must(
-    roles.includes(req.user.role),
-    "Your role does not have access to this action.",
-    403,
-  );
+  const r = req.user.role;
+  // The administrator may do what the secretary, the academic coordinator and
+  // the accountant may do; settings, roles, imports and backups stay with the
+  // director ("admin"-only routes).
+  const ok =
+    roles.includes(r) ||
+    (r === "manager" &&
+      roles.some((x) => ["admissions", "academic", "finance"].includes(x)));
+  must(ok, "Your role does not have access to this action.", 403);
 }
 function cohortAccess(u, id) {
   const c = one("SELECT * FROM cohorts WHERE id=?", integer(id, "Cohort"));
@@ -230,10 +289,12 @@ function mutate(req, fn) {
   });
 }
 const write = (path, roles, fn, method = "post") =>
-  app[method](path, (req, res, next) => {
+  app[method](path, async (req, res, next) => {
     try {
       allow(req, roles);
-      res.json(mutate(req, () => fn(req)));
+      const result = mutate(req, () => fn(req));
+      await pumpEvents();
+      res.json(result);
     } catch (e) {
       next(e);
     }
@@ -242,6 +303,10 @@ installN8nIntake(app);
 installPublicBooking(app);
 installPasswordRecovery(app, { isHosted });
 installPublicIntegrations(app, { isHosted });
+installWhatsAppWebhook(app);
+installIntakeLinks(app);
+installPlatformPublic(app);
+installPublicBot(app);
 app.get("/api/public/certificate/:code", (req, res, next) => {
   try {
     const c = one(
@@ -292,13 +357,23 @@ app.post("/api/login", (req, res) => {
           email.trim().toLowerCase(),
         )
       : null;
+  const device = String(req.headers["user-agent"] || "").slice(0, 200);
   if (
     !u ||
     typeof password !== "string" ||
     password.length > 200 ||
     !verifyPassword(password, u.password_hash)
-  )
+  ) {
+    if (typeof email === "string")
+      insert("login_events", {
+        user_id: u?.id ?? null,
+        email: email.trim().toLowerCase().slice(0, 254),
+        success: 0,
+        device,
+        created_at: now(),
+      });
     return res.status(401).json({ error: "Email or password is incorrect." });
+  }
   if (u.totp_enabled) {
     if (!req.body.code)
       return res.status(401).json({
@@ -311,6 +386,16 @@ app.post("/api/login", (req, res) => {
         .json({ error: "The code is not correct.", need_code: true });
   }
   run("DELETE FROM login_attempts WHERE ip_hash=?", key);
+  insert("login_events", {
+    user_id: u.id,
+    email: u.email,
+    success: 1,
+    device,
+    created_at: now(),
+  });
+  run(
+    "DELETE FROM login_events WHERE id NOT IN (SELECT id FROM login_events ORDER BY id DESC LIMIT 2000)",
+  );
   const token = randomBytes(32).toString("hex");
   run("DELETE FROM auth_sessions WHERE expires<?", Date.now());
   insert("auth_sessions", {
@@ -335,13 +420,18 @@ app.use("/api", (req, res, next) => {
     ?.slice(16);
   const session = token
     ? one(
-        "SELECT u.id,u.name,u.email,u.role FROM auth_sessions a JOIN users u ON u.id=a.user_id WHERE a.token=? AND a.expires>? AND u.active=1",
+        "SELECT u.id,u.name,u.email,u.role,u.rights FROM auth_sessions a JOIN users u ON u.id=a.user_id WHERE a.token=? AND a.expires>? AND u.active=1",
         createHash("sha256").update(token).digest("hex"),
         Date.now(),
       )
     : null;
   if (!session)
     return res.status(401).json({ error: "Please sign in to your workspace." });
+  try {
+    session.rights = JSON.parse(session.rights || "{}");
+  } catch {
+    session.rights = {};
+  }
   req.user = session;
   next();
 });
@@ -379,6 +469,11 @@ function state(u) {
         u.id,
       )
     : all("SELECT * FROM contacts");
+  if (rightOf(u, "phones") === false)
+    for (const c of contacts) {
+      c.phone = c.phone ? "••••••" : "";
+      c.email = c.email ? "••••••" : "";
+    }
   const ids = new Set(contacts.map((c) => c.id));
   const cohorts = instructor
     ? all("SELECT * FROM cohorts WHERE instructor_id=?", u.id)
@@ -393,8 +488,8 @@ function state(u) {
       (a.visibility !== "private" || a.user_id === u.id) &&
       (a.visibility !== "internal" || canAdmissions(u)),
   );
-  const charges = canFinance(u) ? chargeRows() : [];
-  const payments = canFinance(u)
+  const charges = canTakePayments(u) ? chargeRows() : [];
+  const payments = canTakePayments(u)
     ? all(
         "SELECT p.*,ch.contact_id,ch.currency FROM payments p JOIN charges ch ON ch.id=p.charge_id",
       )
@@ -503,6 +598,7 @@ function state(u) {
       chargily: chargilyConfigured(),
       whatsapp: whatsappConfigured(),
       chargilyMode: process.env.CHARGILY_MODE === "live" ? "live" : "test",
+      ai: aiConfigured(),
       cron: !!process.env.CRON_SECRET,
     },
     expenses: canFinance(u)
@@ -561,20 +657,64 @@ function state(u) {
     ),
     charges,
     payments,
-    refunds: canFinance(u) ? all("SELECT * FROM refunds") : [],
+    refunds: canTakePayments(u) ? all("SELECT * FROM refunds") : [],
     activities,
     documents: all(
       "SELECT id,contact_id,name,mime,size,user_id,created_at FROM documents",
     ).filter((d) => ids.has(d.contact_id)),
     drafts: canAdmissions(u) ? all("SELECT * FROM drafts") : [],
+    automationRules: u.role === "admin" ? ruleSettings() : {},
+    automationCatalog: u.role === "admin" ? ruleCatalog : [],
     automations:
       u.role === "admin"
         ? all("SELECT * FROM automation_runs ORDER BY id DESC LIMIT 100")
+        : [],
+    appointmentWaitlist: canAdmissions(u)
+      ? all(
+          "SELECT * FROM appointment_waitlist WHERE status IN ('Waiting','Offered') ORDER BY created_at",
+        )
+      : [],
+    goals: canFinance(u) ? all("SELECT * FROM goals") : [],
+    stock: canTakePayments(u)
+      ? all("SELECT * FROM stock_items ORDER BY name")
+      : [],
+    materials: all("SELECT * FROM cohort_materials ORDER BY id DESC").filter(
+      (m) => cohorts.some((c) => c.id === m.cohort_id),
+    ),
+    loginEvents:
+      u.role === "admin"
+        ? all(
+            "SELECT l.*, u.name FROM login_events l LEFT JOIN users u ON u.id=l.user_id ORDER BY l.id DESC LIMIT 300",
+          )
         : [],
     savedViews: all("SELECT * FROM saved_views WHERE user_id=?", u.id).map(
       (v) => ({ ...v, filters: JSON.parse(v.filters) }),
     ),
     flags,
+    ...platformState(u, ids, permissions(u)),
+    predictions: ["admin", "manager", "admissions", "finance"].includes(u.role)
+      ? predictions(ids)
+      : null,
+    kb: ["admin", "manager", "admissions"].includes(u.role)
+      ? all("SELECT * FROM kb_articles ORDER BY id")
+      : [],
+    feedbackAnalysis: analyseFeedback(
+      all(
+        "SELECT contact_id, rating, comment FROM feedback WHERE answered_at IS NOT NULL",
+      ).filter((f) => ids.has(f.contact_id)),
+    ),
+    aiUsage:
+      u.role === "admin"
+        ? { month: monthTokens(), configured: !!process.env.ANTHROPIC_API_KEY }
+        : undefined,
+    tourDone: !!one("SELECT tour_done FROM users WHERE id=?", u.id)?.tour_done,
+    users_rights:
+      u.role === "admin"
+        ? all("SELECT id, rights, branch_id FROM users").map((r) => ({
+            ...r,
+            rights: JSON.parse(r.rights || "{}"),
+          }))
+        : [],
     demo: false,
     hosted: isHosted,
     maxDocumentMb: isHosted ? 3 : 4,
@@ -582,7 +722,20 @@ function state(u) {
   };
 }
 installN8nReview(app);
-app.get("/api/state", (req, res) => res.json(state(req.user)));
+app.get("/api/state", async (req, res, next) => {
+  try {
+    await tick();
+    try {
+      transaction(() => trainIfOld());
+    } catch (e) {
+      console.error("Predictions:", e?.message);
+    }
+    await pumpEvents();
+    res.json(state(req.user));
+  } catch (e) {
+    next(e);
+  }
+});
 app.get("/api/contacts/:id", (req, res, next) => {
   try {
     contactAccess(req.user, req.params.id);
@@ -600,6 +753,11 @@ app.get("/api/contacts/:id", (req, res, next) => {
 });
 app.get("/api/export/:kind", (req, res, next) => {
   try {
+    must(
+      rightOf(req.user, "export") !== false,
+      "Your access does not include exports.",
+      403,
+    );
     const s = state(req.user);
     must(
       ["contacts", "opportunities", "charges", "enrollments"].includes(
@@ -779,6 +937,7 @@ write(
       "SELECT * FROM opportunities WHERE id=?",
       integer(req.params.id, "Opportunity"),
     );
+    if (o) remember("opportunities", o.id, req.user.id, "Request edited");
     must(o, "Opportunity not found.", 404);
     must(
       req.body.version === o.version,
@@ -1192,6 +1351,11 @@ write(
   (req) => {
     const c = contactAccess(req.user, req.params.id);
     const b = req.body;
+    if (rightOf(req.user, "phones") === false) {
+      b.phone = c.phone;
+      b.email = c.email;
+    }
+    remember("contacts", c.id, req.user.id, "Client edited");
     const phone = text(b.phone ?? c.phone, "Phone", 40, false);
     const normalized = phone.replace(/\D/g, "");
     must(
@@ -1222,6 +1386,12 @@ write(
       "This email belongs to another contact.",
       409,
     );
+    if (b.birth_date !== undefined)
+      run(
+        "UPDATE contacts SET birth_date=? WHERE id=?",
+        b.birth_date ? date(b.birth_date, "Birth date") : "",
+        c.id,
+      );
     run(
       "UPDATE contacts SET company=?,company_nif=?,company_address=?,emergency_contact=?,level=?,name=?,email=?,notes=?,phone=?,language=?,consent=?,guardian=? WHERE id=?",
       text(b.company ?? c.company ?? "", "Company", 150, false),
@@ -1258,7 +1428,7 @@ write(
   },
   "patch",
 );
-write("/api/charges", ["admin", "finance"], (req) => {
+write("/api/charges", ["admin", "finance", "admissions"], (req) => {
   const c = contactAccess(req.user, req.body.contact_id);
   const amount = integer(req.body.amount, "Amount");
   const discount = integer(req.body.discount || 0, "Discount", 0, amount - 1);
@@ -1294,7 +1464,7 @@ write("/api/charges", ["admin", "finance"], (req) => {
   );
   return { id };
 });
-write("/api/charges/:id/split", ["admin", "finance"], (req) => {
+write("/api/charges/:id/split", ["admin", "finance", "admissions"], (req) => {
   const ch = chargeRows().find((x) => x.id === Number(req.params.id));
   must(ch, "Charge not found.", 404);
   must(
@@ -1336,7 +1506,7 @@ write("/api/charges/:id/split", ["admin", "finance"], (req) => {
   );
   return { ok: true };
 });
-write("/api/payments", ["admin", "finance"], (req) => {
+write("/api/payments", ["admin", "finance", "admissions"], (req) => {
   const amount = integer(req.body.amount, "Payment");
   // Any method can be typed (cash, CCP, BaridiMob, cheque…).
   const method = text(req.body.method, "Payment method", 60);
@@ -1388,7 +1558,12 @@ write("/api/payments", ["admin", "finance"], (req) => {
     amount,
     method,
     reference: text(req.body.reference || "", "Reference", 100, false),
-    created_at: now(),
+    // A payment imported from a bank statement keeps the statement date.
+    created_at:
+      req.body.paid_on &&
+      date(req.body.paid_on, "Payment date") <= now().slice(0, 10)
+        ? `${req.body.paid_on}T12:00:00.000Z`
+        : now(),
     user_id: req.user.id,
   });
   audit(
@@ -1400,7 +1575,7 @@ write("/api/payments", ["admin", "finance"], (req) => {
   );
   return { id };
 });
-write("/api/refunds", ["admin", "finance"], (req) => {
+write("/api/refunds", ["admin", "finance", "admissions"], (req) => {
   const p = one(
     "SELECT p.*,c.contact_id,c.currency FROM payments p JOIN charges c ON c.id=p.charge_id WHERE p.id=?",
     integer(req.body.payment_id, "Payment"),
@@ -1540,7 +1715,7 @@ write(
 );
 write(
   "/api/users/:id/role",
-  ["admin"],
+  ["admin", "manager"],
   (req) => {
     const u = one(
       "SELECT * FROM users WHERE id=?",
@@ -1548,17 +1723,8 @@ write(
     );
     must(u, "Staff member not found.", 404);
     const role = req.body.role;
-    must(
-      [
-        "admin",
-        "admissions",
-        "academic",
-        "instructor",
-        "finance",
-        "manager",
-      ].includes(role),
-      "Choose a valid staff role.",
-    );
+    must(assignableRoles.includes(role), "Choose a valid staff role.");
+    staffScope(req, u.role, role);
     if (u.role === "admin" && role !== "admin")
       must(
         one("SELECT COUNT(*) n FROM users WHERE role='admin'").n > 1,
@@ -1782,79 +1948,17 @@ write("/api/integrations/:name/check", ["admin"], (req) => {
       "No provider adapter or credentials configured. No external request was sent.",
   };
 });
-write("/api/automations/run", ["admin"], (req) => {
-  let count = 0;
-  const s = state(req.user);
-  for (const t of s.tasks.filter(
-    (t) => t.status === "Open" && t.due_at < now(),
-  )) {
-    const key = `overdue-task:${t.id}:${t.due_at}`;
-    if (!one("SELECT id FROM automation_runs WHERE event_key=?", key)) {
-      insert("automation_runs", {
-        event_key: key,
-        rule: "Overdue follow-up → internal reminder",
-        status: "Success",
-        detail: `Reminder: ${t.title}.`,
-        created_at: now(),
-      });
-      count++;
-    }
-  }
-  for (const flag of s.flags.filter((f) => f.kind === "attendance")) {
-    const key = `absence:${flag.contact_id}:${flag.fingerprint}`;
-    if (!one("SELECT id FROM automation_runs WHERE event_key=?", key)) {
-      insert("tasks", {
-        contact_id: flag.contact_id,
-        owner_id: 3,
-        title: "Review repeated absences",
-        due_at: now(),
-        priority: "High",
-        status: "Open",
-        created_at: now(),
-        version: 1,
-      });
-      insert("automation_runs", {
-        event_key: key,
-        rule: "Repeated absences → staff review",
-        status: "Success",
-        detail: "Academic review task created.",
-        created_at: now(),
-      });
-      count++;
-    }
-  }
-  for (const ch of s.charges.filter(
-    (c) =>
-      c.balance > 0 &&
-      c.due_date <=
-        new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
-  )) {
-    const key = `payment-reminder:${ch.id}:${ch.due_date}`;
-    if (!one("SELECT id FROM automation_runs WHERE event_key=?", key)) {
-      const c = one("SELECT * FROM contacts WHERE id=?", ch.contact_id);
-      if (c.consent)
-        insert("drafts", {
-          contact_id: c.id,
-          channel: "Email",
-          subject: "Your upcoming Luminol Academy installment",
-          body: `Hello ${c.name}, your ${ch.label} balance is ${(ch.balance / 100).toFixed(2)} ${ch.currency}, due ${ch.due_date}. Please contact the academy if you need help.`,
-          status: "Draft",
-          user_id: req.user.id,
-          created_at: now(),
-        });
-      insert("automation_runs", {
-        event_key: key,
-        rule: "Installment → reminder draft",
-        status: c.consent ? "Success" : "Skipped",
-        detail: c.consent
-          ? "Draft prepared for human review. Not sent."
-          : "Skipped because communication consent is not recorded.",
-        created_at: now(),
-      });
-      count++;
-    }
-  }
-  return { count };
+write("/api/automations/run", ["admin"], (req) => runRules(req.user.id));
+write("/api/automations/rules", ["admin"], (req) => {
+  const current = ruleSettings();
+  for (const [k] of ruleCatalog)
+    if (typeof req.body[k] === "boolean") current[k] = req.body[k];
+  run(
+    "INSERT INTO meta (key,value) VALUES ('automation_rules',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+    JSON.stringify(current),
+  );
+  audit(req.user.id, null, "Automatic rules updated.", "settings");
+  return { ok: true };
 });
 write("/api/saved-views", ["admin", "admissions", "manager"], (req) => {
   const name = text(req.body.name, "View name", 50);
@@ -1886,11 +1990,22 @@ write("/api/settings", ["admin"], (req) => {
     throw new ApiError(400, "Enter a valid IANA time zone.");
   }
   run(
-    "UPDATE settings SET academy=?,currency=?,timezone=?,language=? WHERE id=1",
+    "UPDATE settings SET academy=?,currency=?,timezone=?,language=?,idle_minutes=?,rooms=? WHERE id=1",
     text(b.academy, "Academy name", 80),
     currency,
     zone,
     ["ar", "fr"].includes(b.language) ? b.language : "en",
+    b.idle_minutes == null
+      ? one("SELECT idle_minutes FROM settings WHERE id=1").idle_minutes
+      : integer(b.idle_minutes, "Automatic sign-out", 0, 480),
+    b.rooms == null
+      ? one("SELECT rooms FROM settings WHERE id=1").rooms
+      : String(b.rooms)
+          .split(/\n|,/)
+          .map((x) => x.trim().slice(0, 60))
+          .filter(Boolean)
+          .slice(0, 40)
+          .join("\n"),
   );
   audit(
     req.user.id,
@@ -1977,6 +2092,20 @@ const del = (path, roles, fn) =>
     path,
     roles,
     (req) => {
+      // The administrator does not delete records (except their own tasks,
+      // notes and saved views, which list "manager" or every role).
+      must(
+        req.user.role !== "manager" ||
+          roles.includes("manager") ||
+          roles.includes("instructor"),
+        "Only the director can delete this.",
+        403,
+      );
+      must(
+        rightOf(req.user, "delete") !== false || roles.includes("instructor"),
+        "Your access does not include deleting.",
+        403,
+      );
       bin = [];
       try {
         const result = fn(req) ?? { ok: true };
@@ -2071,6 +2200,7 @@ write("/api/contacts", ["admin", "admissions", "academic"], (req) => {
     consent: b.consent ? 1 : 0,
     guardian: text(b.guardian || "", "Guardian or sponsor", 300, false),
     notes: text(b.notes || "", "Notes", 4000, false),
+    birth_date: b.birth_date ? date(b.birth_date, "Birth date") : "",
     created_at: now(),
   });
   audit(req.user.id, id, "Client added.", "contact");
@@ -2296,7 +2426,42 @@ function meetingUrl(b, existing) {
 }
 /** The same person cannot be booked twice at the same time (unless forced). */
 function checkOverlap(values, ignoreId, force) {
-  if (force || !values.staff_id || values.status === "Cancelled") return;
+  if (force || values.status === "Cancelled") return;
+  if (values.contact_id) {
+    const busy = one(
+      "SELECT a.title FROM appointments a WHERE a.contact_id=? AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
+      values.contact_id,
+      ignoreId || 0,
+      values.ends_at,
+      values.starts_at,
+    );
+    must(
+      !busy,
+      `This client already has “${busy?.title}” at that time. Choose another time or confirm.`,
+      409,
+      { overlap: true },
+    );
+  }
+  const room = String(values.location || "").trim();
+  if (
+    room &&
+    !/zoom|meet|jitsi|online|en ligne|whatsapp|téléphone|phone/i.test(room)
+  ) {
+    const taken = one(
+      "SELECT a.title FROM appointments a WHERE lower(a.location)=lower(?) AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
+      room,
+      ignoreId || 0,
+      values.ends_at,
+      values.starts_at,
+    );
+    must(
+      !taken,
+      `The room “${room}” is already used by “${taken?.title}” at that time. Choose another room or confirm.`,
+      409,
+      { overlap: true },
+    );
+  }
+  if (!values.staff_id) return;
   const clash = one(
     "SELECT a.title, a.starts_at FROM appointments a WHERE a.staff_id=? AND a.id<>? AND a.status<>'Cancelled' AND a.starts_at<? AND a.ends_at>?",
     values.staff_id,
@@ -2348,11 +2513,15 @@ write(
   calendarRoles,
   (req) => {
     const a = found("appointments", req.params.id, "Appointment");
+    remember("appointments", a.id, req.user.id, "Appointment edited");
     const values = appointmentFields(req.body, a);
     if (
       values.starts_at !== a.starts_at ||
       values.ends_at !== a.ends_at ||
-      values.staff_id !== a.staff_id
+      values.staff_id !== a.staff_id ||
+      values.contact_id !== a.contact_id ||
+      values.location !== a.location ||
+      (values.status !== "Cancelled" && a.status === "Cancelled")
     )
       checkOverlap(values, a.id, req.body.allow_overlap);
     run(
@@ -2360,6 +2529,8 @@ write(
       ...Object.values(values),
       a.id,
     );
+    if (values.status === "Cancelled" && a.status !== "Cancelled")
+      slotFreed({ ...a, ...values }, req.user.id);
     audit(
       req.user.id,
       values.contact_id,
@@ -2372,6 +2543,23 @@ write(
   },
   "patch",
 );
+/** The client is in the waiting room (shown on the reception screen). */
+write("/api/appointments/:id/checkin", calendarRoles, (req) => {
+  const a = found("appointments", req.params.id, "Appointment");
+  const arrived = req.body.arrived !== false;
+  run(
+    "UPDATE appointments SET checked_in_at=? WHERE id=?",
+    arrived ? now() : "",
+    a.id,
+  );
+  audit(
+    req.user.id,
+    a.contact_id,
+    arrived ? `Arrived for ${a.title}.` : `Arrival cancelled: ${a.title}.`,
+    "appointment",
+  );
+  return { ok: true };
+});
 del("/api/appointments/:id", calendarRoles, (req) => {
   const a = found("appointments", req.params.id, "Appointment");
   drop("DELETE FROM session_notes WHERE appointment_id=?", a.id);
@@ -2427,7 +2615,7 @@ del("/api/tasks/:id", taskRoles, (req) => {
 // Money -------------------------------------------------------------------------
 write(
   "/api/charges/:id",
-  ["admin", "finance"],
+  ["admin", "finance", "admissions"],
   (req) => {
     const ch = chargeRows().find((x) => x.id === Number(req.params.id));
     must(ch, "Charge not found.", 404);
@@ -2456,7 +2644,7 @@ write(
   },
   "patch",
 );
-del("/api/charges/:id", ["admin", "finance"], (req) => {
+del("/api/charges/:id", ["admin", "finance", "admissions"], (req) => {
   const ch = found("charges", req.params.id, "Charge");
   must(
     !one("SELECT id FROM payments WHERE charge_id=?", ch.id),
@@ -2475,7 +2663,7 @@ del("/api/charges/:id", ["admin", "finance"], (req) => {
   );
   return { ok: true };
 });
-del("/api/payments/:id", ["admin", "finance"], (req) => {
+del("/api/payments/:id", ["admin", "finance", "admissions"], (req) => {
   const p = found("payments", req.params.id, "Payment");
   must(
     !one("SELECT id FROM refunds WHERE payment_id=?", p.id),
@@ -2530,6 +2718,8 @@ del("/api/saved-views/:id", ["admin", "admissions", "manager"], (req) => {
 });
 
 // Staff -------------------------------------------------------------------------
+// Director, Administrator, Secretary, Teacher / Specialist.
+const assignableRoles = ["admin", "manager", "admissions", "instructor"];
 const roles = [
   "admin",
   "admissions",
@@ -2552,6 +2742,16 @@ function staffEmail(value, exceptId = 0) {
   );
   return email;
 }
+/** The administrator manages only secretary and teacher accounts. */
+const managerRoles = ["admissions", "instructor"];
+function staffScope(req, ...roles) {
+  if (req.user.role === "manager")
+    must(
+      roles.every((r) => managerRoles.includes(r)),
+      "The administrator can manage only secretary and teacher accounts.",
+      403,
+    );
+}
 function strongPassword(value) {
   must(
     typeof value === "string" && value.length >= 10 && value.length <= 200,
@@ -2559,9 +2759,10 @@ function strongPassword(value) {
   );
   return hashPassword(value);
 }
-write("/api/users", ["admin"], (req) => {
+write("/api/users", ["admin", "manager"], (req) => {
   const b = req.body;
-  must(roles.includes(b.role), "Choose a valid staff role.");
+  must(assignableRoles.includes(b.role), "Choose a valid staff role.");
+  staffScope(req, b.role);
   const email =
     staffEmail(b.email) ||
     `staff-${randomBytes(6).toString("hex")}@no-login.local`;
@@ -2585,9 +2786,10 @@ write("/api/users", ["admin"], (req) => {
 });
 write(
   "/api/users/:id",
-  ["admin"],
+  ["admin", "manager"],
   (req) => {
     const u = found("users", req.params.id, "Staff member");
+    staffScope(req, u.role);
     const b = req.body;
     const email =
       b.email != null ? staffEmail(b.email, u.id) || u.email : u.email;
@@ -2623,8 +2825,9 @@ write(
   },
   "patch",
 );
-write("/api/users/:id/password", ["admin"], (req) => {
+write("/api/users/:id/password", ["admin", "manager"], (req) => {
   const u = found("users", req.params.id, "Staff member");
+  staffScope(req, u.role);
   must(
     !u.email.endsWith("@no-login.local"),
     "Add a real email for this person first so they can sign in.",
@@ -2762,6 +2965,20 @@ write("/api/admin/import-workbook", ["admin"], (req) => {
 
 function cleanStart(me) {
   for (const table of [
+    "assistant_messages",
+    "bot_sessions",
+    "ai_usage",
+    "messages",
+    "conversations",
+    "flow_runs",
+    "contact_tags",
+    "custom_values",
+    "comments",
+    "notifications",
+    "subscriptions",
+    "gift_cards",
+    "record_versions",
+    "user_prefs",
     "trash",
     "password_resets",
     "checkouts",
@@ -2812,6 +3029,8 @@ function cleanStart(me) {
   run("DELETE FROM idempotency WHERE user_id<>?", me);
   run("DELETE FROM booking_services");
   run("UPDATE settings SET booking_enabled=0 WHERE id=1");
+  run("UPDATE flows SET created_by=?", me);
+  run("UPDATE segments SET user_id=?", me);
   run("DELETE FROM users WHERE id<>?", me);
   run("UPDATE users SET role='admin', active=1 WHERE id=?", me);
   const leads = one(
@@ -3865,6 +4084,12 @@ app.post("/api/whatsapp/send", async (req, res, next) => {
     const body = text(req.body.text, "Message", 2000);
     await sendWhatsApp(c.phone, body);
     transaction(() => {
+      logMessage({
+        contact_id: c.id,
+        direction: "out",
+        body,
+        user_id: req.user.id,
+      });
       if (req.body.kind && req.body.ref_id)
         insert("reminders", {
           kind: String(req.body.kind).slice(0, 20),
@@ -3997,13 +4222,343 @@ del("/api/campaigns/:id", ["admin", "admissions"], (req) => {
   return { ok: true };
 });
 
+// ---------------------------------------------------------------------------
+// Team tools: appointment waiting list, monthly goals, lesson materials,
+// weekly report.
+// ---------------------------------------------------------------------------
+const deskRoles = ["admin", "admissions", "academic"];
+write("/api/appointment-waitlist", deskRoles, (req) => {
+  const b = req.body;
+  const c = contactAccess(req.user, b.contact_id);
+  const id = insert("appointment_waitlist", {
+    contact_id: c.id,
+    staff_id: b.staff_id ? found("users", b.staff_id, "Staff member").id : null,
+    kind: text(b.kind || "", "Service", 80, false),
+    notes: text(b.notes || "", "Notes", 300, false),
+    status: "Waiting",
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  audit(
+    req.user.id,
+    c.id,
+    "Added to the appointment waiting list.",
+    "appointment",
+  );
+  return { id };
+});
+write(
+  "/api/appointment-waitlist/:id",
+  deskRoles,
+  (req) => {
+    const w = found(
+      "appointment_waitlist",
+      req.params.id,
+      "Waiting list entry",
+    );
+    must(
+      ["Waiting", "Offered", "Booked", "Removed"].includes(req.body.status),
+      "Choose a valid status.",
+    );
+    run(
+      "UPDATE appointment_waitlist SET status=? WHERE id=?",
+      req.body.status,
+      w.id,
+    );
+    return { ok: true };
+  },
+  "patch",
+);
+write("/api/goals", ["admin", "finance"], (req) => {
+  const month = text(req.body.month, "Month", 7);
+  must(/^\d{4}-\d{2}$/.test(month), "Choose a month.");
+  run(
+    "INSERT INTO goals (month,revenue,new_clients,updated_at) VALUES (?,?,?,?) ON CONFLICT(month) DO UPDATE SET revenue=excluded.revenue,new_clients=excluded.new_clients,updated_at=excluded.updated_at",
+    month,
+    integer(req.body.revenue || 0, "Revenue goal", 0),
+    integer(req.body.new_clients || 0, "New clients goal", 0, 100000),
+    now(),
+  );
+  audit(req.user.id, null, `Goals set for ${month}.`, "settings");
+  return { ok: true };
+});
+const materialRoles = ["admin", "academic", "instructor"];
+write("/api/cohorts/:id/materials", materialRoles, (req) => {
+  const c = cohortAccess(req.user, req.params.id);
+  const url = text(req.body.url, "Link", 600);
+  must(
+    /^https?:\/\//i.test(url),
+    "The link must start with http:// or https://.",
+  );
+  const id = insert("cohort_materials", {
+    cohort_id: c.id,
+    title: text(req.body.title, "Title", 150),
+    url,
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  audit(req.user.id, null, `Material added to ${c.name}.`, "academic");
+  return { id };
+});
+del("/api/materials/:id", materialRoles, (req) => {
+  const m = found("cohort_materials", req.params.id, "Material");
+  cohortAccess(req.user, m.cohort_id);
+  drop("DELETE FROM cohort_materials WHERE id=?", m.id);
+  return { ok: true };
+});
+app.get("/api/reports/weekly", (req, res, next) => {
+  try {
+    allow(req, ["admin", "finance"]);
+    res.json(weeklyReport());
+  } catch (e) {
+    next(e);
+  }
+});
+app.post("/api/reports/weekly/send", async (req, res, next) => {
+  try {
+    allow(req, ["admin", "finance"]);
+    res.json(await sendWeeklyReport(true));
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Reception tools: signed consent, questionnaire link, merging duplicates.
+// ---------------------------------------------------------------------------
+write("/api/contacts/:id/signature", deskRoles, (req) => {
+  const c = contactAccess(req.user, req.params.id);
+  const m = String(req.body.image || "").match(
+    /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/,
+  );
+  must(m, "Sign in the box first.");
+  const bytes = Buffer.from(m[1], "base64");
+  must(
+    bytes.length > 200 && bytes.length < 400000,
+    "The signature is not valid.",
+  );
+  const day = now().slice(0, 10);
+  insert("documents", {
+    contact_id: c.id,
+    name: `Consentement signé ${day}.png`,
+    mime: "image/png",
+    bytes,
+    size: bytes.length,
+    user_id: req.user.id,
+    created_at: now(),
+  });
+  run(
+    "UPDATE contacts SET consent=1, consent_signed_at=? WHERE id=?",
+    now(),
+    c.id,
+  );
+  audit(req.user.id, c.id, "Consent signed on the tablet.", "contact");
+  return { ok: true };
+});
+write("/api/contacts/:id/intake-link", deskRoles, (req) => {
+  const c = contactAccess(req.user, req.params.id);
+  const token = randomBytes(18).toString("base64url");
+  insert("intake_links", {
+    contact_id: c.id,
+    token_hash: createHash("sha256").update(token).digest("hex"),
+    created_at: now(),
+  });
+  audit(req.user.id, c.id, "Questionnaire link created.", "contact");
+  return { token };
+});
+/** Move everything from one client card to another, then remove the copy. */
+write("/api/contacts/:id/merge", ["admin"], (req) => {
+  const keep = found("contacts", req.params.id, "Client");
+  const from = found("contacts", req.body.from_id, "Client");
+  must(keep.id !== from.id, "Choose two different clients.");
+  const tables = all(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+  ).map((t) => t.name);
+  for (const table of tables)
+    for (const fk of all(`PRAGMA foreign_key_list("${table}")`))
+      if (fk.table === "contacts") {
+        run(
+          `UPDATE OR IGNORE "${table}" SET "${fk.from}"=? WHERE "${fk.from}"=?`,
+          keep.id,
+          from.id,
+        );
+        // Rows that would be duplicates (same class, same session…) go.
+        run(`DELETE FROM "${table}" WHERE "${fk.from}"=?`, from.id);
+      }
+  // The copy goes first: its e-mail must be free before the kept card takes it.
+  run("DELETE FROM contacts WHERE id=?", from.id);
+  const fill = (k) => (keep[k] ? keep[k] : from[k] || "");
+  run(
+    "UPDATE contacts SET email=?, phone=?, guardian=?, emergency_contact=?, birth_date=?, level=?, consent=?, notes=? WHERE id=?",
+    keep.email ||
+      (one(
+        "SELECT id FROM contacts WHERE email=? AND id<>?",
+        from.email,
+        from.id,
+      )
+        ? ""
+        : from.email),
+    fill("phone"),
+    fill("guardian"),
+    fill("emergency_contact"),
+    fill("birth_date"),
+    fill("level"),
+    keep.consent || from.consent ? 1 : 0,
+    [keep.notes, from.notes && `— ${from.name} : ${from.notes}`]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 4000),
+    keep.id,
+  );
+  audit(
+    req.user.id,
+    keep.id,
+    `Duplicate merged into this card: ${from.name} (${from.phone || from.email || "#" + from.id}).`,
+    "contact",
+  );
+  return { ok: true };
+});
+
+// Stock ---------------------------------------------------------------------
+const stockRoles = ["admin", "admissions", "finance"];
+write("/api/stock", stockRoles, (req) => {
+  const b = req.body;
+  const id = insert("stock_items", {
+    name: text(b.name, "Item", 120),
+    unit: text(b.unit || "", "Unit", 30, false),
+    quantity: integer(b.quantity || 0, "Quantity", 0, 100000),
+    min_quantity: integer(b.min_quantity || 0, "Alert below", 0, 100000),
+    price: integer(b.price || 0, "Price", 0),
+    updated_at: now(),
+  });
+  audit(req.user.id, null, `Stock item added: ${b.name}.`, "finance");
+  return { id };
+});
+write(
+  "/api/stock/:id",
+  stockRoles,
+  (req) => {
+    const x = found("stock_items", req.params.id, "Item");
+    const b = req.body;
+    const quantity =
+      b.delta != null
+        ? x.quantity + integer(b.delta, "Change", -100000, 100000)
+        : b.quantity != null
+          ? integer(b.quantity, "Quantity", 0, 100000)
+          : x.quantity;
+    must(quantity >= 0, "There is not enough in stock.", 409);
+    run(
+      "UPDATE stock_items SET name=?, unit=?, quantity=?, min_quantity=?, price=?, updated_at=? WHERE id=?",
+      b.name != null ? text(b.name, "Item", 120) : x.name,
+      b.unit != null ? text(b.unit, "Unit", 30, false) : x.unit,
+      quantity,
+      b.min_quantity != null
+        ? integer(b.min_quantity, "Alert below", 0, 100000)
+        : x.min_quantity,
+      b.price != null ? integer(b.price, "Price", 0) : x.price,
+      now(),
+      x.id,
+    );
+    if (b.delta != null)
+      audit(
+        req.user.id,
+        null,
+        `Stock ${b.delta > 0 ? "+" : ""}${b.delta}: ${x.name} (${quantity} left).`,
+        "finance",
+      );
+    return { ok: true, quantity };
+  },
+  "patch",
+);
+/** Sell items to a client: the stock goes down and an amount due is created. */
+write("/api/stock/:id/sell", stockRoles, (req) => {
+  const x = found("stock_items", req.params.id, "Item");
+  const c = contactAccess(req.user, req.body.contact_id);
+  const qty = integer(req.body.quantity || 1, "Quantity", 1, 1000);
+  must(qty <= x.quantity, "There is not enough in stock.", 409);
+  run(
+    "UPDATE stock_items SET quantity=quantity-?, updated_at=? WHERE id=?",
+    qty,
+    now(),
+    x.id,
+  );
+  let chargeId = null;
+  if (x.price > 0)
+    chargeId = insert("charges", {
+      contact_id: c.id,
+      enrollment_id: null,
+      label: `${x.name}${qty > 1 ? ` × ${qty}` : ""}`,
+      amount: x.price * qty,
+      discount: 0,
+      discount_reason: "",
+      currency: one("SELECT currency FROM settings").currency,
+      due_date: now().slice(0, 10),
+      created_at: now(),
+    });
+  audit(req.user.id, c.id, `Sold: ${x.name} × ${qty}.`, "finance");
+  return { charge_id: chargeId };
+});
+del("/api/stock/:id", ["admin"], (req) => {
+  const x = found("stock_items", req.params.id, "Item");
+  drop("DELETE FROM stock_items WHERE id=?", x.id);
+  return { ok: true };
+});
+
+installPlatform(app, {
+  write,
+  del,
+  allow,
+  must,
+  text,
+  integer,
+  date,
+  found,
+  contactAccess,
+  drop,
+});
+installAi(app, { allow, contactAccess, must, text });
+installSmart(app, {
+  write,
+  del,
+  allow,
+  must,
+  text,
+  integer,
+  found,
+  drop,
+  stateFor: (u) => state(u),
+});
+app.post("/api/predictions/train", (req, res, next) => {
+  try {
+    allow(req, ["admin"]);
+    res.json(transaction(() => trainAll()));
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.use("/api", (req, res) =>
   res.status(404).json({ error: "This endpoint does not exist." }),
 );
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
   const status = err.status || 500;
-  if (status === 500) console.error(err);
+  if (status === 500) {
+    console.error(err);
+    try {
+      run(
+        "INSERT INTO error_log(path, message, created_at) VALUES (?,?,?)",
+        String(req.path).slice(0, 200),
+        String(err?.message || err).slice(0, 500),
+        now(),
+      );
+      run(
+        "DELETE FROM error_log WHERE id NOT IN (SELECT id FROM error_log ORDER BY id DESC LIMIT 200)",
+      );
+    } catch {
+      /* the log must never hide the original error */
+    }
+  }
   res.status(status).json({
     error:
       status === 500

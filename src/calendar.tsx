@@ -120,9 +120,13 @@ export function Calendar() {
   } = useApp();
   const zone = data.settings.timezone;
   const zoned = useZone(zone);
-  const canBook = ["admin", "admissions", "academic", "instructor"].includes(
-    data.user.role,
-  );
+  const canBook = [
+    "admin",
+    "admissions",
+    "academic",
+    "instructor",
+    "manager",
+  ].includes(data.user.role);
   const phone = window.matchMedia("(max-width:760px)").matches;
   const [view, setView] = useState(phone ? "List" : "Week"),
     [anchor, setAnchor] = useState(data.today),

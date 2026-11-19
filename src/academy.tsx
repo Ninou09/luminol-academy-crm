@@ -801,7 +801,9 @@ export function IntakeQuestionsDialog({ onClose }: { onClose: () => void }) {
 export function PsychologySection({ contact }: { contact: Row }) {
   const { data, t, open, date } = useApp();
   if (
-    !["admin", "academic", "instructor", "admissions"].includes(data.user.role)
+    !["admin", "academic", "instructor", "admissions", "manager"].includes(
+      data.user.role,
+    )
   )
     return null;
   const mine = (data.intake || []).filter((x) => x.contact_id === contact.id);
@@ -875,9 +877,13 @@ export function PsychologySection({ contact }: { contact: Row }) {
 // ---------------------------------------------------------------------------
 export function LanguageSection({ contact }: { contact: Row }) {
   const { data, t, open, date, cohort, perform, toast } = useApp();
-  const canTeach = ["admin", "academic", "instructor", "admissions"].includes(
-    data.user.role,
-  );
+  const canTeach = [
+    "admin",
+    "academic",
+    "instructor",
+    "admissions",
+    "manager",
+  ].includes(data.user.role);
   const tests = (data.placements || []).filter(
     (p) => p.contact_id === contact.id,
   );
@@ -969,7 +975,7 @@ export function LanguageSection({ contact }: { contact: Row }) {
                   {t("Add a mark")}
                 </Button>
                 {e.status === "Active" &&
-                  ["admin", "academic", "admissions"].includes(
+                  ["admin", "academic", "admissions", "manager"].includes(
                     data.user.role,
                   ) && (
                     <Button
@@ -1460,6 +1466,21 @@ export function TwoStepPanel() {
 // 11. Help for each page
 // ---------------------------------------------------------------------------
 const help: Record<string, string[]> = {
+  Today: [
+    "“Phone booking”: type the phone number first; a known client is found, otherwise a new one is created.",
+    "Mark each appointment “Arrived” or “No-show”. A cancelled slot creates a task with the first person on the waiting list.",
+    "At the end of the day, “Close the cash desk” prints what was received, by payment method.",
+  ],
+  "My week": [
+    "Your consultations and classes, by day. “Take attendance” opens the roll call of the class.",
+    "“Notes to write”: finished consultations without a session note.",
+    "Add your days off at the bottom: the secretary cannot book you on those days.",
+  ],
+  Dashboard: [
+    "Choose the period at the top. Each number shows the change compared with the period just before.",
+    "Hover a bar to see the exact figures. “Busiest times” helps to plan opening hours.",
+    "Set the monthly goals with the button; Export or Print to share.",
+  ],
   Overview: [
     "Online bookings to confirm and reminders to send appear at the top.",
     "“Today” shows everyone booked today. Click a line to open it.",

@@ -319,9 +319,13 @@ export function WhatsAppDialog({
 export function PackagesSection({ contact }: { contact: Row }) {
   const { data, t, open, money } = useApp();
   const list = (data.packages || []).filter((p) => p.contact_id === contact.id);
-  const canEdit = ["admin", "admissions", "academic", "finance"].includes(
-    data.user.role,
-  );
+  const canEdit = [
+    "admin",
+    "admissions",
+    "academic",
+    "finance",
+    "manager",
+  ].includes(data.user.role);
   if (!list.length && !canEdit) return null;
   return (
     <div className="profile-section">

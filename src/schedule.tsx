@@ -514,9 +514,14 @@ export function RemindersPanel() {
   const fill = useTemplateValues();
   const [showAll, setShowAll] = useState(false);
   if (
-    !["admin", "admissions", "academic", "instructor", "finance"].includes(
-      data.user.role,
-    )
+    ![
+      "admin",
+      "admissions",
+      "academic",
+      "instructor",
+      "finance",
+      "manager",
+    ].includes(data.user.role)
   )
     return null;
   const tomorrow = new Date(Date.parse(data.today + "T12:00:00Z") + 86400000)

@@ -8,6 +8,9 @@ import {
   PortalPage,
   FeedbackPage,
   PaidPage,
+  IntakePage,
+  PublicFormPage,
+  PublicChatPage,
 } from "./public";
 const path = window.location.pathname;
 import "@fontsource-variable/dm-sans";
@@ -25,6 +28,12 @@ createRoot(document.getElementById("root")!).render(
       <PortalPage />
     ) : path.startsWith("/feedback/") ? (
       <FeedbackPage />
+    ) : path.startsWith("/intake/") ? (
+      <IntakePage />
+    ) : path.startsWith("/chat") ? (
+      <PublicChatPage />
+    ) : path.startsWith("/f/") ? (
+      <PublicFormPage />
     ) : path.startsWith("/paid") ? (
       <PaidPage />
     ) : (

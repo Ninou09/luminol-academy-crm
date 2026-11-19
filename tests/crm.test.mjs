@@ -385,26 +385,79 @@ test("instructor cannot retrieve unrelated students, admissions, finance, or res
   const csv = (await request("/export/contacts", undefined, cookie)).json;
   assert(!csv.includes("student2@example.test"));
 });
-test("read-only manager cannot mutate and finance cannot edit admissions", async () => {
+test("the administrator works like the secretary but cannot configure or delete", async () => {
   const manager = await login("nadia");
   assert.equal(
     (
       await request(
         "/tasks",
-        { title: "Forbidden", due_at: new Date().toISOString() },
+        { title: "Call back", due_at: new Date().toISOString() },
         manager,
       )
     ).status,
+    200,
+  );
+  const st = (await request("/state", undefined, manager)).json;
+  assert.equal(st.permissions.role, "administrator");
+  assert.ok(st.permissions.finance);
+  // Settings and deleting stay with the director.
+  assert.equal(
+    (await request("/settings", { academy: "X" }, manager)).status,
     403,
   );
+  const someProgram = st.programs[0];
+  assert.equal(
+    (await request(`/programs/${someProgram.id}`, {}, manager, "DELETE"))
+      .status,
+    403,
+  );
+  // The legacy finance account still cannot edit admissions.
   const finance = await login("karim");
   assert.equal(
     (await request("/opportunities", { name: "Forbidden" }, finance)).status,
     403,
   );
+});
+test("the secretary takes payments but sees no expenses; the teacher cannot open requests", async () => {
+  const secretary = await login("amel");
+  const st = (await request("/state", undefined, secretary)).json;
+  assert.equal(st.permissions.role, "secretary");
+  assert.equal(st.permissions.finance, false);
+  assert.deepEqual(st.expenses || [], []);
+  const open = st.charges.find((c) => c.balance > 0);
   assert.equal(
-    (await request("/state", undefined, finance)).json.opportunities.length,
-    0,
+    (
+      await request(
+        "/payments",
+        { charge_id: open.id, amount: 100, method: "Cash" },
+        secretary,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "/expenses",
+        {
+          spent_on: "2026-11-01",
+          category: "Rent",
+          amount: 100,
+          currency: "DZD",
+        },
+        secretary,
+      )
+    ).status,
+    403,
+  );
+  const teacher = await login("sarah");
+  assert.equal(
+    (await request("/opportunities", { name: "Forbidden" }, teacher)).status,
+    403,
+  );
+  assert.equal(
+    (await request("/state", undefined, teacher)).json.permissions.role,
+    "teacher",
   );
 });
 test("optimistic versions reject stale updates and impossible enrolled stage shortcuts", async () => {
@@ -593,7 +646,7 @@ test("program pricing updates do not rewrite existing charges; role changes revo
   );
   const manager = await login("nadia");
   assert.equal(
-    (await request("/users/6/role", { role: "academic" }, admin, "PATCH"))
+    (await request("/users/6/role", { role: "admissions" }, admin, "PATCH"))
       .status,
     200,
   );

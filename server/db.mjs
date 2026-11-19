@@ -53,13 +53,19 @@ export const insert = (table, values) =>
       ...Object.values(values),
     ).lastInsertRowid,
   );
+let depth = 0;
+/** Nested calls join the outer transaction. */
 export function transaction(fn) {
+  if (depth > 0) return fn();
   db.exec("BEGIN IMMEDIATE");
+  depth++;
   try {
     const result = fn();
+    depth--;
     db.exec("COMMIT");
     return result;
   } catch (e) {
+    depth = 0;
     db.exec("ROLLBACK");
     throw e;
   }
