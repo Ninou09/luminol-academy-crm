@@ -2433,7 +2433,9 @@ export function installPlatform(app, h) {
           mail: mailConfigured(),
           ai: !!process.env.ANTHROPIC_API_KEY,
           cron: !!process.env.CRON_SECRET,
-          blob: !!process.env.BLOB_READ_WRITE_TOKEN,
+          blob: !!(
+            process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID
+          ),
           push: !!process.env.VAPID_PUBLIC_KEY,
         },
         errors: all("SELECT * FROM error_log ORDER BY id DESC LIMIT 30"),
