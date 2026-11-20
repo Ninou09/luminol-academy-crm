@@ -10,3 +10,5 @@ test-results/
 !.env.example
 *.sqlite*
 ACCESS-PRIVATE*
+
+graphify-out/cache/
