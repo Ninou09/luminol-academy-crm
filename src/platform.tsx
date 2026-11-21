@@ -1318,6 +1318,12 @@ export function DocumentDialog({
   const drawing = useRef(false);
   const [signed, setSigned] = useState(false);
   const [busy, setBusy] = useState(false);
+  const frame = useRef<HTMLImageElement | null>(null);
+  useEffect(() => {
+    const img = new Image();
+    img.src = "/art/certificate.jpg";
+    frame.current = img;
+  }, []);
   const filled = String(tpl?.body || "").replace(/\{(\w+)\}/g, (_, k) =>
     k === "academy"
       ? data.settings.legal_name || data.settings.academy
@@ -1356,9 +1362,17 @@ export function DocumentDialog({
     const ctx = page.getContext("2d")!;
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, W, H);
+    // Certificates and attendance letters are printed on the framed background.
+    const framed =
+      ["certificate", "attendance"].includes(tpl?.kind) &&
+      frame.current?.complete &&
+      frame.current.naturalWidth > 0;
+    if (framed) ctx.drawImage(frame.current!, 0, 0, W, H);
+    const L = framed ? 170 : 110;
+    const top = framed ? 300 : 130;
     ctx.fillStyle = "#0f4b42";
     ctx.font = "600 30px 'DM Sans Variable', sans-serif";
-    ctx.fillText(data.settings.legal_name || data.settings.academy, 110, 130);
+    ctx.fillText(data.settings.legal_name || data.settings.academy, L, top);
     ctx.fillStyle = "#6b7a75";
     ctx.font = "22px 'DM Sans Variable', sans-serif";
     const legal = [
@@ -1367,26 +1381,26 @@ export function DocumentDialog({
     ]
       .filter(Boolean)
       .join(" · ");
-    if (legal) ctx.fillText(legal, 110, 168);
-    ctx.fillRect(110, 200, W - 220, 2);
+    if (legal) ctx.fillText(legal, L, top + 38);
+    ctx.fillRect(L, top + 70, W - 2 * L, 2);
     ctx.fillStyle = "#14201d";
     ctx.font = "27px 'DM Sans Variable', sans-serif";
-    let y = 280;
-    for (const line of wrap(ctx, filled, W - 220)) {
-      if (y > H - 420) break;
+    let y = top + 150;
+    for (const line of wrap(ctx, filled, W - 2 * L)) {
+      if (y > H - 440) break;
       if (/^[A-ZÉÈÀ' ]{6,}$/.test(line)) {
         ctx.font = "700 34px 'DM Sans Variable', sans-serif";
-        ctx.fillText(line, 110, y);
+        ctx.fillText(line, L, y);
         ctx.font = "27px 'DM Sans Variable', sans-serif";
-      } else ctx.fillText(line, 110, y);
+      } else ctx.fillText(line, L, y);
       y += line ? 42 : 26;
     }
     ctx.font = "24px 'DM Sans Variable', sans-serif";
     ctx.fillStyle = "#6b7a75";
-    ctx.fillText(t("Signature"), 110, H - 360);
+    ctx.fillText(t("Signature"), L, H - 380);
     if (signed && canvas.current)
-      ctx.drawImage(canvas.current, 110, H - 340, 520, 200);
-    ctx.fillText(contact.name, 110, H - 110);
+      ctx.drawImage(canvas.current, L, H - 360, 520, 200);
+    ctx.fillText(contact.name, L, H - (framed ? 140 : 110));
     return page;
   }
   async function saveDoc() {
@@ -1495,7 +1509,10 @@ export function DocumentDialog({
             <Eraser size={14} /> {t("Clear")}
           </button>
         </div>
-        <div className="doc-preview" aria-label={t("Preview")}>
+        <div
+          className={`doc-preview ${["certificate", "attendance"].includes(tpl?.kind) ? "framed" : ""}`}
+          aria-label={t("Preview")}
+        >
           <strong>{data.settings.legal_name || data.settings.academy}</strong>
           <pre>{filled}</pre>
         </div>
