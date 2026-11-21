@@ -66,9 +66,14 @@ export function Empty({
   const { t } = useApp();
   return (
     <div className="empty">
-      <span className="empty-icon">
-        <Inbox size={23} />
-      </span>
+      <img
+        className="empty-art"
+        src={`/art/empty-${/appointment|session|calendar|rendez|agenda|slot|booking/i.test(title) ? "calendar" : /task|done|nothing|request|form|scenario|review|change|field/i.test(title) ? "clipboard" : "inbox"}.webp`}
+        alt=""
+        width={120}
+        height={120}
+        loading="lazy"
+      />
       <strong>{t(title)}</strong>
       <p>{t(text)}</p>
       {action}

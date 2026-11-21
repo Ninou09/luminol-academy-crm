@@ -54,7 +54,7 @@ export function printDocument(
   td { padding: 10px 6px; border-bottom: 1px solid #e3e8e4; }
   td:first-child { color:#6b7a72; width: 40%; }
   .total { font-size: 22px; font-weight: 700; }
-  .cert { text-align:center; border: 6px double #167e70; padding: 50px 40px; margin-top: 30px; }
+  .cert { text-align:center; padding: 120px 90px 110px; margin-top: 20px; min-height: 760px; background: url(/art/certificate.jpg) center / 100% 100% no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .cert h2 { font-size: 36px; margin: 10px 0 6px; letter-spacing: 1px; }
   .cert .name { font-size: 32px; font-weight: 700; margin: 26px 0 10px; border-bottom: 1px solid #c9d6cf; display:inline-block; padding: 0 30px 8px; }
   .cert p { font-size: 17px; line-height: 1.7; }

@@ -9483,3 +9483,104 @@ label.switch {
   text-align: center;
   font-weight: 600;
 }
+
+/* Brand artwork ----------------------------------------------------------- */
+.empty-art {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+.login-art {
+  background: #f4f2ec;
+  color: #0f4b42;
+}
+.login-art::before,
+.waiting-screen::before,
+.gift-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.login-art::before {
+  background-image:
+    linear-gradient(90deg, #f4f2ec 0%, #f4f2ecd9 38%, #f4f2ec00 68%),
+    url(/art/sign-in.webp);
+  background-position: right bottom;
+}
+.login-art > *,
+.waiting-screen > *,
+.gift-card > * {
+  position: relative;
+  z-index: 1;
+}
+.login-art .brand,
+.login-art .login-message h1 {
+  color: #0f4b42;
+}
+.login-art .login-message > .eyebrow {
+  color: #a6752f;
+}
+.login-art .login-caption {
+  color: #f4f2ecb3;
+}
+.gift-card code {
+  background: transparent;
+  color: #fff;
+}
+.login-art .login-message p {
+  color: #3d5a52;
+}
+.login-art .orbital-art {
+  display: none;
+}
+.waiting-screen {
+  background: #0b3b34;
+}
+.waiting-screen::before {
+  position: fixed;
+  background-image:
+    linear-gradient(180deg, #0b3b3466, #0b3b3499), url(/art/waiting-room.webp);
+  background-position: center;
+}
+.gift-card {
+  position: relative;
+  overflow: hidden;
+  background: #0f4b42;
+}
+.gift-card::before {
+  background-image: url(/art/gift-card.webp);
+  background-position: center;
+}
+/* The dark theme inverts the page; these artwork panels keep their real colours. */
+html[data-theme="dark"] .login-art,
+html[data-theme="dark"] .waiting-screen,
+html[data-theme="dark"] .gift-card {
+  filter: invert(1) hue-rotate(180deg);
+}
+html[data-theme="dark"] .login-art img,
+html[data-theme="dark"] .waiting-screen img,
+html[data-theme="dark"] .gift-card img,
+html[data-theme="dark"] .gift-card .qr {
+  filter: none;
+}
+@media (max-width: 760px) {
+  .login-art::before {
+    background-image:
+      linear-gradient(90deg, #f4f2ec 0%, #f4f2ece6 55%, #f4f2ec66 100%),
+      url(/art/sign-in.webp);
+    background-position: 80% bottom;
+  }
+}
+[dir="rtl"] .login-art::before {
+  transform: scaleX(-1);
+}
+.doc-preview.framed {
+  background: url(/art/certificate.webp) center / 100% 100% no-repeat;
+  box-shadow: none;
+  padding: 70px 60px;
+}
