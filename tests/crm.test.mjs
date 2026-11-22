@@ -424,7 +424,7 @@ test("the secretary takes payments but sees no expenses; the teacher cannot open
   assert.equal(st.permissions.role, "secretary");
   assert.equal(st.permissions.finance, false);
   assert.deepEqual(st.expenses || [], []);
-  const open = st.charges.find((c) => c.balance > 0);
+  const open = st.charges.find((c) => c.open);
   assert.equal(
     (
       await request(

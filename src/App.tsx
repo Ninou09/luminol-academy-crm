@@ -162,14 +162,13 @@ const navByRole: Record<string, string[]> = {
     "Reports",
     "Predictions",
   ],
+  // Kept deliberately short: no payments, no predictions, no money.
   secretary: [
     "Today",
-    "Messages",
     "Calendar",
     "Admissions",
     "Students",
-    "Payments",
-    "Predictions",
+    "Messages",
     "My dashboard",
   ],
   teacher: [
@@ -313,12 +312,14 @@ export default function App() {
     cohort = (id: number) => data?.cohorts.find((c) => c.id === id) || missing,
     user = (id: number) => data?.users.find((u) => u.id === id) || missing;
   const money = (n: number, currency?: string) =>
-    new Intl.NumberFormat(locales[lang] || "en-DZ", {
-      style: "currency",
-      currency: currency || data?.settings.currency || "DZD",
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0,
-    }).format(n / 100);
+    data?.permissions.seeMoney === false
+      ? "—"
+      : new Intl.NumberFormat(locales[lang] || "en-DZ", {
+          style: "currency",
+          currency: currency || data?.settings.currency || "DZD",
+          maximumFractionDigits: 2,
+          minimumFractionDigits: 0,
+        }).format(n / 100);
   const date = (
     s: string,
     opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" },
@@ -518,14 +519,16 @@ export default function App() {
               ))}
             </nav>
             <div className="nav-divider" />
-            <button
-              className={`nav-item ${page === "My tasks" ? "active" : ""}`}
-              onClick={() => go("My tasks")}
-            >
-              <ListTodo size={20} />
-              <span>{t("My tasks")}</span>
-              <span className="nav-count neutral">{taskCount}</span>
-            </button>
+            {roleKind !== "secretary" && (
+              <button
+                className={`nav-item ${page === "My tasks" ? "active" : ""}`}
+                onClick={() => go("My tasks")}
+              >
+                <ListTodo size={20} />
+                <span>{t("My tasks")}</span>
+                <span className="nav-count neutral">{taskCount}</span>
+              </button>
+            )}
             <button
               className={`nav-item ${page === "Settings" ? "active" : ""}`}
               aria-current={page === "Settings" ? "page" : undefined}
@@ -653,26 +656,32 @@ export default function App() {
                         <ArrowRight size={14} />
                       </button>
                     ))}
-                    {data.tasks
-                      .filter((t) => t.status === "Open")
-                      .slice(0, 3)
-                      .map((task) => (
-                        <button key={task.id} onClick={() => go("My tasks")}>
-                          <ListTodo size={20} />
-                          <span>
-                            <strong>{t(task.title)}</strong>
-                            <small>{date(task.due_at)}</small>
-                          </span>
-                        </button>
-                      ))}
+                    {roleKind !== "secretary" &&
+                      data.tasks
+                        .filter((t) => t.status === "Open")
+                        .slice(0, 3)
+                        .map((task) => (
+                          <button key={task.id} onClick={() => go("My tasks")}>
+                            <ListTodo size={20} />
+                            <span>
+                              <strong>{t(task.title)}</strong>
+                              <small>{date(task.due_at)}</small>
+                            </span>
+                          </button>
+                        ))}
                     {!taskCount &&
                       !data.flags.length &&
                       !(data.notifications || []).length && (
                         <p>{t("No notifications")}</p>
                       )}
-                    <Button variant="ghost full" onClick={() => go("My tasks")}>
-                      {t("My tasks")}
-                    </Button>
+                    {roleKind !== "secretary" && (
+                      <Button
+                        variant="ghost full"
+                        onClick={() => go("My tasks")}
+                      >
+                        {t("My tasks")}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

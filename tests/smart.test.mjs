@@ -447,3 +447,37 @@ test("the administrator creates secretary and teacher accounts, not directors", 
   });
   assert.equal(r.status, 200);
 });
+
+test("the secretary gets a simple workspace with no money in it", async () => {
+  const amel = await login("amel");
+  const s = (await request("/state", undefined, "GET", amel)).json;
+  assert.equal(s.permissions.seeMoney, false);
+  assert.equal(s.payments.length, 0);
+  assert.equal(s.refunds.length, 0);
+  assert.equal(s.predictions, null);
+  const money = /^(price|amount|balance|paid|discount)$/;
+  const leaks = [];
+  (function walk(v, path) {
+    if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
+    else if (v && typeof v === "object")
+      for (const [k, x] of Object.entries(v))
+        if (money.test(k) && typeof x === "number" && x !== 0)
+          leaks.push(`${path}.${k}`);
+        else walk(x, `${path}.${k}`);
+  })(s, "state");
+  assert.deepEqual(leaks, []);
+  // She can still take a payment on an open charge, without seeing its amount.
+  const open = s.charges.find((c) => c.open);
+  assert.ok(open);
+  const paid = await request(
+    "/payments",
+    { charge_id: open.id, amount: 100, method: "Cash" },
+    "POST",
+    amel,
+  );
+  assert.equal(paid.status, 200);
+  // The director still sees the real amounts.
+  const d = await state();
+  assert.ok(d.charges.some((c) => c.amount > 0));
+  assert.notEqual(d.permissions.seeMoney, false);
+});

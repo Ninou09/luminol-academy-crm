@@ -315,9 +315,7 @@ export function SecretaryHome() {
         </Panel>
       )}
       <RoomBoard />
-      <CashClosing />
       <BirthdaysPanel />
-      <LowStockPanel />
       <WaitlistPanel />
       <RemindersPanel />
       {quick && <QuickBookingDialog onClose={() => setQuick(false)} />}
