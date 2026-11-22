@@ -337,7 +337,8 @@ export default function Forms({
           charge_id: String(
             r.id ||
               data.charges.find(
-                (ch) => ch.balance > 0 && (!c || ch.contact_id === c.id),
+                (ch) =>
+                  (ch.balance > 0 || ch.open) && (!c || ch.contact_id === c.id),
               )?.id ||
               "new",
           ),
@@ -1033,12 +1034,17 @@ export default function Forms({
           [
             ["new", t("Other payment (type it freely)")] as [string, string],
             ...data.charges
-              .filter((ch) => ch.balance > 0 && (!c || ch.contact_id === c.id))
+              .filter(
+                (ch) =>
+                  (ch.balance > 0 || ch.open) && (!c || ch.contact_id === c.id),
+              )
               .map(
                 (ch) =>
                   [
                     String(ch.id),
-                    `${person(ch.contact_id).name} · ${ch.label} · ${money(ch.balance, ch.currency)}`,
+                    data.permissions.seeMoney === false
+                      ? `${person(ch.contact_id).name} · ${ch.label}`
+                      : `${person(ch.contact_id).name} · ${ch.label} · ${money(ch.balance, ch.currency)}`,
                   ] as [string, string],
               ),
           ],
@@ -1348,16 +1354,18 @@ export default function Forms({
                 hint: "Goals and steps planned for these sessions",
               }),
             ]
-          : [
-              textField("price", "Price for the whole package", {
-                type: "number",
-                min: 0,
-                step: "0.01",
-                required: false,
-                hint: "Creates a charge in Payments. Leave empty if free or paid per session.",
-              }),
-              textField("due_date", "Payment due date", { type: "date" }),
-            ]),
+          : data.permissions.seeMoney === false
+            ? []
+            : [
+                textField("price", "Price for the whole package", {
+                  type: "number",
+                  min: 0,
+                  step: "0.01",
+                  required: false,
+                  hint: "Creates a charge in Payments. Leave empty if free or paid per session.",
+                }),
+                textField("due_date", "Payment due date", { type: "date" }),
+              ]),
       ];
       break;
     case "bookingService":

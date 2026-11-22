@@ -188,6 +188,8 @@ const permissions = (u) => ({
   canDelete: rightOf(u, "delete") !== false,
   canExport: rightOf(u, "export") !== false,
   seePhones: rightOf(u, "phones") !== false,
+  // The secretary never sees prices, amounts or balances.
+  seeMoney: u.role !== "admissions",
   role: roleKind(u.role),
 });
 /** The four sign-ins shown in the interface. */
@@ -457,7 +459,36 @@ function packageRows() {
      FROM packages p ORDER BY p.id DESC`,
   );
 }
+// The secretary works with clients and bookings, never with money: every
+// price, amount and balance is removed from what her browser receives.
+const moneyKey =
+  /^(price|amount|balance|paid|discount|refunded|outstanding|revenue|referral_amount|.*_price|.*_amount|.*_balance|.*_paid)$/;
+function hideMoney(value) {
+  if (Array.isArray(value)) return value.map(hideMoney);
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value))
+      out[k] = moneyKey.test(k) && typeof v === "number" ? 0 : hideMoney(v);
+    return out;
+  }
+  return value;
+}
+const secretary = (u) => u.role === "admissions";
 function state(u) {
+  const s = fullState(u);
+  if (!secretary(u)) return s;
+  return hideMoney({
+    ...s,
+    charges: s.charges.map((c) => ({ ...c, open: c.balance > 0 })),
+    payments: [],
+    refunds: [],
+    checkouts: [],
+    goals: [],
+    expenses: [],
+    predictions: null,
+  });
+}
+function fullState(u) {
   run(
     "DELETE FROM trash WHERE deleted_at < ?",
     new Date(Date.now() - 30 * 86400000).toISOString(),
@@ -1575,7 +1606,7 @@ write("/api/payments", ["admin", "finance", "admissions"], (req) => {
   );
   return { id };
 });
-write("/api/refunds", ["admin", "finance", "admissions"], (req) => {
+write("/api/refunds", ["admin", "finance"], (req) => {
   const p = one(
     "SELECT p.*,c.contact_id,c.currency FROM payments p JOIN charges c ON c.id=p.charge_id WHERE p.id=?",
     integer(req.body.payment_id, "Payment"),

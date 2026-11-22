@@ -2410,31 +2410,37 @@ export function Reports({
 export function SettingsPage() {
   const { data, t, open, perform, toast, date, time, pageFilter, go } =
     useApp();
-  const tabs = [
-    "Workspace settings",
-    "Team & permissions",
-    "My account",
-    ...(data.permissions.editAdmissions ? ["Message templates"] : []),
-    ...(data.permissions.admin ? ["Online booking"] : []),
-    ...(data.permissions.admin ? ["Data & import", "Journal", "Trash"] : []),
-    ...(data.permissions.admin ? ["Scenarios"] : []),
-    ...(data.permissions.editAdmissions
-      ? ["Fields, tags & segments", "Forms"]
-      : []),
-    ...(["admin", "manager"].includes(data.user.role)
-      ? ["Document templates"]
-      : []),
-    ...(["admin", "manager"].includes(data.user.role)
-      ? ["Assistant & bot"]
-      : []),
-    ...(data.permissions.admin
-      ? ["Branches & access", "API & webhooks", "System status"]
-      : []),
-    "Integrations",
-    "Automation history",
-  ];
+  // The secretary keeps only her own account: password, language, calendar link.
+  const simple = data.permissions.role === "secretary";
+  const tabs = simple
+    ? ["My account"]
+    : [
+        "Workspace settings",
+        "Team & permissions",
+        "My account",
+        ...(data.permissions.editAdmissions ? ["Message templates"] : []),
+        ...(data.permissions.admin ? ["Online booking"] : []),
+        ...(data.permissions.admin
+          ? ["Data & import", "Journal", "Trash"]
+          : []),
+        ...(data.permissions.admin ? ["Scenarios"] : []),
+        ...(data.permissions.editAdmissions
+          ? ["Fields, tags & segments", "Forms"]
+          : []),
+        ...(["admin", "manager"].includes(data.user.role)
+          ? ["Document templates"]
+          : []),
+        ...(["admin", "manager"].includes(data.user.role)
+          ? ["Assistant & bot"]
+          : []),
+        ...(data.permissions.admin
+          ? ["Branches & access", "API & webhooks", "System status"]
+          : []),
+        "Integrations",
+        "Automation history",
+      ];
   const [tab, setTab] = useState(
-    tabs.includes(pageFilter) ? pageFilter : "Workspace settings",
+    tabs.includes(pageFilter) ? pageFilter : tabs[0],
   );
   useEffect(() => {
     if (tabs.includes(pageFilter)) setTab(pageFilter);
