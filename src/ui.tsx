@@ -313,9 +313,10 @@ export function DataTable({
   return (
     <>
       <div className="table-scroll">
-        <table>
+        <table className="excel">
           <thead>
             <tr>
+              <th className="num">#</th>
               {columns.map((c) => (
                 <th
                   key={c.key}
@@ -352,12 +353,13 @@ export function DataTable({
           <tbody>
             {sorted
               .slice(current * pageSize, (current + 1) * pageSize)
-              .map((r) => (
+              .map((r, n) => (
                 <tr
                   key={r.id}
                   className={onRow ? "clickable" : ""}
                   onClick={() => onRow?.(r)}
                 >
+                  <td className="num">{current * pageSize + n + 1}</td>
                   {columns.map((c, i) => (
                     <td key={c.key}>
                       {onRow && i === 0 ? (

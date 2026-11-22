@@ -165,14 +165,8 @@ const navByRole: Record<string, string[]> = {
   ],
   // As simple as possible: her day, her clients, the calendar.
   secretary: ["Today", "Students", "Calendar", "My dashboard"],
-  teacher: [
-    "My week",
-    "Messages",
-    "Calendar",
-    "Attendance",
-    "Programs & Cohorts",
-    "My dashboard",
-  ],
+  // Teachers and specialists: their week, their clients, the calendar.
+  teacher: ["My week", "Students", "Calendar", "Attendance"],
 };
 const homeFor = (role: string) =>
   role === "administrator"
@@ -438,7 +432,11 @@ export default function App() {
     Today: <SecretaryHome />,
     "My week": <TeacherHome />,
     Admissions: <Admissions />,
-    Students: roleKind === "secretary" ? <SimpleClients /> : <Students />,
+    Students: ["secretary", "teacher"].includes(roleKind) ? (
+      <SimpleClients />
+    ) : (
+      <Students />
+    ),
     "Programs & Cohorts": <Programs />,
     Calendar: (
       <>
@@ -457,7 +455,9 @@ export default function App() {
   };
   return (
     <AppContext.Provider value={context}>
-      <div className={`app-shell${roleKind === "secretary" ? " simple" : ""}`}>
+      <div
+        className={`app-shell${["secretary", "teacher"].includes(roleKind) ? " simple" : ""}`}
+      >
         <a className="skip-link" href="#main-content">
           {t("Overview")}
         </a>
@@ -515,7 +515,7 @@ export default function App() {
               ))}
             </nav>
             <div className="nav-divider" />
-            {roleKind !== "secretary" && (
+            {!["secretary", "teacher"].includes(roleKind) && (
               <button
                 className={`nav-item ${page === "My tasks" ? "active" : ""}`}
                 onClick={() => go("My tasks")}
@@ -652,7 +652,7 @@ export default function App() {
                         <ArrowRight size={14} />
                       </button>
                     ))}
-                    {roleKind !== "secretary" &&
+                    {!["secretary", "teacher"].includes(roleKind) &&
                       data.tasks
                         .filter((t) => t.status === "Open")
                         .slice(0, 3)
@@ -670,7 +670,7 @@ export default function App() {
                       !(data.notifications || []).length && (
                         <p>{t("No notifications")}</p>
                       )}
-                    {roleKind !== "secretary" && (
+                    {!["secretary", "teacher"].includes(roleKind) && (
                       <Button
                         variant="ghost full"
                         onClick={() => go("My tasks")}
@@ -860,8 +860,8 @@ export default function App() {
           </div>
         )}
       </div>
-      {roleKind !== "secretary" && <AssistantBubble />}
-      {roleKind !== "secretary" && <Tour />}
+      {!["secretary", "teacher"].includes(roleKind) && <AssistantBubble />}
+      {!["secretary", "teacher"].includes(roleKind) && <Tour />}
     </AppContext.Provider>
   );
 }

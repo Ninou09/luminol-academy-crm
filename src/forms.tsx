@@ -499,6 +499,9 @@ export default function Forms({
     setError("");
   };
   const activeUsers = data.users.filter((u) => u.active !== 0);
+  // Appointments are booked with teachers and specialists only.
+  const teachers = activeUsers.filter((u) => u.role === "instructor");
+  const specialists = teachers.length ? teachers : activeUsers;
   const staffOptions = activeUsers
     .filter((u) => ["admin", "admissions", "manager"].includes(u.role))
     .map((u) => [u.id, u.name] as [number, string]);
@@ -723,7 +726,7 @@ export default function Forms({
         select(
           "staff_id",
           "With",
-          activeUsers.map((u) => [u.id, u.name]),
+          specialists.map((u) => [u.id, u.name]),
           { required: false },
         ),
         ...((data.packages || []).some(
@@ -1004,12 +1007,6 @@ export default function Forms({
         textField("emergency_contact", "Emergency contact", {
           required: false,
           hint: "Name and phone of someone to call if needed",
-        }),
-        textField("company", "Company (for invoices)", { required: false }),
-        textField("company_nif", "Company NIF", { required: false }),
-        textField("company_address", "Company address", {
-          required: false,
-          full: true,
         }),
         textField("notes", "Notes", {
           type: "textarea",
@@ -1398,9 +1395,7 @@ export default function Forms({
           label: "Who provides it",
           type: "checks",
           full: true,
-          options: activeUsers
-            .filter((u) => u.role !== "finance")
-            .map((u) => [u.id, u.name] as [number, string]),
+          options: specialists.map((u) => [u.id, u.name] as [number, string]),
         },
         ...(r.id
           ? [
