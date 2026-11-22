@@ -2387,3 +2387,20 @@ Object.assign(arabic, {
   "No appointments yet.": "لا توجد مواعيد بعد.",
   "Parent or guardian": "الولي أو الوصي",
 });
+
+// Simple secretary workspace.
+Object.assign(arabic, {
+  "Your consultations and classes. Click a big button.":
+    "استشاراتك وحصصك. اضغط على زر كبير.",
+  "My day": "يومي",
+  planned: "مبرمج",
+  "What I have today": "ما لدي اليوم",
+  "Who came to the class": "من حضر الحصة",
+  "My calendar": "تقويمي",
+  "The whole month": "الشهر كاملًا",
+  "A day off": "يوم عطلة",
+  "Tell the secretary": "إبلاغ السكرتيرة",
+  "Client or group": "الزبون أو الفوج",
+  "Nothing planned.": "لا شيء مبرمج.",
+  "Only you can read your notes.": "أنت وحدك تستطيع قراءة ملاحظاتك.",
+});

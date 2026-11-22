@@ -9813,3 +9813,66 @@ html[data-theme="dark"] .gift-card .qr {
 .simple-card {
   padding: 20px 22px 32px;
 }
+
+/* ---------- Every list looks like a spreadsheet (Excel) ---------- */
+table.excel {
+  font-size: 14px;
+  border: 1px solid #cfd8d3;
+}
+table.excel th {
+  background: #e9f1ec;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border: 1px solid #cfd8d3;
+}
+table.excel td {
+  padding: 10px 12px;
+  border: 1px solid #dde4e0;
+  color: var(--ink);
+  font-size: 14px;
+}
+table.excel tbody tr:nth-child(even) td {
+  background: #f7faf8;
+}
+table.excel tbody tr:hover td {
+  background: #fff7e3;
+}
+table.excel td strong {
+  color: var(--ink);
+}
+table.excel .person-cell strong {
+  font-size: 14px;
+}
+table.excel .person-cell small {
+  font-size: 12px;
+}
+table.excel th.num,
+table.excel td.num {
+  width: 40px;
+  text-align: center;
+  color: var(--muted);
+  background: #f1f4f2;
+  font-weight: 500;
+}
+table.excel .cell-link {
+  color: #1c5fa8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+html[data-theme="dark"] table.excel tbody tr:hover td {
+  background: #fff3d6;
+}
+.sheet-link-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #b9c6c0;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1c5fa8;
+  font-size: 16px;
+  text-decoration: none;
+}

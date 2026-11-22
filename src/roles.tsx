@@ -4,6 +4,7 @@
 // lesson materials, the weekly report and the sign-in journal.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  CalendarDays,
   CalendarPlus,
   Check,
   Copy,
@@ -147,14 +148,6 @@ export function SecretaryHome() {
           <Wallet size={34} />
           <strong>{t("Take a payment")}</strong>
           <small>{t("A client pays you")}</small>
-        </button>
-        <button
-          className="big-action purple"
-          onClick={() => open({ type: "package" })}
-        >
-          <Package size={34} />
-          <strong>{t("Sell a package")}</strong>
-          <small>{t("Several sessions together")}</small>
         </button>
       </div>
       <PendingBookings />
@@ -317,13 +310,15 @@ export function SimpleClients() {
   return (
     <>
       <PageHead title="Clients" subtitle="Click a name to open the client.">
-        <Button
-          variant="primary"
-          icon={<UserPlus size={18} />}
-          onClick={() => open({ type: "contact" })}
-        >
-          {t("New client")}
-        </Button>
+        {data.permissions.editAdmissions && (
+          <Button
+            variant="primary"
+            icon={<UserPlus size={18} />}
+            onClick={() => open({ type: "contact" })}
+          >
+            {t("New client")}
+          </Button>
+        )}
       </PageHead>
       <section className="sheet">
         <div className="sheet-head">
@@ -389,10 +384,10 @@ export function SimpleClients() {
 export function QuickBookingDialog({ onClose }: { onClose: () => void }) {
   const { data, t, perform, toast, money } = useApp();
   const zone = data.settings.timezone;
-  const staff = data.users.filter(
-    (u) =>
-      u.active !== 0 && ["instructor", "admin", "manager"].includes(u.role),
-  );
+  // Bookings are made with teachers and specialists only.
+  const active = data.users.filter((u) => u.active !== 0);
+  const teachers = active.filter((u) => u.role === "instructor");
+  const staff = teachers.length ? teachers : active;
   const kinds = Array.from(
     new Set([
       "Psychology consultation",
@@ -799,30 +794,62 @@ export function TeacherHome() {
     (x) => x.user_id === me && x.end_date >= data.today,
   );
   const [off, setOff] = useState({ start: "", end: "", reason: "" });
+  const toWrite = data.appointments.filter(
+    (a) =>
+      a.staff_id === me &&
+      a.status === "Done" &&
+      a.contact_id &&
+      dayOf(a.starts_at) >= addDays(data.today, -14) &&
+      !(data.sessionNotes || []).some((n) => n.appointment_id === a.id),
+  );
+  const first = (data.user.name || "")
+    .replace(/^(Dr\.?|Pr\.?)\s+/i, "")
+    .split(" ")[0];
   return (
     <>
       <PageHead
-        title="My week"
-        subtitle="Your consultations and classes, your groups and your days off."
+        title={`${t("Hello")} ${first}`}
+        subtitle="Your consultations and classes. Click a big button."
       />
-      <div className="teacher-stats">
-        <div className="finance-kpi">
-          <span>{t("Consultations done this month")}</span>
-          <strong>{doneConsults}</strong>
-        </div>
-        <div className="finance-kpi">
-          <span>{t("Class hours this month")}</span>
-          <strong>{Math.round(classHours * 10) / 10} h</strong>
-        </div>
-        <div className="finance-kpi">
-          <span>{t("Active groups")}</span>
-          <strong>{groups.length}</strong>
-        </div>
+      <div className="big-actions">
+        <button className="big-action blue" onClick={() => setSpan("day")}>
+          <CalendarDays size={34} />
+          <strong>{t("My day")}</strong>
+          <small>
+            {items.length && span === "day"
+              ? `${items.length} ${t("planned")}`
+              : t("What I have today")}
+          </small>
+        </button>
+        {groups.length > 0 && (
+          <button className="big-action green" onClick={() => go("Attendance")}>
+            <Check size={34} />
+            <strong>{t("Take attendance")}</strong>
+            <small>{t("Who came to the class")}</small>
+          </button>
+        )}
+        <button className="big-action amber" onClick={() => go("Calendar")}>
+          <CalendarPlus size={34} />
+          <strong>{t("My calendar")}</strong>
+          <small>{t("The whole month")}</small>
+        </button>
+        <button
+          className="big-action purple"
+          onClick={() =>
+            document
+              .getElementById("days-off")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+        >
+          <Plus size={34} />
+          <strong>{t("A day off")}</strong>
+          <small>{t("Tell the secretary")}</small>
+        </button>
       </div>
-      <Panel
-        title="My schedule"
-        action={
-          <div className="segmented" role="group">
+      <section className="sheet">
+        <div className="sheet-head">
+          <h2>{t("My schedule")}</h2>
+          <div className="sheet-tabs">
             {(
               [
                 ["day", "Today"],
@@ -832,114 +859,130 @@ export function TeacherHome() {
             ).map(([k, label]) => (
               <button
                 key={k}
-                className={span === k ? "active" : ""}
+                className={span === k ? "on" : ""}
                 onClick={() => setSpan(k)}
               >
                 {t(label)}
               </button>
             ))}
           </div>
-        }
-      >
-        {byDay.size === 0 ? (
-          <Empty title="Nothing planned" text="Enjoy the free time." />
+        </div>
+        {items.length ? (
+          <div className="sheet-scroll">
+            <table className="sheet-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t("Day")}</th>
+                  <th>{t("Time")}</th>
+                  <th>{t("Client or group")}</th>
+                  <th>{t("Type")}</th>
+                  <th>{t("Actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((x, i) => (
+                  <tr key={x.id}>
+                    <td className="num">{i + 1}</td>
+                    <td>
+                      {dayOf(x.at) === data.today
+                        ? t("Today")
+                        : date(x.at, {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                          })}
+                    </td>
+                    <td>
+                      <strong>{time(x.at)}</strong> – {time(x.end)}
+                    </td>
+                    <td>{x.title}</td>
+                    <td>{x.sub}</td>
+                    <td>
+                      <div className="sheet-actions">
+                        {x.link && (
+                          <a
+                            className="sheet-link-button"
+                            href={x.link}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <ExternalLink size={16} /> {t("Join online")}
+                          </a>
+                        )}
+                        {"session" in x ? (
+                          <button
+                            className="go"
+                            onClick={() => go("Attendance")}
+                          >
+                            {t("Take attendance")}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              open({ type: "appointment", record: x.appt })
+                            }
+                          >
+                            {t("Open")}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          Array.from(byDay, ([d, list]) => (
-            <div key={d} className="week-day">
-              <h3>
-                {date(d + "T12:00:00Z", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })}
-              </h3>
-              <div className="today-list">
-                {list.map((x) => (
-                  <div key={x.id} className="today-row">
-                    <div className="today-time">
-                      <strong>{time(x.at)}</strong>
-                      <small>{time(x.end)}</small>
-                    </div>
-                    <div className="today-main">
-                      <strong>{x.title}</strong>
-                      <small>{x.sub}</small>
-                    </div>
-                    <div className="row-actions wrap">
-                      {x.link && (
-                        <a
-                          className="button small"
-                          href={x.link}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <ExternalLink size={14} /> {t("Join online")}
-                        </a>
-                      )}
-                      {"session" in x ? (
-                        <Button
-                          variant="small"
-                          onClick={() => go("Attendance")}
-                        >
-                          {t("Take attendance")}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="small"
+          <p className="sheet-empty">{t("Nothing planned.")}</p>
+        )}
+      </section>
+      {toWrite.length > 0 && (
+        <section className="sheet">
+          <div className="sheet-head">
+            <h2>{t("Notes to write")}</h2>
+            <span className="sheet-count">
+              {t("Only you can read your notes.")}
+            </span>
+          </div>
+          <div className="sheet-scroll">
+            <table className="sheet-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t("Date")}</th>
+                  <th>{t("Client")}</th>
+                  <th>{t("Actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {toWrite.map((a, i) => (
+                  <tr key={a.id}>
+                    <td className="num">{i + 1}</td>
+                    <td>
+                      {date(a.starts_at)} {time(a.starts_at)}
+                    </td>
+                    <td>{person(a.contact_id).name}</td>
+                    <td>
+                      <div className="sheet-actions">
+                        <button
+                          className="go"
                           onClick={() =>
-                            open({ type: "appointment", record: x.appt })
+                            open({ type: "appointment", record: a })
                           }
                         >
-                          {t("Open")}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                          {t("Write the note")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          ))
-        )}
-      </Panel>
-      {(() => {
-        const toWrite = data.appointments.filter(
-          (a) =>
-            a.staff_id === me &&
-            a.status === "Done" &&
-            a.contact_id &&
-            dayOf(a.starts_at) >= addDays(data.today, -14) &&
-            !(data.sessionNotes || []).some((n) => n.appointment_id === a.id),
-        );
-        return toWrite.length ? (
-          <Panel
-            title="Notes to write"
-            subtitle="Consultations finished in the last 2 weeks without a session note. Only you can read your notes."
-          >
-            <div className="today-list">
-              {toWrite.map((a) => (
-                <div key={a.id} className="today-row">
-                  <div className="today-time">
-                    <strong>{date(a.starts_at)}</strong>
-                    <small>{time(a.starts_at)}</small>
-                  </div>
-                  <div className="today-main">
-                    <strong>{person(a.contact_id).name}</strong>
-                    <small>{t(a.kind)}</small>
-                  </div>
-                  <Button
-                    variant="small"
-                    onClick={() => open({ type: "appointment", record: a })}
-                  >
-                    {t("Write the note")}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        ) : null;
-      })()}
-      {groups.map((g) => (
-        <GroupCard key={g.id} group={g} />
-      ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+      <div id="days-off" />
       <Panel
         title="My days off"
         subtitle="The secretary sees them in the calendar and cannot book you then."

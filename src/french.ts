@@ -2603,3 +2603,20 @@ Object.assign(french, {
   "No appointments yet.": "Pas encore de rendez-vous.",
   "Parent or guardian": "Parent ou tuteur",
 });
+
+// Simple secretary workspace.
+Object.assign(french, {
+  "Your consultations and classes. Click a big button.":
+    "Vos consultations et vos cours. Cliquez sur un grand bouton.",
+  "My day": "Ma journée",
+  planned: "prévus",
+  "What I have today": "Ce que j’ai aujourd’hui",
+  "Who came to the class": "Qui est venu au cours",
+  "My calendar": "Mon agenda",
+  "The whole month": "Tout le mois",
+  "A day off": "Un jour de congé",
+  "Tell the secretary": "Prévenir la secrétaire",
+  "Client or group": "Client ou groupe",
+  "Nothing planned.": "Rien de prévu.",
+  "Only you can read your notes.": "Vous seul pouvez lire vos notes.",
+});

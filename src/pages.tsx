@@ -2411,7 +2411,7 @@ export function SettingsPage() {
   const { data, t, open, perform, toast, date, time, pageFilter, go } =
     useApp();
   // The secretary keeps only her own account: password, language, calendar link.
-  const simple = data.permissions.role === "secretary";
+  const simple = ["secretary", "teacher"].includes(data.permissions.role);
   const tabs = simple
     ? ["My account"]
     : [
