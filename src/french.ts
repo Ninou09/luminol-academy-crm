@@ -2576,3 +2576,30 @@ Object.assign(french, {
     "IA Claude · lit, ne change jamais rien seule",
   "Go to": "Aller à",
 });
+
+// Simple secretary workspace.
+Object.assign(french, {
+  "What do you want to do? Click a big button.":
+    "Que voulez-vous faire ? Cliquez sur un grand bouton.",
+  "A client calls you": "Un client vous appelle",
+  "Write down a new person": "Inscrire une nouvelle personne",
+  "A client pays you": "Un client vous paie",
+  "Several sessions together": "Plusieurs séances ensemble",
+  Change: "Modifier",
+  "No appointments on this day.": "Aucun rendez-vous ce jour-là.",
+  "Click a name to open the client.":
+    "Cliquez sur un nom pour ouvrir la fiche du client.",
+  "Search: name or phone number": "Rechercher : nom ou numéro de téléphone",
+  clients: "clients",
+  "Next appointment": "Prochain rendez-vous",
+  "Added on": "Ajouté le",
+  "No client found.": "Aucun client trouvé.",
+});
+
+// Simple secretary workspace.
+Object.assign(french, {
+  "Send a WhatsApp": "Envoyer un WhatsApp",
+  "Change the details": "Modifier les informations",
+  "No appointments yet.": "Pas encore de rendez-vous.",
+  "Parent or guardian": "Parent ou tuteur",
+});

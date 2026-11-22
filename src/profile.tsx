@@ -169,6 +169,102 @@ export default function Profile({
     "Activity",
     "Documents",
   ];
+  // The secretary sees a short card: who, how to reach them, their appointments.
+  if (data.permissions.role === "secretary") {
+    const visits = data.appointments
+      .filter((a) => a.contact_id === contact.id)
+      .sort((a, b) => b.starts_at.localeCompare(a.starts_at));
+    return (
+      <Dialog title={contact.name} onClose={onClose} drawer>
+        <div className="simple-card">
+          <table className="sheet-table card-table">
+            <tbody>
+              {[
+                ["Phone", contact.phone],
+                ["Email", contact.email],
+                ["Birth date", contact.birth_date],
+                ["Parent or guardian", contact.guardian],
+                ["Notes", contact.notes],
+              ].map(([k, v]) => (
+                <tr key={k}>
+                  <th>{t(k)}</th>
+                  <td>
+                    <bdi>{v || "—"}</bdi>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="big-actions small">
+            <button
+              className="big-action blue"
+              onClick={() => open({ type: "appointment", contact })}
+            >
+              <CalendarDays size={26} />
+              <strong>{t("Book an appointment")}</strong>
+            </button>
+            {contact.phone && (
+              <button
+                className="big-action green"
+                onClick={() => open({ type: "whatsapp", contact })}
+              >
+                <MessageSquare size={26} />
+                <strong>{t("Send a WhatsApp")}</strong>
+              </button>
+            )}
+            <button
+              className="big-action amber"
+              onClick={() => open({ type: "payment", contact })}
+            >
+              <Wallet size={26} />
+              <strong>{t("Take a payment")}</strong>
+            </button>
+            <button
+              className="big-action purple"
+              onClick={() => open({ type: "contact", record: contact })}
+            >
+              <Pencil size={26} />
+              <strong>{t("Change the details")}</strong>
+            </button>
+          </div>
+          <h3 className="card-title">{t("Appointments")}</h3>
+          {visits.length ? (
+            <table className="sheet-table">
+              <thead>
+                <tr>
+                  <th>{t("Date")}</th>
+                  <th>{t("Time")}</th>
+                  <th>{t("With")}</th>
+                  <th>{t("Status")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visits.map((a) => (
+                  <tr
+                    key={a.id}
+                    onClick={() => open({ type: "appointment", record: a })}
+                  >
+                    <td>
+                      {date(a.starts_at, {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td>{time(a.starts_at)}</td>
+                    <td>{a.staff_id ? user(a.staff_id).name : ""}</td>
+                    <td>{t(a.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="sheet-empty">{t("No appointments yet.")}</p>
+          )}
+        </div>
+      </Dialog>
+    );
+  }
   return (
     <Dialog title={t("Contact")} onClose={onClose} drawer>
       <div className="profile-hero">

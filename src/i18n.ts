@@ -2361,3 +2361,29 @@ Object.assign(arabic, {
     "ذكاء Claude · يقرأ ولا يغيّر شيئًا وحده",
   "Go to": "انتقل إلى",
 });
+
+// Simple secretary workspace.
+Object.assign(arabic, {
+  "What do you want to do? Click a big button.":
+    "ماذا تريدين أن تفعلي؟ اضغطي على زر كبير.",
+  "A client calls you": "زبون يتصل بك",
+  "Write down a new person": "تسجيل شخص جديد",
+  "A client pays you": "زبون يدفع لك",
+  "Several sessions together": "عدة حصص معًا",
+  Change: "تعديل",
+  "No appointments on this day.": "لا توجد مواعيد في هذا اليوم.",
+  "Click a name to open the client.": "اضغطي على الاسم لفتح ملف الزبون.",
+  "Search: name or phone number": "بحث: الاسم أو رقم الهاتف",
+  clients: "زبون",
+  "Next appointment": "الموعد القادم",
+  "Added on": "أضيف في",
+  "No client found.": "لم يتم العثور على أي زبون.",
+});
+
+// Simple secretary workspace.
+Object.assign(arabic, {
+  "Send a WhatsApp": "إرسال واتساب",
+  "Change the details": "تعديل المعلومات",
+  "No appointments yet.": "لا توجد مواعيد بعد.",
+  "Parent or guardian": "الولي أو الوصي",
+});
