@@ -9584,3 +9584,232 @@ html[data-theme="dark"] .gift-card .qr {
   box-shadow: none;
   padding: 70px 60px;
 }
+
+/* ---------- Secretary: the simplest possible workspace ---------- */
+.app-shell.simple {
+  font-size: 17px;
+}
+.app-shell.simple .quick-create,
+.app-shell.simple .notification-button,
+.app-shell.simple .help-button {
+  display: none;
+}
+.app-shell.simple .nav-item {
+  font-size: 18px;
+  padding-block: 14px;
+}
+.big-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.big-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px 22px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  color: #fff;
+  text-align: start;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.big-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px #183b3122;
+}
+.big-action:focus-visible {
+  outline: 3px solid #f2b84b;
+  outline-offset: 3px;
+}
+.big-action strong {
+  font-size: 21px;
+  line-height: 1.2;
+}
+.big-action small {
+  font-size: 15px;
+  opacity: 0.9;
+}
+.big-action.blue {
+  background: #2f6fb5;
+}
+.big-action.green {
+  background: #167e70;
+}
+.big-action.amber {
+  background: #c77a12;
+}
+.big-action.purple {
+  background: #7652a8;
+}
+.sheet {
+  background: var(--surface);
+  border: 1px solid #cfd8d3;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.sheet-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #cfd8d3;
+}
+.sheet-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.sheet-tabs {
+  display: flex;
+  gap: 8px;
+}
+.sheet-tabs button,
+.sheet-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #b9c6c0;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sheet-tabs button.on {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+  font-weight: 600;
+}
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sheet-actions button.go {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+  font-weight: 600;
+}
+.sheet-search {
+  flex: 1;
+  min-width: 220px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 2px solid #b9c6c0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 18px;
+}
+.sheet-search:focus {
+  border-color: var(--teal);
+  outline: none;
+}
+.sheet-count {
+  color: var(--muted);
+  font-size: 16px;
+}
+.sheet-scroll {
+  overflow-x: auto;
+}
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+.sheet-table th {
+  position: sticky;
+  top: 0;
+  background: #e9f1ec;
+  color: var(--ink);
+  font-weight: 700;
+  text-align: start;
+  padding: 10px 12px;
+  border: 1px solid #cfd8d3;
+  white-space: nowrap;
+}
+.sheet-table td {
+  padding: 10px 12px;
+  border: 1px solid #dde4e0;
+  vertical-align: middle;
+}
+.sheet-table tbody tr:nth-child(even) td {
+  background: #f7faf8;
+}
+.sheet-table tbody tr:hover td {
+  background: #fff7e3;
+}
+.sheet-table tbody tr {
+  cursor: pointer;
+}
+.sheet-table td.num {
+  width: 44px;
+  color: var(--muted);
+  text-align: center;
+  background: #f1f4f2 !important;
+}
+.sheet-table .link,
+.sheet-empty .link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #1c5fa8;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.sheet-empty {
+  padding: 28px 18px;
+  font-size: 18px;
+  color: var(--muted);
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .big-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .big-action {
+    padding: 18px 14px;
+  }
+  .big-action strong {
+    font-size: 18px;
+  }
+}
+.big-actions.small {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 18px 0;
+}
+.big-actions.small .big-action {
+  padding: 16px;
+  flex-direction: row;
+  align-items: center;
+}
+.big-actions.small .big-action strong {
+  font-size: 17px;
+}
+.card-table th {
+  width: 38%;
+  background: #e9f1ec;
+}
+.card-title {
+  margin: 8px 0 10px;
+  font-size: 20px;
+}
+.simple-card {
+  padding: 20px 22px 32px;
+}

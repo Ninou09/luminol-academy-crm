@@ -90,35 +90,17 @@ export function useNextSession() {
 // Secretary: "Today"
 // ---------------------------------------------------------------------------
 export function SecretaryHome() {
-  const { data, t, open, perform, toast, person, user, go, time, date } =
+  const { data, t, open, perform, toast, person, user, time, profile } =
     useApp();
   const zone = data.settings.timezone;
   const today = data.today;
   const tomorrow = addDays(today, 1);
   const [quick, setQuick] = useState(false);
-  const [screen, setScreen] = useState(false);
-  const next = useNextSession();
+  const [day, setDay] = useState(today);
   const dayOf = (a: Row) => localDate(new Date(a.starts_at), zone);
-  const upcoming = data.appointments
-    .filter((a) => [today, tomorrow].includes(dayOf(a)))
+  const list = data.appointments
+    .filter((a) => dayOf(a) === day)
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  // Finished consultations in the last 3 weeks without a next appointment.
-  const rebook = data.appointments.filter(
-    (a) =>
-      a.status === "Done" &&
-      a.contact_id &&
-      dayOf(a) >= addDays(today, -21) &&
-      !data.appointments.some(
-        (b) =>
-          b.contact_id === a.contact_id &&
-          b.id !== a.id &&
-          b.starts_at > a.starts_at &&
-          b.status !== "Cancelled",
-      ),
-  );
-  const newRequests =
-    data.opportunities.filter((o) => o.stage === "New inquiry").length +
-    (data.incoming || []).length;
   async function setStatus(a: Row, status: string) {
     try {
       await perform(`/appointments/${a.id}`, { status }, "PATCH");
@@ -127,198 +109,278 @@ export function SecretaryHome() {
       toast(e.message);
     }
   }
-  const row = (a: Row) => (
-    <div key={a.id} className="today-row">
-      <div className="today-time">
-        <strong>{time(a.starts_at)}</strong>
-        <small>{dayOf(a) === today ? t("Today") : t("Tomorrow")}</small>
-      </div>
-      <div className="today-main">
-        <strong>
-          {a.contact_id ? person(a.contact_id).name : a.title}
-          {a.confirmed_at && (
-            <Badge tone="teal">
-              <Check size={12} /> {t("Confirmed by the client")}
-            </Badge>
-          )}
-        </strong>
-        <small>
-          {[t(a.kind), a.staff_id ? user(a.staff_id).name : "", a.location]
-            .filter(Boolean)
-            .join(" · ")}
-        </small>
-      </div>
-      <div className="row-actions wrap">
-        <Badge
-          tone={
-            a.status === "Done"
-              ? "teal"
-              : a.status === "Cancelled" || a.status === "No-show"
-                ? "rose"
-                : a.status === "Pending"
-                  ? "amber"
-                  : "neutral"
-          }
-        >
-          {t(a.status)}
-        </Badge>
-        {a.status === "Scheduled" || a.status === "Pending" ? (
-          <>
-            {a.checked_in_at ? (
-              <>
-                <Badge tone="teal">{t("In the waiting room")}</Badge>
-                <Button variant="small" onClick={() => setStatus(a, "Done")}>
-                  {t("Finished")}
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="small"
-                onClick={() =>
-                  perform(`/appointments/${a.id}/checkin`, {}).catch((e: any) =>
-                    toast(e.message),
-                  )
-                }
-              >
-                {t("Arrived")}
-              </Button>
-            )}
-            <Button variant="small" onClick={() => setStatus(a, "No-show")}>
-              {t("No-show")}
-            </Button>
-            <Button
-              variant="small"
-              onClick={() => {
-                if (window.confirm(t("Cancel this appointment?")))
-                  setStatus(a, "Cancelled");
-              }}
-            >
-              {t("Cancel")}
-            </Button>
-          </>
-        ) : a.status === "Done" && a.contact_id ? (
-          <Button
-            variant="small"
-            icon={<CalendarPlus size={14} />}
-            onClick={() => next(a)}
-          >
-            {t("Next session")}
-          </Button>
-        ) : null}
-        <Button
-          variant="small"
-          onClick={() => open({ type: "appointment", record: a })}
-        >
-          {t("Edit")}
-        </Button>
-        {a.contact_id && (
-          <Button
-            variant="small"
-            icon={<MessageCircle size={14} />}
-            onClick={() =>
-              open({ type: "whatsapp", contact: person(a.contact_id) })
-            }
-          >
-            WhatsApp
-          </Button>
-        )}
-      </div>
-    </div>
-  );
+  const state = (a: Row) =>
+    a.status === "Done"
+      ? ["teal", t("Finished")]
+      : a.status === "Cancelled"
+        ? ["rose", t("Cancelled")]
+        : a.status === "No-show"
+          ? ["rose", t("No-show")]
+          : a.checked_in_at
+            ? ["teal", t("In the waiting room")]
+            : ["neutral", t("Expected")];
+  const first = (data.user.name || "").split(" ")[0];
   return (
     <>
       <PageHead
-        title="Today at the academy"
-        subtitle="Appointments, phone bookings, new requests and payments."
-      >
-        <Button icon={<Tv size={16} />} onClick={() => setScreen(true)}>
-          {t("Waiting-room screen")}
-        </Button>
-      </PageHead>
-      {screen && <WaitingScreen onClose={() => setScreen(false)} />}
-      <div className="quick-actions">
-        <button className="quick-action" onClick={() => setQuick(true)}>
-          <Phone size={22} />
-          <span>{t("Phone booking")}</span>
+        title={`${t("Hello")} ${first}`}
+        subtitle="What do you want to do? Click a big button."
+      />
+      <div className="big-actions">
+        <button className="big-action blue" onClick={() => setQuick(true)}>
+          <Phone size={34} />
+          <strong>{t("Book an appointment")}</strong>
+          <small>{t("A client calls you")}</small>
         </button>
         <button
-          className="quick-action"
+          className="big-action green"
           onClick={() => open({ type: "contact" })}
         >
-          <UserPlus size={22} />
-          <span>{t("New client")}</span>
+          <UserPlus size={34} />
+          <strong>{t("New client")}</strong>
+          <small>{t("Write down a new person")}</small>
         </button>
         <button
-          className="quick-action"
+          className="big-action amber"
           onClick={() => open({ type: "payment" })}
         >
-          <Wallet size={22} />
-          <span>{t("Take a payment")}</span>
+          <Wallet size={34} />
+          <strong>{t("Take a payment")}</strong>
+          <small>{t("A client pays you")}</small>
         </button>
         <button
-          className="quick-action"
+          className="big-action purple"
           onClick={() => open({ type: "package" })}
         >
-          <Package size={22} />
-          <span>{t("Sell a package")}</span>
-        </button>
-        <button className="quick-action" onClick={() => go("Admissions")}>
-          <Badge tone={newRequests ? "amber" : "neutral"}>{newRequests}</Badge>
-          <span>{t("New requests")}</span>
+          <Package size={34} />
+          <strong>{t("Sell a package")}</strong>
+          <small>{t("Several sessions together")}</small>
         </button>
       </div>
-      <UnansweredPanel />
       <PendingBookings />
-      <Panel
-        title="Today and tomorrow"
-        subtitle="Mark arrivals and no-shows; a cancelled slot is offered to the waiting list."
-        action={
-          <Button onClick={() => go("Calendar")}>
-            {t("Open the calendar")}
-          </Button>
-        }
-      >
-        {upcoming.length ? (
-          <div className="today-list">{upcoming.map(row)}</div>
-        ) : (
-          <Empty
-            title="No appointments today or tomorrow"
-            text="Use “Phone booking” to add one."
-          />
-        )}
-      </Panel>
-      {rebook.length > 0 && (
-        <Panel
-          title="Book the next session"
-          subtitle="Consultations done in the last 3 weeks with no next appointment."
-        >
-          <div className="today-list">
-            {rebook.slice(0, 8).map((a) => (
-              <div key={a.id} className="today-row">
-                <div className="today-time">
-                  <strong>{date(a.starts_at)}</strong>
-                </div>
-                <div className="today-main">
-                  <strong>{person(a.contact_id).name}</strong>
-                  <small>{t(a.kind)}</small>
-                </div>
-                <Button
-                  variant="small"
-                  icon={<CalendarPlus size={14} />}
-                  onClick={() => next(a)}
-                >
-                  {t("Next session")}
-                </Button>
-              </div>
-            ))}
+      <section className="sheet">
+        <div className="sheet-head">
+          <h2>{t("Appointments")}</h2>
+          <div className="sheet-tabs">
+            <button
+              className={day === today ? "on" : ""}
+              onClick={() => setDay(today)}
+            >
+              {t("Today")}
+            </button>
+            <button
+              className={day === tomorrow ? "on" : ""}
+              onClick={() => setDay(tomorrow)}
+            >
+              {t("Tomorrow")}
+            </button>
           </div>
-        </Panel>
-      )}
-      <RoomBoard />
-      <BirthdaysPanel />
-      <WaitlistPanel />
-      <RemindersPanel />
+        </div>
+        {list.length ? (
+          <div className="sheet-scroll">
+            <table className="sheet-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t("Time")}</th>
+                  <th>{t("Client")}</th>
+                  <th>{t("Phone")}</th>
+                  <th>{t("With")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((a, i) => {
+                  const c = a.contact_id ? person(a.contact_id) : null;
+                  const [tone, label] = state(a);
+                  const waiting =
+                    a.status === "Scheduled" || a.status === "Pending";
+                  return (
+                    <tr key={a.id}>
+                      <td className="num">{i + 1}</td>
+                      <td>
+                        <strong>{time(a.starts_at)}</strong>
+                      </td>
+                      <td>
+                        {c ? (
+                          <button
+                            className="link"
+                            onClick={() => profile(c.id)}
+                          >
+                            {c.name}
+                          </button>
+                        ) : (
+                          a.title
+                        )}
+                      </td>
+                      <td>{c?.phone || ""}</td>
+                      <td>{a.staff_id ? user(a.staff_id).name : ""}</td>
+                      <td>
+                        <Badge tone={tone}>{label}</Badge>
+                      </td>
+                      <td>
+                        <div className="sheet-actions">
+                          {waiting && !a.checked_in_at && (
+                            <button
+                              className="go"
+                              onClick={() =>
+                                perform(
+                                  `/appointments/${a.id}/checkin`,
+                                  {},
+                                ).catch((e: any) => toast(e.message))
+                              }
+                            >
+                              <Check size={16} /> {t("Arrived")}
+                            </button>
+                          )}
+                          {waiting && a.checked_in_at && (
+                            <button
+                              className="go"
+                              onClick={() => setStatus(a, "Done")}
+                            >
+                              <Check size={16} /> {t("Finished")}
+                            </button>
+                          )}
+                          {waiting && !a.checked_in_at && (
+                            <button onClick={() => setStatus(a, "No-show")}>
+                              {t("Absent")}
+                            </button>
+                          )}
+                          <button
+                            onClick={() =>
+                              open({ type: "appointment", record: a })
+                            }
+                          >
+                            {t("Change")}
+                          </button>
+                          {c && (
+                            <button
+                              onClick={() =>
+                                open({ type: "whatsapp", contact: c })
+                              }
+                            >
+                              <MessageCircle size={16} /> WhatsApp
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="sheet-empty">
+            {t("No appointments on this day.")}{" "}
+            <button className="link" onClick={() => setQuick(true)}>
+              {t("Book an appointment")}
+            </button>
+          </p>
+        )}
+      </section>
       {quick && <QuickBookingDialog onClose={() => setQuick(false)} />}
+    </>
+  );
+}
+
+/** The secretary's client list: one simple table, like a spreadsheet. */
+export function SimpleClients() {
+  const { data, t, open, profile, date } = useApp();
+  const [q, setQ] = useState("");
+  const norm = (s: string) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[\s+.-]/g, "");
+  const words = norm(q);
+  const rows = data.contacts
+    .filter(
+      (c) =>
+        !words ||
+        norm(c.name).includes(words) ||
+        norm(c.phone).includes(words.replace(/^0/, "")) ||
+        norm(c.email).includes(words),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const nextVisit = (id: number) =>
+    data.appointments
+      .filter(
+        (a) =>
+          a.contact_id === id &&
+          a.starts_at >= new Date().toISOString() &&
+          a.status !== "Cancelled",
+      )
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
+  return (
+    <>
+      <PageHead title="Clients" subtitle="Click a name to open the client.">
+        <Button
+          variant="primary"
+          icon={<UserPlus size={18} />}
+          onClick={() => open({ type: "contact" })}
+        >
+          {t("New client")}
+        </Button>
+      </PageHead>
+      <section className="sheet">
+        <div className="sheet-head">
+          <input
+            className="sheet-search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t("Search: name or phone number")}
+            aria-label={t("Search: name or phone number")}
+          />
+          <span className="sheet-count">
+            {rows.length} {t("clients")}
+          </span>
+        </div>
+        <div className="sheet-scroll">
+          <table className="sheet-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{t("Name")}</th>
+                <th>{t("Phone")}</th>
+                <th>{t("Email")}</th>
+                <th>{t("Next appointment")}</th>
+                <th>{t("Added on")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 500).map((c, i) => {
+                const n = nextVisit(c.id);
+                return (
+                  <tr key={c.id} onClick={() => profile(c.id)}>
+                    <td className="num">{i + 1}</td>
+                    <td>
+                      <button className="link">{c.name}</button>
+                    </td>
+                    <td>{c.phone}</td>
+                    <td>{c.email}</td>
+                    <td>
+                      {n
+                        ? date(n.starts_at, {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </td>
+                    <td>{c.created_at ? date(c.created_at) : ""}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!rows.length && <p className="sheet-empty">{t("No client found.")}</p>}
+      </section>
     </>
   );
 }

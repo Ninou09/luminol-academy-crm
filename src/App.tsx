@@ -42,6 +42,7 @@ import { CustomDashboard } from "./insights";
 import {
   Dashboard,
   SecretaryHome,
+  SimpleClients,
   TeacherHome,
   QuickBookingDialog,
   useIdleLogout,
@@ -162,15 +163,8 @@ const navByRole: Record<string, string[]> = {
     "Reports",
     "Predictions",
   ],
-  // Kept deliberately short: no payments, no predictions, no money.
-  secretary: [
-    "Today",
-    "Calendar",
-    "Admissions",
-    "Students",
-    "Messages",
-    "My dashboard",
-  ],
+  // As simple as possible: her day, her clients, the calendar.
+  secretary: ["Today", "Students", "Calendar", "My dashboard"],
   teacher: [
     "My week",
     "Messages",
@@ -444,12 +438,14 @@ export default function App() {
     Today: <SecretaryHome />,
     "My week": <TeacherHome />,
     Admissions: <Admissions />,
-    Students: <Students />,
+    Students: roleKind === "secretary" ? <SimpleClients /> : <Students />,
     "Programs & Cohorts": <Programs />,
     Calendar: (
       <>
         <Calendar />
-        {data.permissions.editAdmissions && <RoomBoard />}
+        {data.permissions.editAdmissions && roleKind !== "secretary" && (
+          <RoomBoard />
+        )}
       </>
     ),
     Payments: <Payments />,
@@ -461,7 +457,7 @@ export default function App() {
   };
   return (
     <AppContext.Provider value={context}>
-      <div className="app-shell">
+      <div className={`app-shell${roleKind === "secretary" ? " simple" : ""}`}>
         <a className="skip-link" href="#main-content">
           {t("Overview")}
         </a>
@@ -864,8 +860,8 @@ export default function App() {
           </div>
         )}
       </div>
-      <AssistantBubble />
-      <Tour />
+      {roleKind !== "secretary" && <AssistantBubble />}
+      {roleKind !== "secretary" && <Tour />}
     </AppContext.Provider>
   );
 }
