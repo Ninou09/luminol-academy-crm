@@ -481,3 +481,29 @@ test("the secretary gets a simple workspace with no money in it", async () => {
   assert.ok(d.charges.some((c) => c.amount > 0));
   assert.notEqual(d.permissions.seeMoney, false);
 });
+
+test("the secretary sells an academy package without seeing its price", async () => {
+  const amel = await login("amel");
+  const s = await state();
+  const client = s.contacts[0];
+  const r = await request(
+    "/packages",
+    {
+      contact_id: client.id,
+      title: "Forfait 4 séances — Mme Kheddaoui Fettouma",
+      sessions_total: 4,
+    },
+    "POST",
+    amel,
+  );
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  const d = await state();
+  assert.ok(
+    d.charges.some(
+      (c) =>
+        c.contact_id === client.id &&
+        c.amount === 1000000 &&
+        /Kheddaoui/.test(c.label),
+    ),
+  );
+});

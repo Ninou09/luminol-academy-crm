@@ -78,7 +78,7 @@ import {
   monthTokens,
 } from "./smart.mjs";
 import { predictions, trainAll, trainIfOld } from "./ml.mjs";
-import { applyOwnerData } from "./owner-data.mjs";
+import { applyOwnerData, packageOffers } from "./owner-data.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 try {
@@ -3092,7 +3092,11 @@ write("/api/packages", packageRoles, (req) => {
   const title = text(b.title, "Package name", 120);
   const total = integer(b.sessions_total, "Number of sessions", 1, 200);
   let chargeId = null;
-  const price = b.price ? integer(b.price, "Price", 0) : 0;
+  // An academy offer carries its own price, even when sold by the secretary
+  // (who never sees amounts).
+  const price = b.price
+    ? integer(b.price, "Price", 0)
+    : (packageOffers.find((o) => o.title === b.title)?.price || 0) * 100;
   if (price > 0) {
     must(
       ["admin", "finance", "admissions"].includes(req.user.role),

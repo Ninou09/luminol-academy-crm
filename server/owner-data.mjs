@@ -3,7 +3,23 @@
 // hand in the CRM are never overwritten.
 import { all, one, run, insert, transaction, now } from "./db.mjs";
 
-const VERSION = "owner-answers-2";
+const VERSION = "owner-answers-3";
+
+/** Session packages (same titles as in the package form). */
+export const packageOffers = [
+  {
+    title: "Forfait 4 séances — Mme Kheddaoui Fettouma",
+    sessions: 4,
+    price: 10000,
+  },
+  {
+    title: "Forfait 4 séances — M. Ali Mehni ou Mme Sara Akkak",
+    sessions: 4,
+    price: 7000,
+  },
+];
+const others =
+  "lower(name) LIKE '%mehni%' OR lower(name) LIKE '%akkak%' OR lower(name) LIKE '%akak%' OR name LIKE '%مهني%' OR name LIKE '%عكاك%'";
 const DA = (n) => n * 100; // amounts are stored in centimes
 
 const kheddaoui =
@@ -112,8 +128,8 @@ const languages = [
 const kb = [
   [
     "Quels sont les prix ?",
-    "Nos tarifs — consultation psychologique (1 h, au cabinet ou en ligne sur Zoom) : 3 000 DA avec Mme Kheddaoui Fettouma, 2 000 DA avec nos autres psychologues. La première séance est au même tarif. Formations professionnelles : 12 000 DA. Cours de langues : demandez-nous le tarif du niveau qui vous intéresse.",
-    "الاستشارة النفسية (ساعة، في العيادة أو عبر Zoom): 3000 دج مع السيدة خداوي فطومة، و2000 دج مع باقي الأخصائيين. الحصة الأولى بنفس السعر. التكوينات المهنية: 12000 دج. دروس اللغات: اسألنا عن سعر المستوى الذي يهمك.",
+    "Nos tarifs — consultation psychologique (1 h, au cabinet ou en ligne sur Zoom) : 3 000 DA avec Mme Kheddaoui Fettouma, 2 000 DA avec M. Ali Mehni ou Mme Sara Akkak. Forfait 4 séances : 10 000 DA avec Mme Kheddaoui, 7 000 DA avec M. Mehni ou Mme Akkak. La première séance est au même tarif. Formations professionnelles : 12 000 DA. Cours de langues : appelez-nous au +213 777 07 71 97 pour le tarif.",
+    "الاستشارة النفسية (ساعة، في العيادة أو عبر Zoom): 3000 دج مع السيدة خداوي فطومة، و2000 دج مع السيد علي مهني أو السيدة سارة عكاك. باقة 4 حصص: 10000 دج مع السيدة خداوي، 7000 دج مع السيد مهني أو السيدة عكاك. الحصة الأولى بنفس السعر. التكوينات المهنية: 12000 دج. دروس اللغات: اتصل بنا على 97 71 07 777 213+ لمعرفة السعر.",
   ],
   [
     "Quels sont les horaires ?",
@@ -130,8 +146,8 @@ const kb = [
 const kbNew = [
   [
     "Quelles consultations proposez-vous ?",
-    "Nous proposons tous les types de consultations psychologiques (adultes, enfants, couples, familles, coaching), au cabinet ou en ligne sur Zoom. Une séance dure 1 heure. Nos psychologues : Mme Kheddaoui Fettouma et notre équipe.",
-    "نقدم جميع أنواع الاستشارات النفسية (بالغين، أطفال، أزواج، عائلات، كوتشينغ)، في العيادة أو عبر Zoom. مدة الحصة ساعة واحدة. أخصائيونا: السيدة خداوي فطومة وفريقنا.",
+    "Nous proposons tous les types de consultations psychologiques (adultes, enfants, couples, familles, coaching), au cabinet ou en ligne sur Zoom. Une séance dure 1 heure. Nos psychologues : Mme Kheddaoui Fettouma, M. Ali Mehni et Mme Sara Akkak.",
+    "نقدم جميع أنواع الاستشارات النفسية (بالغين، أطفال، أزواج، عائلات، كوتشينغ)، في العيادة أو عبر Zoom. مدة الحصة ساعة واحدة. أخصائيونا: السيدة خداوي فطومة، السيد علي مهني والسيدة سارة عكاك.",
     "consultation,psychologue,therapie,seance,zoom,enfant,couple,famille,استشارة,اخصائي,نفساني,حصة,علاج",
   ],
   [
@@ -148,7 +164,7 @@ const kbNew = [
   ],
   [
     "Avez-vous une réduction ou un parrainage ?",
-    "Pas de réduction sur les consultations. Fidélité : 10 % sur chaque 5e séance. Parrainage : 500 DA de réduction sur votre prochaine séance pour chaque ami qui vient grâce à vous. Formations : 10 % pour une inscription anticipée ou à partir de 3 personnes inscrites ensemble.",
+    "Pas de réduction sur une séance seule, mais un forfait de 4 séances est moins cher. Fidélité : 10 % sur chaque 5e séance. Parrainage : 500 DA de réduction sur votre prochaine séance pour chaque ami qui vient grâce à vous. Formations : 10 % pour une inscription anticipée ou à partir de 3 personnes inscrites ensemble.",
     "لا تخفيض على الاستشارات. الوفاء: 10% على كل حصة خامسة. الإحالة: خصم 500 دج على حصتك القادمة عن كل صديق يأتي عن طريقك. التكوينات: 10% للتسجيل المبكر أو لمجموعة من 3 أشخاص.",
     "reduction,remise,promo,parrainage,fidelite,ami,tkhfid,تخفيض,خصم,تخفيضات,صديق,وفاء",
   ],
@@ -171,9 +187,8 @@ function consultationServices() {
     ],
     [
       "Consultation psychologique",
-      "1 heure, au cabinet ou en ligne (Zoom). 2 000 DA. Première séance au même tarif.",
-      // Teachers are instructors too: the director ticks the psychologists.
-      [],
+      "1 heure avec M. Ali Mehni ou Mme Sara Akkak, au cabinet ou en ligne (Zoom). 2 000 DA. Première séance au même tarif.",
+      all(`SELECT id FROM users WHERE active=1 AND (${others})`),
     ],
   ];
   services.forEach(([name, description, staff], i) => {
@@ -261,7 +276,7 @@ export function applyOwnerData() {
           name,
           category: "Languages",
           description:
-            "Cours par niveaux (débutant à avancé), en petits groupes. Tarif à confirmer par la direction.",
+            "Cours par niveaux (débutant à avancé), en petits groupes. Tarif : appelez-nous au +213 777 07 71 97.",
           duration: "Selon le niveau",
           price: 0,
           currency: "DZD",
@@ -291,7 +306,14 @@ export function applyOwnerData() {
         question,
       );
     for (const [question, answer, answer_ar, keywords] of kbNew)
-      if (!one("SELECT id FROM kb_articles WHERE question=?", question))
+      if (one("SELECT id FROM kb_articles WHERE question=?", question))
+        run(
+          "UPDATE kb_articles SET answer=?, answer_ar=? WHERE question=?",
+          answer,
+          answer_ar,
+          question,
+        );
+      else
         insert("kb_articles", {
           question,
           answer,
@@ -309,6 +331,16 @@ export function applyOwnerData() {
         now(),
       );
 
+    // Kheddaoui Fettouma is warned at once in a crisis.
+    if (!s.crisis_alert_phone)
+      run("UPDATE settings SET crisis_alert_phone='+213556914517' WHERE id=1");
+    run(
+      "UPDATE programs SET description=REPLACE(description, 'Tarif à confirmer par la direction.', 'Tarif : appelez-nous au +213 777 07 71 97.') WHERE category='Languages'",
+    );
+    run(
+      "UPDATE booking_services SET description=? WHERE name='Consultation psychologique'",
+      "1 heure avec M. Ali Mehni ou Mme Sara Akkak, au cabinet ou en ligne (Zoom). 2 000 DA. Première séance au même tarif.",
+    );
     run("INSERT INTO meta (key, value) VALUES (?, ?)", VERSION, now());
   });
 }

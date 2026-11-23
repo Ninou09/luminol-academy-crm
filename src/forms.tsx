@@ -47,6 +47,19 @@ type Field = {
   suggestions?: string[];
 };
 /** Usual payment methods in Algeria plus every method already typed. */
+/** Session packages offered by the academy (owner's decision). */
+const packageOffers = [
+  {
+    title: "Forfait 4 séances — Mme Kheddaoui Fettouma",
+    sessions: 4,
+    price: 10000,
+  },
+  {
+    title: "Forfait 4 séances — M. Ali Mehni ou Mme Sara Akkak",
+    sessions: 4,
+    price: 7000,
+  },
+];
 function paymentMethods(data: any): string[] {
   return [
     "Cash",
@@ -496,7 +509,23 @@ export default function Forms({
       onClose();
   };
   const set = (key: string, value: any) => {
-    setValues((v: any) => ({ ...v, [key]: value }));
+    // Choosing one of the academy's offers fills sessions and price.
+    const offer =
+      modal.type === "package" && key === "title"
+        ? packageOffers.find((o) => o.title === value)
+        : null;
+    setValues((v: any) => ({
+      ...v,
+      [key]: value,
+      ...(offer
+        ? {
+            sessions_total: offer.sessions,
+            ...(data.permissions.seeMoney === false
+              ? {}
+              : { price: String(offer.price) }),
+          }
+        : {}),
+    }));
     setDirty(true);
     setError("");
   };
@@ -1328,6 +1357,7 @@ export default function Forms({
           "title",
           "Package name",
           [
+            ...packageOffers.map((o) => o.title),
             "Psychology consultations",
             "Couple therapy",
             "Child follow-up",
