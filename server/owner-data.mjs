@@ -3,7 +3,7 @@
 // hand in the CRM are never overwritten.
 import { all, one, run, insert, transaction, now } from "./db.mjs";
 
-const VERSION = "owner-answers-3";
+const VERSION = "owner-answers-4";
 
 /** Session packages (same titles as in the package form). */
 export const packageOffers = [
@@ -340,6 +340,10 @@ export function applyOwnerData() {
     run(
       "UPDATE booking_services SET description=? WHERE name='Consultation psychologique'",
       "1 heure avec M. Ali Mehni ou Mme Sara Akkak, au cabinet ou en ligne (Zoom). 2 000 DA. Première séance au même tarif.",
+    );
+    // The academy's WhatsApp Business number (used by the bot).
+    run(
+      "UPDATE kb_articles SET answer=REPLACE(answer, '+213 556 91 45 17', '+213 553 14 02 93'), answer_ar=REPLACE(answer_ar, '17 45 91 556 213+', '93 02 14 553 213+') WHERE question='Comment vous contacter ?'",
     );
     run("INSERT INTO meta (key, value) VALUES (?, ?)", VERSION, now());
   });
