@@ -3,7 +3,7 @@
 // hand in the CRM are never overwritten.
 import { all, one, run, insert, transaction, now } from "./db.mjs";
 
-const VERSION = "owner-answers-1";
+const VERSION = "owner-answers-2";
 const DA = (n) => n * 100; // amounts are stored in centimes
 
 const kheddaoui =
@@ -32,6 +32,73 @@ const trainings = [
     description: "Formation professionnelle, en présentiel ou en ligne (Zoom).",
     color: "blue",
   },
+];
+
+// Programmes published on luminolacademy.nl (Mme Kheddaoui Fettouma's site).
+const sitePrograms = [
+  [
+    "دورة فنيات العلاج المعرفي السلوكي (CBT)",
+    "Training",
+    "40 h",
+    "purple",
+    "Introduction pratique à la thérapie cognitivo-comportementale : formulation de cas, plan de traitement, conduite des séances. Pour psychologues. Présentiel ou en ligne ; enregistrements 6 mois et support de cours.",
+  ],
+  [
+    "دورة تقنية تحرير المشاعر السلبية (EFT)",
+    "Training",
+    "2 jours",
+    "teal",
+    "Technique EFT contre le stress et les émotions négatives, 100 % pratique. Pour psychologues et médecins. Présentiel ou en ligne.",
+  ],
+  [
+    "دورة الإرشاد الزواجي (تشخيص وتكفل)",
+    "Training",
+    "24 h et plus",
+    "rose",
+    "Diagnostic des difficultés conjugales et programmes de conseil et de thérapie du couple. Pour psychologues. Présentiel (2 week-ends) ou en ligne (2 fois par semaine).",
+  ],
+  [
+    "دورة مستشار أسري",
+    "Training",
+    "40 h",
+    "amber",
+    "Conseil familial centré sur les solutions : relations conjugales, parents-enfants, entretien familial. Pour psychologues, conseillers familiaux, travailleurs sociaux. Supervision incluse.",
+  ],
+  [
+    "دورة العلاج بالمخططات المعرفية (Schema therapy)",
+    "Training",
+    "12 h ou 18 h",
+    "blue",
+    "Formation spécialisée en thérapie des schémas pour approfondir la compréhension des troubles psychologiques.",
+  ],
+  [
+    "دورة صعوبات التعلم (تشخيص وتكفل)",
+    "Training",
+    "12 h ou 18 h",
+    "teal",
+    "Diagnostic des difficultés d'apprentissage avec des échelles psychologiques et techniques actuelles de prise en charge.",
+  ],
+  [
+    "علم نفس الطفل: تقنيات التشخيص وبرامج التكفل",
+    "Training",
+    "12 h ou 18 h",
+    "purple",
+    "Évaluation psychologique de l'enfant, techniques de diagnostic et construction de programmes d'intervention, avec applications pratiques.",
+  ],
+  [
+    "برنامج التنشئة الفعالة",
+    "Grand public",
+    "12 h ou 18 h",
+    "amber",
+    "Programme complet de parentalité positive et de communication efficace avec les enfants de tout âge. Pour les parents.",
+  ],
+  [
+    "دورة صعوبات التعلم (للأولياء والمعلمين)",
+    "Grand public",
+    "12 h ou 18 h",
+    "blue",
+    "Aider parents et enseignants à comprendre les difficultés d'apprentissage et à accompagner l'enfant avec des méthodes éducatives efficaces.",
+  ],
 ];
 
 const languages = [
@@ -176,6 +243,17 @@ export function applyOwnerData() {
         });
       }
     }
+    for (const [name, category, duration, color, description] of sitePrograms)
+      if (!one("SELECT id FROM programs WHERE name=?", name))
+        insert("programs", {
+          name,
+          category,
+          description: `${description} Formatrice : Kheddaoui Fettouma. Démarrage dès 8 à 10 inscrits. Attestation de présence.`,
+          duration,
+          price: DA(12000),
+          currency: "DZD",
+          color,
+        });
     // Languages: courses by level and speaking courses (prices to confirm).
     for (const [name, color] of languages)
       if (!one("SELECT id FROM programs WHERE name=?", name))
