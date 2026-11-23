@@ -78,8 +78,14 @@ import {
   monthTokens,
 } from "./smart.mjs";
 import { predictions, trainAll, trainIfOld } from "./ml.mjs";
+import { applyOwnerData } from "./owner-data.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+try {
+  applyOwnerData();
+} catch (e) {
+  console.error("Owner data:", e?.message);
+}
 const app = express();
 app.disable("x-powered-by");
 app.use(

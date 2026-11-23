@@ -53,6 +53,8 @@ function paymentMethods(data: any): string[] {
     "CCP",
     "BaridiMob",
     "Bank transfer",
+    "CIB card",
+    "Edahabia card",
     "Card (external)",
     "Cheque",
     ...(data.payments || []).map((p: any) => p.method),

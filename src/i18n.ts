@@ -2404,3 +2404,15 @@ Object.assign(arabic, {
   "Nothing planned.": "لا شيء مبرمج.",
   "Only you can read your notes.": "أنت وحدك تستطيع قراءة ملاحظاتك.",
 });
+
+// Simple secretary workspace.
+Object.assign(arabic, {
+  "WhatsApp number of the specialist warned at once":
+    "رقم واتساب الأخصائية التي تُنبَّه فورًا",
+});
+
+// Simple secretary workspace.
+Object.assign(arabic, {
+  "CIB card": "بطاقة CIB",
+  "Edahabia card": "البطاقة الذهبية",
+});
