@@ -579,6 +579,7 @@ export function SmartSettingsPanel() {
   const s = data.settings;
   const [limit, setLimit] = useState(String(s.ai_monthly_tokens ?? 2000000));
   const [crisis, setCrisis] = useState(s.crisis_text || "");
+  const [alertPhone, setAlertPhone] = useState(s.crisis_alert_phone || "");
   const [edit, setEdit] = useState<Row | null>(null);
   const [test, setTest] = useState("");
   const [result, setResult] = useState<Row | null>(null);
@@ -694,7 +695,19 @@ export function SmartSettingsPanel() {
               "The bot never gives psychological advice. In an emergency it sends this text, marks the conversation as urgent and notifies the specialists and the director.",
             )}
           </p>
-          <Button onClick={() => save({ crisis_text: crisis })}>
+          <label className="field">
+            <span>{t("WhatsApp number of the specialist warned at once")}</span>
+            <input
+              value={alertPhone}
+              onChange={(e) => setAlertPhone(e.target.value)}
+              placeholder="+213 …"
+            />
+          </label>
+          <Button
+            onClick={() =>
+              save({ crisis_text: crisis, crisis_alert_phone: alertPhone })
+            }
+          >
             {t("Save")}
           </Button>
         </div>

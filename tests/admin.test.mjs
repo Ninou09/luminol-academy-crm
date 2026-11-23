@@ -79,7 +79,13 @@ after(() => server?.kill());
 test("a real workspace starts empty with one administrator", async () => {
   const s = await state();
   assert.equal(s.contacts.length, 0);
-  assert.equal(s.programs.length, 0);
+  // Only the academy's own programmes (owner's answers), no sample data.
+  assert.ok(
+    s.programs.every(
+      (p) => !/Applied Psychology|Training of Trainers/.test(p.name),
+    ),
+  );
+  assert.ok(s.programs.some((p) => /\(ACT\)/.test(p.name)));
   assert.equal(s.users.length, 1);
   assert.equal(s.demo, false);
 });

@@ -2620,3 +2620,15 @@ Object.assign(french, {
   "Nothing planned.": "Rien de prévu.",
   "Only you can read your notes.": "Vous seul pouvez lire vos notes.",
 });
+
+// Simple secretary workspace.
+Object.assign(french, {
+  "WhatsApp number of the specialist warned at once":
+    "Numéro WhatsApp de la spécialiste prévenue tout de suite",
+});
+
+// Simple secretary workspace.
+Object.assign(french, {
+  "CIB card": "Carte CIB",
+  "Edahabia card": "Carte Edahabia",
+});

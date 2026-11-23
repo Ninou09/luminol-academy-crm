@@ -909,6 +909,15 @@ export async function handleIncoming(contactId, text, messageId) {
         });
     }
   });
+  // Severe distress: the referent specialist is warned on WhatsApp at once.
+  if (r.intent === "urgent" && s.crisis_alert_phone && whatsappConfigured()) {
+    const name =
+      one("SELECT name FROM contacts WHERE id=?", contactId)?.name || "";
+    await sendWhatsApp(
+      s.crisis_alert_phone,
+      `URGENT Luminol — ${name} a écrit un message de détresse : « ${text.slice(0, 200)} ». Ouvrez Messages dans le CRM.`,
+    ).catch((e) => console.error("Crisis alert:", e?.message));
+  }
   let reply = r.reply;
   if (
     !reply &&
@@ -1156,7 +1165,7 @@ export function installSmart(
       const b = req.body;
       const s = settings();
       run(
-        "UPDATE settings SET ai_enabled=?, ai_monthly_tokens=?, bot_mode=?, crisis_text=? WHERE id=1",
+        "UPDATE settings SET ai_enabled=?, ai_monthly_tokens=?, bot_mode=?, crisis_text=?, crisis_alert_phone=? WHERE id=1",
         b.ai_enabled === undefined ? s.ai_enabled : b.ai_enabled ? 1 : 0,
         b.ai_monthly_tokens === undefined
           ? s.ai_monthly_tokens
@@ -1165,6 +1174,9 @@ export function installSmart(
         b.crisis_text === undefined
           ? s.crisis_text
           : text(b.crisis_text, "Urgent message", 1000),
+        b.crisis_alert_phone === undefined
+          ? s.crisis_alert_phone
+          : text(b.crisis_alert_phone || "", "Phone", 40, false),
       );
       return { ok: true };
     },
