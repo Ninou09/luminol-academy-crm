@@ -2414,31 +2414,38 @@ export function SettingsPage() {
   const simple = ["secretary", "teacher"].includes(data.permissions.role);
   const tabs = simple
     ? ["My account"]
-    : [
-        "Workspace settings",
-        "Team & permissions",
-        "My account",
-        ...(data.permissions.editAdmissions ? ["Message templates"] : []),
-        ...(data.permissions.admin ? ["Online booking"] : []),
-        ...(data.permissions.admin
-          ? ["Data & import", "Journal", "Trash"]
-          : []),
-        ...(data.permissions.admin ? ["Scenarios"] : []),
-        ...(data.permissions.editAdmissions
-          ? ["Fields, tags & segments", "Forms"]
-          : []),
-        ...(["admin", "manager"].includes(data.user.role)
-          ? ["Document templates"]
-          : []),
-        ...(["admin", "manager"].includes(data.user.role)
-          ? ["Assistant & bot"]
-          : []),
-        ...(data.permissions.admin
-          ? ["Branches & access", "API & webhooks", "System status"]
-          : []),
-        "Integrations",
-        "Automation history",
-      ];
+    : data.permissions.role === "administrator"
+      ? [
+          "Team & permissions",
+          "My account",
+          "Message templates",
+          "Document templates",
+        ]
+      : [
+          "Workspace settings",
+          "Team & permissions",
+          "My account",
+          ...(data.permissions.editAdmissions ? ["Message templates"] : []),
+          ...(data.permissions.admin ? ["Online booking"] : []),
+          ...(data.permissions.admin
+            ? ["Data & import", "Journal", "Trash"]
+            : []),
+          ...(data.permissions.admin ? ["Scenarios"] : []),
+          ...(data.permissions.editAdmissions
+            ? ["Fields, tags & segments", "Forms"]
+            : []),
+          ...(["admin", "manager"].includes(data.user.role)
+            ? ["Document templates"]
+            : []),
+          ...(["admin", "manager"].includes(data.user.role)
+            ? ["Assistant & bot"]
+            : []),
+          ...(data.permissions.admin
+            ? ["Branches & access", "API & webhooks", "System status"]
+            : []),
+          "Integrations",
+          "Automation history",
+        ];
   const [tab, setTab] = useState(
     tabs.includes(pageFilter) ? pageFilter : tabs[0],
   );

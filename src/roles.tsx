@@ -1360,10 +1360,20 @@ function rangeOf(kind: Range, today: string, custom: [string, string]) {
   return { from: today.slice(0, 4) + "-01-01", to: today };
 }
 
+// The administrator sees a short dashboard: the figures she acts on.
+const shortTiles = [
+  "Money in",
+  "New clients",
+  "Requests that paid",
+  "Still to collect",
+  "No-shows",
+  "Requests waiting > 24 h",
+];
 export function Dashboard() {
   const { data, t, money, perform, toast, person, program, cohort, user } =
     useApp();
   const zone = data.settings.timezone;
+  const short = data.permissions.role === "administrator";
   const currency = data.settings.currency;
   const fmt = (n: number) => money(n, currency);
   const count = (n: number) => String(Math.round(n));
@@ -1888,129 +1898,141 @@ export function Dashboard() {
         )}
       </div>
       <div className="finance-kpis dashboard-kpis">
-        {tiles.map(([k, v, cls, key, good]) => (
-          <div key={k} className={`finance-kpi ${cls || ""}`}>
-            <span>{t(k)}</span>
-            <strong>{v}</strong>
-            {delta(key, good)}
-          </div>
-        ))}
+        {tiles
+          .filter(([k]) => !short || shortTiles.includes(k))
+          .map(([k, v, cls, key, good]) => (
+            <div key={k} className={`finance-kpi ${cls || ""}`}>
+              <span>{t(k)}</span>
+              <strong>{v}</strong>
+              {delta(key, good)}
+            </div>
+          ))}
       </div>
-      <Panel
-        title="Goals for this month"
-        action={
-          data.permissions.expenses && (
-            <Button
-              icon={<Target size={15} />}
-              onClick={() => setEditGoal(!editGoal)}
-            >
-              {t(goal ? "Change the goals" : "Set the goals")}
-            </Button>
-          )
-        }
-      >
-        {editGoal && (
-          <form
-            className="inline-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              try {
-                await perform("/goals", {
-                  month: data.today.slice(0, 7),
-                  revenue: Math.round(Number(goalForm.revenue || 0) * 100),
-                  new_clients: Number(goalForm.clients || 0),
-                });
-                setEditGoal(false);
-                toast(t("Changes saved"));
-              } catch (err: any) {
-                toast(err.message);
-              }
-            }}
+      {!short && (
+        <>
+          <Panel
+            title="Goals for this month"
+            action={
+              data.permissions.expenses && (
+                <Button
+                  icon={<Target size={15} />}
+                  onClick={() => setEditGoal(!editGoal)}
+                >
+                  {t(goal ? "Change the goals" : "Set the goals")}
+                </Button>
+              )
+            }
           >
-            <label className="field">
-              <span>
-                {t("Money in goal")} ({currency})
-              </span>
-              <input
-                type="number"
-                min="0"
-                value={goalForm.revenue}
-                onChange={(e) =>
-                  setGoalForm({ ...goalForm, revenue: e.target.value })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>{t("New clients goal")}</span>
-              <input
-                type="number"
-                min="0"
-                value={goalForm.clients}
-                onChange={(e) =>
-                  setGoalForm({ ...goalForm, clients: e.target.value })
-                }
-              />
-            </label>
-            <Button variant="primary" type="submit">
-              {t("Save")}
-            </Button>
-          </form>
-        )}
-        {goal ? (
-          <div className="goal-list">
-            <Goal
-              label={t("Money in")}
-              value={m.receivedMonth}
-              target={goal.revenue}
+            {editGoal && (
+              <form
+                className="inline-form"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await perform("/goals", {
+                      month: data.today.slice(0, 7),
+                      revenue: Math.round(Number(goalForm.revenue || 0) * 100),
+                      new_clients: Number(goalForm.clients || 0),
+                    });
+                    setEditGoal(false);
+                    toast(t("Changes saved"));
+                  } catch (err: any) {
+                    toast(err.message);
+                  }
+                }}
+              >
+                <label className="field">
+                  <span>
+                    {t("Money in goal")} ({currency})
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={goalForm.revenue}
+                    onChange={(e) =>
+                      setGoalForm({ ...goalForm, revenue: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span>{t("New clients goal")}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={goalForm.clients}
+                    onChange={(e) =>
+                      setGoalForm({ ...goalForm, clients: e.target.value })
+                    }
+                  />
+                </label>
+                <Button variant="primary" type="submit">
+                  {t("Save")}
+                </Button>
+              </form>
+            )}
+            {goal ? (
+              <div className="goal-list">
+                <Goal
+                  label={t("Money in")}
+                  value={m.receivedMonth}
+                  target={goal.revenue}
+                  format={fmt}
+                />
+                <Goal
+                  label={t("New clients")}
+                  value={monthNewClients}
+                  target={goal.new_clients}
+                  format={count}
+                />
+              </div>
+            ) : (
+              !editGoal && (
+                <p className="form-hint padded-hint">
+                  {t(
+                    "No goal yet. Example: 300 000 DA and 20 new clients this month.",
+                  )}
+                </p>
+              )
+            )}
+          </Panel>
+          <Panel
+            title="Money in and out, month by month"
+            subtitle="The last 12 months. Hover a month to see the figures."
+          >
+            <ColumnChart
+              labels={m.months.map(monthLabel)}
+              series={[
+                { name: "Money in", color: TEAL, values: m.moneyMonths.in },
+                { name: "Money out", color: AMBER, values: m.moneyMonths.out },
+              ]}
               format={fmt}
             />
-            <Goal
-              label={t("New clients")}
-              value={monthNewClients}
-              target={goal.new_clients}
-              format={count}
-            />
-          </div>
-        ) : (
-          !editGoal && (
-            <p className="form-hint padded-hint">
-              {t(
-                "No goal yet. Example: 300 000 DA and 20 new clients this month.",
-              )}
-            </p>
-          )
-        )}
-      </Panel>
-      <Panel
-        title="Money in and out, month by month"
-        subtitle="The last 12 months. Hover a month to see the figures."
-      >
-        <ColumnChart
-          labels={m.months.map(monthLabel)}
-          series={[
-            { name: "Money in", color: TEAL, values: m.moneyMonths.in },
-            { name: "Money out", color: AMBER, values: m.moneyMonths.out },
-          ]}
-          format={fmt}
-        />
-      </Panel>
+          </Panel>
+        </>
+      )}
       <div className="finance-split">
-        <Panel title="Money by activity">
-          <BarList items={m.byCat} format={fmt} />
-        </Panel>
-        <Panel title="Top 5 programmes">
-          <BarList items={m.topProg} format={fmt} />
-        </Panel>
-        <Panel title="New clients per week" subtitle="The last 12 weeks.">
-          <ColumnChart
-            labels={m.weeks.map((w) => w.slice(8, 10) + "/" + w.slice(5, 7))}
-            series={[
-              { name: "New clients", color: TEAL, values: m.clientsWeeks },
-            ]}
-            format={count}
-            height={130}
-          />
-        </Panel>
+        {!short && (
+          <>
+            <Panel title="Money by activity">
+              <BarList items={m.byCat} format={fmt} />
+            </Panel>
+            <Panel title="Top 5 programmes">
+              <BarList items={m.topProg} format={fmt} />
+            </Panel>
+            <Panel title="New clients per week" subtitle="The last 12 weeks.">
+              <ColumnChart
+                labels={m.weeks.map(
+                  (w) => w.slice(8, 10) + "/" + w.slice(5, 7),
+                )}
+                series={[
+                  { name: "New clients", color: TEAL, values: m.clientsWeeks },
+                ]}
+                format={count}
+                height={130}
+              />
+            </Panel>
+          </>
+        )}
         <Panel
           title="From request to payment"
           subtitle="Requests received in the period and how far they went."
@@ -2057,65 +2079,73 @@ export function Dashboard() {
           />
         </Panel>
       </div>
-      <Panel
-        title="Busiest times"
-        subtitle="Appointments and classes over the last 90 days, by day and hour. Darker = busier."
-      >
-        <Heatmap rows={m.heat} />
-      </Panel>
-      <Panel
-        title="Loyal clients"
-        subtitle="Share of paying clients who paid on two different days or more, and the 10 clients who paid the most in the period."
-      >
-        <div className="goal loyal-goal">
-          <div>
-            <span>
-              {Math.round(m.repeatRate * m.payers)} / {m.payers}{" "}
-              {t("paying clients came back")}
-            </span>
-            <strong>{pct(m.repeatRate)}</strong>
-          </div>
-          <div className="finance-track goal-track">
-            <i
-              style={{
-                width: `${Math.max(2, m.repeatRate * 100)}%`,
-                background: TEAL,
-              }}
+      {!short && (
+        <>
+          <Panel
+            title="Busiest times"
+            subtitle="Appointments and classes over the last 90 days, by day and hour. Darker = busier."
+          >
+            <Heatmap rows={m.heat} />
+          </Panel>
+          <Panel
+            title="Loyal clients"
+            subtitle="Share of paying clients who paid on two different days or more, and the 10 clients who paid the most in the period."
+          >
+            <div className="goal loyal-goal">
+              <div>
+                <span>
+                  {Math.round(m.repeatRate * m.payers)} / {m.payers}{" "}
+                  {t("paying clients came back")}
+                </span>
+                <strong>{pct(m.repeatRate)}</strong>
+              </div>
+              <div className="finance-track goal-track">
+                <i
+                  style={{
+                    width: `${Math.max(2, m.repeatRate * 100)}%`,
+                    background: TEAL,
+                  }}
+                />
+              </div>
+            </div>
+            <h3 className="panel-subtitle">{t("Top 10 clients")}</h3>
+            <div className="two-columns">
+              <BarList items={m.topClients.slice(0, 5)} format={fmt} />
+              <BarList items={m.topClients.slice(5)} format={fmt} empty=" " />
+            </div>
+          </Panel>
+          <Panel
+            title="Where clients come from and what advertising brings"
+            subtitle="Advertising spent = expenses in the “Advertising” category whose “Paid to” or description names the source (e.g. Instagram)."
+          >
+            <DataTable
+              rows={m.ads}
+              columns={[
+                { key: "name", label: "Source" },
+                { key: "leads", label: "Requests" },
+                { key: "clients", label: "Paying clients" },
+                {
+                  key: "revenue",
+                  label: "Revenue",
+                  render: (r) => fmt(r.revenue),
+                },
+                {
+                  key: "spend",
+                  label: "Advertising spent",
+                  render: (r) => (r.spend ? fmt(r.spend) : "—"),
+                },
+                {
+                  key: "cost",
+                  label: "Cost per client",
+                  render: (r) =>
+                    r.spend && r.clients ? fmt(r.spend / r.clients) : "—",
+                },
+              ]}
             />
-          </div>
-        </div>
-        <h3 className="panel-subtitle">{t("Top 10 clients")}</h3>
-        <div className="two-columns">
-          <BarList items={m.topClients.slice(0, 5)} format={fmt} />
-          <BarList items={m.topClients.slice(5)} format={fmt} empty=" " />
-        </div>
-      </Panel>
-      <Panel
-        title="Where clients come from and what advertising brings"
-        subtitle="Advertising spent = expenses in the “Advertising” category whose “Paid to” or description names the source (e.g. Instagram)."
-      >
-        <DataTable
-          rows={m.ads}
-          columns={[
-            { key: "name", label: "Source" },
-            { key: "leads", label: "Requests" },
-            { key: "clients", label: "Paying clients" },
-            { key: "revenue", label: "Revenue", render: (r) => fmt(r.revenue) },
-            {
-              key: "spend",
-              label: "Advertising spent",
-              render: (r) => (r.spend ? fmt(r.spend) : "—"),
-            },
-            {
-              key: "cost",
-              label: "Cost per client",
-              render: (r) =>
-                r.spend && r.clients ? fmt(r.spend / r.clients) : "—",
-            },
-          ]}
-        />
-      </Panel>
-      <WeeklyReportPanel />
+          </Panel>
+          <WeeklyReportPanel />
+        </>
+      )}
     </div>
   );
 }

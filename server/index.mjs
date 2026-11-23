@@ -729,7 +729,7 @@ function fullState(u) {
     ),
     flags,
     ...platformState(u, ids, permissions(u)),
-    predictions: ["admin", "manager", "admissions", "finance"].includes(u.role)
+    predictions: ["admin", "finance"].includes(u.role)
       ? predictions(ids)
       : null,
     kb: ["admin", "manager", "admissions"].includes(u.role)
