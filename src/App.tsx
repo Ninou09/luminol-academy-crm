@@ -150,18 +150,16 @@ const navByRole: Record<string, string[]> = {
     "Reports",
     "Predictions",
   ],
+  // Short and compact: the daily work, no analytics or predictions.
   administrator: [
     "Dashboard",
-    "My dashboard",
-    "Messages",
     "Admissions",
     "Students",
     "Calendar",
     "Attendance",
     "Programs & Cohorts",
     "Payments",
-    "Reports",
-    "Predictions",
+    "Messages",
   ],
   // As simple as possible: her day, her clients, the calendar.
   secretary: ["Today", "Students", "Calendar", "My dashboard"],
@@ -456,7 +454,13 @@ export default function App() {
   return (
     <AppContext.Provider value={context}>
       <div
-        className={`app-shell${["secretary", "teacher"].includes(roleKind) ? " simple" : ""}`}
+        className={`app-shell${
+          ["secretary", "teacher"].includes(roleKind)
+            ? " simple"
+            : roleKind === "administrator"
+              ? " compact"
+              : ""
+        }`}
       >
         <a className="skip-link" href="#main-content">
           {t("Overview")}
@@ -860,8 +864,8 @@ export default function App() {
           </div>
         )}
       </div>
-      {!["secretary", "teacher"].includes(roleKind) && <AssistantBubble />}
-      {!["secretary", "teacher"].includes(roleKind) && <Tour />}
+      {roleKind === "director" && <AssistantBubble />}
+      {roleKind === "director" && <Tour />}
     </AppContext.Provider>
   );
 }

@@ -9876,3 +9876,22 @@ html[data-theme="dark"] table.excel tbody tr:hover td {
   font-size: 16px;
   text-decoration: none;
 }
+
+/* ---------- Administrator: a short, compact workspace ---------- */
+.app-shell.compact .nav-item {
+  padding-block: 9px;
+  font-size: 15px;
+}
+.app-shell.compact .help-button {
+  display: none;
+}
+.app-shell.compact .panel,
+.app-shell.compact .sheet {
+  margin-bottom: 16px;
+}
+.app-shell.compact table.excel td {
+  padding: 8px 10px;
+}
+.app-shell.compact table.excel th {
+  padding: 8px 10px;
+}
