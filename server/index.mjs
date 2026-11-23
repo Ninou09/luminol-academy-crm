@@ -235,7 +235,10 @@ function contactAccess(u, id) {
   if (u.role === "instructor")
     must(
       one(
-        `SELECT e.id FROM enrollments e JOIN cohorts c ON c.id=e.cohort_id WHERE e.contact_id=? AND c.instructor_id=?`,
+        `SELECT e.id FROM enrollments e JOIN cohorts c ON c.id=e.cohort_id WHERE e.contact_id=? AND c.instructor_id=?
+         UNION SELECT a.id FROM appointments a WHERE a.contact_id=? AND a.staff_id=?`,
+        c.id,
+        u.id,
         c.id,
         u.id,
       ),
@@ -502,7 +505,12 @@ function fullState(u) {
   const instructor = u.role === "instructor";
   const contacts = instructor
     ? all(
-        "SELECT DISTINCT c.* FROM contacts c JOIN enrollments e ON e.contact_id=c.id JOIN cohorts h ON h.id=e.cohort_id WHERE h.instructor_id=?",
+        // A teacher sees the students of her groups and the clients booked
+        // with her (consultations booked by the secretary, for example).
+        `SELECT DISTINCT c.* FROM contacts c WHERE c.id IN (
+           SELECT e.contact_id FROM enrollments e JOIN cohorts h ON h.id=e.cohort_id WHERE h.instructor_id=?
+           UNION SELECT a.contact_id FROM appointments a WHERE a.staff_id=? AND a.contact_id IS NOT NULL)`,
+        u.id,
         u.id,
       )
     : all("SELECT * FROM contacts");

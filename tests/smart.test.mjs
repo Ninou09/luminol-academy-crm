@@ -507,3 +507,38 @@ test("the secretary sells an academy package without seeing its price", async ()
     ),
   );
 });
+
+test("a consultation booked by the secretary shows the client to the specialist", async () => {
+  const amel = await login("amel");
+  const sarahState = async (cookie) =>
+    (await request("/state", undefined, "GET", cookie)).json;
+  const st = await sarahState(amel);
+  const sarah = st.users.find((u) => u.name === "Dr. Sarah Amrani");
+  const client = await request(
+    "/contacts",
+    { name: "Client Consultation Test", phone: "+213 555 99 88 77" },
+    "POST",
+    amel,
+  );
+  assert.equal(client.status, 200, JSON.stringify(client.json));
+  const start = new Date(Date.now() + 3 * 86400000);
+  start.setUTCHours(9, 0, 0, 0);
+  const appt = await request(
+    "/appointments",
+    {
+      kind: "Consultation",
+      title: "Consultation",
+      contact_id: client.json.id,
+      staff_id: sarah.id,
+      starts_at: start.toISOString(),
+      ends_at: new Date(start.getTime() + 3600000).toISOString(),
+    },
+    "POST",
+    amel,
+  );
+  assert.equal(appt.status, 200, JSON.stringify(appt.json));
+  const teacher = await login("sarah");
+  const t = await sarahState(teacher);
+  assert.ok(t.appointments.some((a) => a.id === appt.json.id));
+  assert.ok(t.contacts.some((c) => c.id === client.json.id));
+});
