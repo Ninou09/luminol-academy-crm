@@ -3,6 +3,7 @@ import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { withDatabase, initializeDatabase, adminPassword } from "./db.mjs";
+import { applyOwnerData } from "./owner-data.mjs";
 
 /**
  * Execute each request against its own SQLite connection. Responses stay buffered
@@ -37,6 +38,12 @@ export function createHostedHandler(app, store) {
         .get().n;
       await withDatabase(connection, async () => {
         initializeDatabase();
+        // The owner's answers reach the hosted workspace on its next request.
+        try {
+          applyOwnerData();
+        } catch (error) {
+          console.error("Owner data:", error?.message);
+        }
         await new Promise((resolve, reject) => {
           res.write = (chunk, encoding, callback) => {
             if (chunk)
